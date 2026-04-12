@@ -5,6 +5,7 @@
 .nitro
 .cache
 dist
+.mdsite-runtime
 
 # Node dependencies
 node_modules
@@ -19,6 +20,7 @@ logs
 .idea
 
 # Local env files
+.env
 .env.*
 !.env.example
 

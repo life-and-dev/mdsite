@@ -2,51 +2,200 @@
 
 # MD-Site
 
-MD-Site is designed to be a flexible, file-based Markdown Static Site Generator (SSG) where content MD (Markdown) files are completely separated from the renderer (the Nuxt framework).
+> **Current status:** MD-Site is a **local-use CLI** (`mdsite`) from this repository's root package. It orchestrates the checked-in `mdsite-nuxt` renderer around a single `_mdsite.yml` file in your content directory.
 
-This project allow content creators to write standard Markdown files while MD-Site provide a robust, high-performance rendering engine that can be deployed in any environment that support static webpages (like Cloudflare or GitHub Pages).
+## Current workflow
 
-## Benefits
+Use the CLI from the root package, then operate on your markdown project directory:
 
-- ⚡ **Performance**: Pre-rendered HTML files load near-instantly via CDN without database overhead.
-- 🛡️ **Security**: No database or server-side vulnerabilities, significantly reducing attack risks.
-- 📈 **Scalability**: Handles high traffic effortlessly without expensive infrastructure.
-- 🔄 **Versioning**: Content is stored in Git, allowing for easy tracking, reviews, and rollbacks.
-- ✅ **Reliability**: No "database connection errors"—if the static file exists, the site works.
-- 💰 **Lower Costs**: Static hosting is significantly cheaper (often free) than dynamic hosting.
+1. Build the local CLI in this repository.
+2. Change into the markdown/content directory you want to serve.
+3. Invoke the built CLI from this repository path, or use a local alias/link that points to it.
+4. Run `init` once to create `_mdsite.yml`.
+5. Run `start` for local development.
+6. Run `generate` to build static output.
+7. Run `preview` after `generate` for a local preview.
+8. Run `stop` to stop tracked background `start` and `preview` processes.
 
-## Features
-- 📝 **[Markdown Reference](docs/markdown.md)**: Support for GFM alerts, Material Design styled blockquotes, and automatic Table of Contents.
-- 🛠️ **[Menu Configuration](docs/menu.md)**: Support for flexible navigation structures including nested dropdowns and external links.
-- 🎨 **[Theme Configuration](docs/theme.md)**: Customizable look and feel with color tokens and automatic dark mode support.
-- 🖼️ **[Generating Favicons](docs/favicon.md)**: Automated generation of all browser and mobile favicons from a single SVG logo.
-- 🔍 **[Search & Indexing](docs/architecture.md)**: Pre-calculated JSON indices for lightning-fast client-side search.
-- 📖 **[Bible Verse Tooltips](docs/features/bible-tooltips.md)**: Automatic detection and enhancement of scripture references with interactive tooltips.
-- 📝 **[Source Edit](docs/features/source-edit.md)**: Add "Edit on GitHub" links to your content.
-- 🏗️ **[Project Architecture](docs/architecture.md)**: Decoupled design separating content from the rendering engine for maximum flexibility.
-- 🧪 **[Automated Testing](docs/tests.md)**: Comprehensive E2E test suite using Playwright.
-- 🚀 **[Deployment](docs/deploy.md)**: Optimized deployment to static hosting platforms like Cloudflare Pages.
+Legacy root workflows such as `npm start`, `npm run generate`, and `npm run preview` are **not** the supported user workflow anymore.
 
-## Getting Started
+## Implemented commands
 
-The most common way to start the project is using the `npm start` command.
-
-For example to start the documentation site located in the `/docs` directory of this project:
-
-```bash
-npm start
+```text
+mdsite help
+mdsite init
+mdsite start
+mdsite generate
+mdsite preview
+mdsite stop
 ```
 
-By running this command, you should see this documentation site running at `http://localhost:3000`.
+All commands operate on the **current working directory** as the content/project directory.
 
-## Production Deployment
+## Minimum local setup
+
+This repository currently documents a **local-only** workflow:
 
 ```bash
-npm run generate
+# in this repository
+npm install
+npm run build
+
+# invoke the built CLI directly from the repo path
+node /path/to/md-site/dist/index.js help
 ```
 
-This will generate static HTML files in the `.output/public` directory.
+If you create a local shell alias or link for that built file, the shorter `mdsite ...` examples below refer to that local alias/link.
 
-## Demo & Documentation
+For example, without any alias:
 
-For a demonstration or more detailed installation and setup instructions, please refer to the [MD Site Documentation](https://life-and-dev.github.io/md-site/) is hosted using this same project.
+```bash
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js help
+```
+
+## Supported CLI flow
+
+### 1. Initialize a content directory
+
+```bash
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js init
+```
+
+`init` creates `_mdsite.yml` in the current directory and derives defaults from local markdown files.
+
+### 2. Start local development
+
+```bash
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js start
+```
+
+`start` requires `_mdsite.yml`, prepares renderer compatibility files, installs renderer dependencies when `node_modules` is missing, and starts the renderer in the background.
+
+### 3. Generate static output
+
+```bash
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js generate
+```
+
+`generate` requires `_mdsite.yml` and writes the generated site to `server.output` under the content directory.
+
+### 4. Preview generated output
+
+```bash
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js preview
+```
+
+`preview` is a **post-generate** local preview step. It requires `_mdsite.yml` and an existing generated renderer build.
+
+### 5. Stop background processes
+
+```bash
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js stop
+```
+
+`stop` is intended for initialized content directories and stops tracked `start` and `preview` background processes for the current content directory.
+
+## Renderer resolution
+
+Renderer resolution is currently **local-only**:
+
+- If `_mdsite.yml` sets `server.path`, the CLI first looks for that path **relative to the content directory**.
+- If that directory is not present, the CLI falls back to the checked-in repository renderer at `mdsite-nuxt/`.
+- If the renderer's `node_modules` directory is missing, the CLI runs `npm install` in the renderer directory.
+
+Current documentation does **not** describe clone/pull behavior as active usage.
+
+## Expected content project layout
+
+Before initialization:
+
+```text
+your-content/
+├── index.md
+└── other-pages.md
+```
+
+After `mdsite init` and `mdsite generate`:
+
+```text
+your-content/
+├── _mdsite.yml
+├── _menu.yml                # orchestration/compatibility artifact
+├── .mdsite-runtime/         # created when tracked background processes are started
+├── .output/                 # created by mdsite generate, or server.output
+├── index.md
+└── other-pages.md
+```
+
+The CLI also writes renderer compatibility/runtime files such as `_menu.yml`, `.mdsite-runtime/`, and renderer env/config files as part of orchestration.
+
+## Migration notes for existing users
+
+If you previously used the legacy root workflow:
+
+- Replace `npm start` with `node /path/to/md-site/dist/index.js start`.
+- Replace `npm run generate` with `node /path/to/md-site/dist/index.js generate`.
+- Replace `npm run preview` with `node /path/to/md-site/dist/index.js preview` after `node /path/to/md-site/dist/index.js generate`.
+- Replace legacy root/domain config assumptions with a single `_mdsite.yml` in the content directory.
+- Treat `content.config.yml` and domain-specific `*.config.yml` files as legacy reference, not current setup.
+- Keep custom markdown content, menus, and theme values, but move current configuration intent into `_mdsite.yml`.
+
+## Troubleshooting
+
+### `_mdsite.yml` is missing
+
+If `start`, `generate`, `preview`, or `stop` are not behaving as expected, first confirm you are in the intended content directory and that `_mdsite.yml` exists there:
+
+```bash
+node /path/to/md-site/dist/index.js init
+```
+
+### Renderer directory issues
+
+- If `server.path` is set, confirm it points to a renderer directory relative to the content directory.
+- If that path does not exist, the CLI falls back to the checked-in `mdsite-nuxt` directory in this repository.
+- If neither renderer location exists, the CLI cannot run.
+
+### Renderer dependencies missing
+
+If the renderer has no `node_modules`, the CLI runs `npm install` in the renderer directory automatically. If that install fails, fix the renderer dependency issue and rerun the command.
+
+### Preview fails
+
+Run `node /path/to/md-site/dist/index.js generate` first. `preview` requires an existing generated renderer build.
+
+### Config problems
+
+- `_mdsite.yml` must be valid YAML.
+- `server.output` is resolved under the content directory.
+- `server.path` is resolved relative to the content directory.
+- If `favicon` is configured, the referenced file must exist.
+
+## Deferred follow-up items
+
+The following work is still deferred and is **not** documented as current behavior:
+
+- `prepare github`
+- renderer clone/pull flows via `server.repo`
+- npm packaging and publishing hardening
+- true git submodule conversion
+- advanced migration utilities
+- broad backward-compatibility bridges
+- performance tuning and benchmarking
+- full release management and distribution hardening
+
+These remain follow-up items from `.kiro/specs/cli-migration/tasks.md` and `.kiro/specs/cli-migration/requirements.md`, not part of the current supported workflow.
+
+## Legacy reference
+
+`LEGACY.md` remains available as **reference-only** documentation for the previous monolithic Nuxt workflow.
+
+## Additional project documentation
+
+The renderer and feature documentation in `docs/` remains useful for content/rendering context, but root command examples should be interpreted through the current CLI-first workflow above.
