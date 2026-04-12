@@ -1,6 +1,5 @@
-import { access, copyFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import { access, copyFile, mkdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import YAML from 'yaml'
 
@@ -8,22 +7,19 @@ import type { MdsiteConfig } from '../config/mdsite-config.js'
 import { generateMenuFromMarkdownFiles } from '../config/menu.js'
 import { runForeground, runBackground } from '../process/child-process.js'
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const checkedInRendererDir = path.join(repoRoot, 'mdsite-nuxt')
-
 interface PreparedRenderer {
   rendererDir: string
   rendererEnv: NodeJS.ProcessEnv
 }
 
 export async function prepareRenderer(contentDir: string, config: MdsiteConfig): Promise<PreparedRenderer> {
-  const rendererDir = await resolveRendererDir(contentDir, config)
+  const rendererDir = await ensureRendererDir(contentDir, config)
 
   return prepareRendererEnvironment(contentDir, config, rendererDir)
 }
 
 export async function prepareConfiguredRenderer(contentDir: string, config: MdsiteConfig): Promise<PreparedRenderer> {
-  const rendererDir = await resolveConfiguredRendererDir(contentDir, config)
+  const rendererDir = await ensureRendererDir(contentDir, config)
 
   return prepareRendererEnvironment(contentDir, config, rendererDir)
 }
@@ -91,17 +87,14 @@ export function getRendererGeneratedOutputPath(rendererDir: string): string {
   return path.join(rendererDir, '.output', 'public')
 }
 
-async function resolveRendererDir(contentDir: string, config: MdsiteConfig): Promise<string> {
+async function ensureRendererDir(contentDir: string, config: MdsiteConfig): Promise<string> {
   const configuredRendererDir = path.resolve(contentDir, config.server.path)
 
-  // Phase 1 uses the checked-in renderer when a configured renderer checkout is not present yet.
-  const rendererDir = await pathExists(configuredRendererDir) ? configuredRendererDir : checkedInRendererDir
-
-  if (!await pathExists(rendererDir)) {
-    throw new Error(`Renderer directory not found at ${rendererDir}. Expected checked-in mdsite-nuxt renderer.`)
+  if (!await pathExists(configuredRendererDir)) {
+    await acquireRenderer(configuredRendererDir, config.server.repo)
   }
 
-  return rendererDir
+  return resolveConfiguredRendererDir(contentDir, config)
 }
 
 async function resolveConfiguredRendererDir(contentDir: string, config: MdsiteConfig): Promise<string> {
@@ -119,6 +112,11 @@ async function resolveConfiguredRendererDir(contentDir: string, config: MdsiteCo
   }
 
   return rendererDir
+}
+
+async function acquireRenderer(rendererDir: string, repoUrl: string): Promise<void> {
+  await mkdir(path.dirname(rendererDir), { recursive: true })
+  await runForeground('git', ['clone', repoUrl, rendererDir], process.cwd(), process.env)
 }
 
 async function ensureMenuFile(contentDir: string, config: MdsiteConfig): Promise<void> {

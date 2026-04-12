@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('node:fs/promises', () => ({
   access: vi.fn(),
   copyFile: vi.fn(),
+  mkdir: vi.fn(),
   rm: vi.fn(),
   stat: vi.fn(),
   symlink: vi.fn(),
@@ -21,7 +22,7 @@ vi.mock('../process/child-process.js', () => ({
   runBackground: vi.fn()
 }))
 
-import { access, copyFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import { access, copyFile, mkdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 
 import { generateMenuFromMarkdownFiles } from '../config/menu.js'
 import { runBackground, runForeground } from '../process/child-process.js'
@@ -39,6 +40,7 @@ import {
 
 const accessMock = vi.mocked(access)
 const copyFileMock = vi.mocked(copyFile)
+const mkdirMock = vi.mocked(mkdir)
 const rmMock = vi.mocked(rm)
 const statMock = vi.mocked(stat)
 const symlinkMock = vi.mocked(symlink)
@@ -89,12 +91,12 @@ describe('mdsite-nuxt renderer helpers', () => {
       expect.stringContaining(`NUXT_CONTENT_PATH=${JSON.stringify(contentDir)}`),
       'utf8'
     )
+    expect(runForegroundMock).not.toHaveBeenCalled()
   })
 
-  it('falls back to the checked-in renderer when the configured renderer dir is absent', async () => {
+  it('clones the configured renderer repo into server.path when the renderer dir is absent', async () => {
     const contentDir = '/workspace/content'
     const configuredRendererDir = path.resolve(contentDir, '.renderer')
-    const checkedInRendererDir = path.resolve(process.cwd(), 'mdsite-nuxt')
 
     accessMock.mockImplementation(async (targetPath) => {
       if (targetPath === configuredRendererDir) {
@@ -104,20 +106,38 @@ describe('mdsite-nuxt renderer helpers', () => {
 
     const prepared = await prepareRenderer(contentDir, { ...baseConfig, menu: ['docs/getting-started'] })
 
-    expect(prepared.rendererDir).toBe(checkedInRendererDir)
+    expect(prepared.rendererDir).toBe(configuredRendererDir)
+    expect(mkdirMock).toHaveBeenCalledWith(path.dirname(configuredRendererDir), { recursive: true })
+    expect(runForegroundMock).toHaveBeenCalledWith('git', ['clone', 'repo', configuredRendererDir], process.cwd(), process.env)
     expect(writeFileMock).toHaveBeenCalledWith(path.join(contentDir, '_menu.yml'), '- docs/getting-started\n', 'utf8')
   })
 
-  it('prepareConfiguredRenderer resolves the configured renderer dir without checking the repo fallback', async () => {
+  it('uses an existing configured renderer dir as-is without clone or refresh commands', async () => {
     const contentDir = '/workspace/content'
     const configuredRendererDir = path.resolve(contentDir, '.renderer')
+
+    const prepared = await prepareRenderer(contentDir, baseConfig)
+
+    expect(prepared.rendererDir).toBe(configuredRendererDir)
+    expect(mkdirMock).not.toHaveBeenCalled()
+    expect(runForegroundMock).not.toHaveBeenCalled()
+  })
+
+  it('prepareConfiguredRenderer resolves the configured renderer dir by checking only the configured path', async () => {
+    const contentDir = '/workspace/content'
+    const configuredRendererDir = path.resolve(contentDir, '.renderer')
+    const checkedInRendererDir = path.resolve(contentDir, 'mdsite-nuxt')
 
     const prepared = await prepareConfiguredRenderer(contentDir, baseConfig)
 
     expect(prepared.rendererDir).toBe(configuredRendererDir)
+    expect(accessMock).toHaveBeenCalledWith(configuredRendererDir)
+    expect(accessMock).toHaveBeenCalledTimes(1)
     expect(statMock).toHaveBeenCalledWith(configuredRendererDir)
     expect(statMock).toHaveBeenCalledTimes(1)
-    expect(accessMock).not.toHaveBeenCalled()
+    expect(accessMock).not.toHaveBeenCalledWith(checkedInRendererDir)
+    expect(mkdirMock).not.toHaveBeenCalled()
+    expect(runForegroundMock).not.toHaveBeenCalled()
   })
 
   it('prepareConfiguredRenderer throws when the configured renderer directory is missing', async () => {
@@ -142,20 +162,18 @@ describe('mdsite-nuxt renderer helpers', () => {
     )
   })
 
-  it('throws an actionable error when neither the configured nor checked-in renderer directory exists', async () => {
+  it('surfaces clone failures when the configured renderer directory is missing', async () => {
     const contentDir = '/workspace/content'
     const configuredRendererDir = path.resolve(contentDir, '.renderer')
-    const checkedInRendererDir = path.resolve(process.cwd(), 'mdsite-nuxt')
 
     accessMock.mockImplementation(async (targetPath) => {
-      if (targetPath === configuredRendererDir || targetPath === checkedInRendererDir) {
+      if (targetPath === configuredRendererDir) {
         throw new Error('missing renderer')
       }
     })
+    runForegroundMock.mockRejectedValueOnce(new Error('clone failed'))
 
-    await expect(prepareRenderer(contentDir, baseConfig)).rejects.toThrow(
-      `Renderer directory not found at ${checkedInRendererDir}. Expected checked-in mdsite-nuxt renderer.`
-    )
+    await expect(prepareRenderer(contentDir, baseConfig)).rejects.toThrow('clone failed')
   })
 
   it('throws when the configured favicon file does not exist', async () => {

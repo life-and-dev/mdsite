@@ -144,6 +144,10 @@ describe('command helpers', () => {
     await expect(runStartCommand('/content')).resolves.toBe(
       'mdsite start running in background (PID 777). Log: /content/.mdsite-runtime/start.log'
     )
+    expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(prepareRendererMock).toHaveBeenCalledWith('/content', loadedConfig.config)
+    expect(prepareRendererMock.mock.invocationCallOrder[0]).toBeGreaterThan(loadConfigMock.mock.invocationCallOrder[0] ?? 0)
+    expect(ensureRendererDependenciesMock.mock.invocationCallOrder[0]).toBeGreaterThan(prepareRendererMock.mock.invocationCallOrder[0] ?? 0)
     expect(ensureRendererDependenciesMock).toHaveBeenCalledWith('/renderer')
     expect(writeRuntimeStateMock).toHaveBeenCalledWith('/content', expect.objectContaining({
       kind: 'start',
@@ -163,6 +167,10 @@ describe('command helpers', () => {
     await expect(runPreviewCommand('/content')).resolves.toBe(
       'mdsite preview running in background (PID 888). Log: /content/.mdsite-runtime/preview.log'
     )
+    expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(prepareRendererMock).toHaveBeenCalledWith('/content', loadedConfig.config)
+    expect(prepareRendererMock.mock.invocationCallOrder[0]).toBeGreaterThan(loadConfigMock.mock.invocationCallOrder[0] ?? 0)
+    expect(ensureRendererDependenciesMock.mock.invocationCallOrder[0]).toBeGreaterThan(prepareRendererMock.mock.invocationCallOrder[0] ?? 0)
     expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
     expect(ensurePreviewArtifactsMock.mock.invocationCallOrder[0]).toBeGreaterThan(ensureRendererDependenciesMock.mock.invocationCallOrder[0] ?? 0)
     expect(writeRuntimeStateMock).toHaveBeenCalledWith('/content', expect.objectContaining({
@@ -176,7 +184,12 @@ describe('command helpers', () => {
   it('runGenerateCommand syncs renderer output to the configured destination', async () => {
     await expect(runGenerateCommand('/content')).resolves.toBe('Generated site synced to /content/public')
 
+    expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(prepareRendererMock).toHaveBeenCalledWith('/content', loadedConfig.config)
+    expect(prepareRendererMock.mock.invocationCallOrder[0]).toBeGreaterThan(loadConfigMock.mock.invocationCallOrder[0] ?? 0)
+    expect(ensureRendererDependenciesMock.mock.invocationCallOrder[0]).toBeGreaterThan(prepareRendererMock.mock.invocationCallOrder[0] ?? 0)
     expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
+    expect(generateRendererMock.mock.invocationCallOrder[0]).toBeGreaterThan(ensureRendererDependenciesMock.mock.invocationCallOrder[0] ?? 0)
     expect(rmMock).toHaveBeenCalledWith('/content/public', { recursive: true, force: true })
     expect(cpMock).toHaveBeenCalledWith('/renderer/.output/public', '/content/public', { recursive: true, force: true })
   })

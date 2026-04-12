@@ -180,7 +180,7 @@ function createDefaultMdsiteConfig(siteName: string): MdsiteConfig {
     server: {
       output: '.output',
       path: '.mdsite',
-      repo: 'https://github.com/life-and-dev/mdsite'
+      repo: 'https://github.com/life-and-dev/mdsite-nuxt'
     },
     site: {
       canonical: '',

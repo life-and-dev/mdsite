@@ -2,11 +2,11 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { loadMdsiteConfig, resolveContentOutputPath } from '../config/mdsite-config.js'
-import { ensureRendererDependencies, prepareConfiguredRenderer, prepareRendererBackend } from '../renderer/mdsite-nuxt.js'
+import { ensureRendererDependencies, prepareRenderer, prepareRendererBackend } from '../renderer/mdsite-nuxt.js'
 
 export async function runPrepareGithubCommand(contentDir: string): Promise<string> {
   const { config } = await loadMdsiteConfig(contentDir)
-  const { rendererDir, rendererEnv } = await prepareConfiguredRenderer(contentDir, config)
+  const { rendererDir, rendererEnv } = await prepareRenderer(contentDir, config)
 
   await ensureRendererDependencies(rendererDir)
   await prepareRendererBackend(rendererDir, rendererEnv)
@@ -19,10 +19,9 @@ export async function runPrepareGithubCommand(contentDir: string): Promise<strin
 }
 
 function buildGithubWorkflow(contentDir: string, config: Awaited<ReturnType<typeof loadMdsiteConfig>>['config']): string {
-  const rendererPath = path.posix.normalize(config.server.path.replace(/\\/g, '/'))
   const outputPath = path.posix.normalize(path.relative(contentDir, resolveContentOutputPath(contentDir, config)).replace(/\\/g, '/'))
   const workflowName = `Deploy ${config.site.name} to GitHub Pages`
-  const artifactPath = `./${outputPath}/public`
+  const artifactPath = `./${outputPath}`
 
   return [
     `name: ${JSON.stringify(workflowName)}`,
@@ -44,10 +43,6 @@ function buildGithubWorkflow(contentDir: string, config: Awaited<ReturnType<type
     'jobs:',
     '  build:',
     '    runs-on: ubuntu-latest',
-    '    env:',
-    '      NUXT_CONTENT_PATH: "${{ github.workspace }}"',
-    '      CONTENT_DIR: "${{ github.workspace }}"',
-    '      MDSITE_CONFIG_PATH: "${{ github.workspace }}/_mdsite.yml"',
     '    steps:',
     '      - name: Checkout',
     '        uses: actions/checkout@v4',
@@ -57,30 +52,20 @@ function buildGithubWorkflow(contentDir: string, config: Awaited<ReturnType<type
     '        with:',
     '          node-version: "20"',
     '          cache: npm',
-    `          cache-dependency-path: ${JSON.stringify(`${rendererPath}/package-lock.json`)}`,
+    '          cache-dependency-path: package-lock.json',
     '',
     '      - name: Setup Pages',
     '        id: pages',
     '        uses: actions/configure-pages@v5',
     '',
-    '      - name: Restore cache',
-    '        uses: actions/cache@v4',
-    '        with:',
-    '          path: |',
-    `            ${rendererPath}/node_modules`,
-    `            ${rendererPath}/.nuxt`,
-    `            ${rendererPath}/.output`,
-    "          key: ${{ runner.os }}-nuxt-build-${{ hashFiles('" + rendererPath + "/package-lock.json') }}",
-    '          restore-keys: |',
-    '            ${{ runner.os }}-nuxt-build-',
+    '      - name: Install CLI dependencies',
+    '        run: npm ci',
     '',
-    '      - name: Install dependencies',
-    `        working-directory: ${rendererPath}`,
-    '        run: npm install',
+    '      - name: Build CLI',
+    '        run: npm run build',
     '',
     '      - name: Generate static site',
-    `        working-directory: ${rendererPath}`,
-    '        run: npm run generate',
+    '        run: node dist/index.js generate',
     '        env:',
     '          NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}',
     '',

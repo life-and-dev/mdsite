@@ -8,6 +8,7 @@ The active stabilization target is a local-use CLI that orchestrates `mdsite-nux
 
 - Breaking changes are acceptable during Phase 1 stabilization.
 - The required commands for current stability are `init`, `start`, and `generate`.
+- `prepare github` is part of the supported deployment workflow for GitHub Pages during Phase 1.
 - `stop` and `preview` only need enough support to avoid broken local workflows during Phase 1.
 - Legacy root workflows are deprecated and should be treated as reference-only.
 
@@ -15,7 +16,6 @@ The active stabilization target is a local-use CLI that orchestrates `mdsite-nux
 
 - Npm release hardening is deferred until local workflows are reliable.
 - True git submodule conversion is deferred until local workflows are reliable.
-- `prepare github` is deferred and is not part of active Phase 1 scope.
 - Global npm distribution goals remain later-phase work, not the current stabilization target.
 
 # Usage
@@ -121,7 +121,7 @@ When you use left the menu property blank, it should automatically generate the 
 
 When the user type `mdsite start`, it should:
 
-1. Clone/pull the repo defined in `_mdsite.yml` server.repo to server.path
+1. Resolve `server.path` relative to the content directory, and if that path does not exist clone the repo defined in `_mdsite.yml` `server.repo` there
 2. Setup `.env` in the server.path directory to point back to this directory for the content, by settings a `NUXT_CONTENT_PATH` environment variable.
 3. Run `npm install` in the server.path directory
 4. Run `npm run favicon` in the server.path directory which should regenerate the favicon based on the favicon property in `_mdsite.yml` (only if the favicon property is set and if the favicons is not already generated in {server.path}/public ). See scripts/generate-favicons.ts for implementation details. Favicons should be generated in {server.path}/public/
@@ -142,13 +142,13 @@ For Phase 1 stabilization, this command only needs enough support to avoid broke
 
 When the user type `mdsite generate`, it should:
 
-1. Clone/pull the repo defined in `_mdsite.yml` server.repo to server.path
+1. Resolve `server.path` relative to the content directory, and if that path does not exist clone the repo defined in `_mdsite.yml` `server.repo` there
 2. Setup `.env` in the server.path directory to point back to this directory for the content, by settings a `NUXT_CONTENT_PATH` environment variable.
 3. Run `npm install` in the server.path directory
 4. Run `npm run favicon` in the server.path directory which should regenerate the favicon based on the favicon property in `_mdsite.yml` (only if the favicon property is set and if the favicons is not already generated in {server.path}/public ). See scripts/generate-favicons.ts for implementation details. Favicons should be generated in {server.path}/public/
 5. Run `npm run indices` in the server.path directory which should regenerate the indices based on the menu property in `_mdsite.yml`. See scripts/generate-indices.ts for implementation details. Indices should be generated in {server.path}/public/
 6. Run `npm run generate` in the server.path directory which should generate the static files for the Nuxt application and use `NUXT_CONTENT_PATH` to find the markdown content and the _mdsite.yml file for additional configuration, like theme colors, menu, etc. Base the implementation on the current scripts/start.ts file.
-7. The generate script should honor the server.output property and generate the static files in that directory.
+7. The generate script should honor the server.output property by syncing the renderer `.output/public` files into that directory under the content directory.
 
 ## preview command
 
@@ -160,14 +160,12 @@ For Phase 1 stabilization, this command only needs enough support to avoid broke
 
 ## prepare github command
 
-Deferred / post-stabilization only. This is not part of the active Phase 1 architecture scope.
-
 Use the current .github/workflows/deploy.yml file as an example to generate a deploy.yml template file which accept variables. This should enable the user to generate github pages workflows.
 
 When the user type `mdsite prepare github`, it should:
 
-1. Run `npm run prepare github` in the server.path directory which should prepare the github pages deployment.
-2. This should generate .github/workflows/deploy.yml file in the _mdsite.yml directory based on the above mentioned template.
+1. Generate `.github/workflows/deploy.yml` in the `_mdsite.yml` directory based on the above mentioned template.
+2. The generated workflow should build the CLI, run `node dist/index.js generate`, upload the generated output from `server.output`, and deploy it with GitHub Pages actions.
 3. The correct variables should be substituted in the deploy.yml file so that the user should be able to push his content repo to github and it should deploy the expected github pages based on the md content using the mdsite util and nuxt system.
 
 # Project structure
@@ -216,8 +214,9 @@ As a user, I should be able:
 
 For Phase 1, treat the local workflows above as the active stabilization target, with npm publication and true submodule conversion deferred.
 
+The generated static output from `mdsite generate` is also the deployment artifact for generic static hosting such as Cloudflare Pages.
+
 ## Deferred / post-stabilization expected outcome
 
 - `npm install -g mdsite` global distribution
-- `mdsite prepare github`
 - True git submodule conversion as part of the final repository structure

@@ -2,20 +2,22 @@
 
 This file provides guidance to AI agents when working with code in this repository.
 
-<!-- Last updated: 2026-04-10 -->
+<!-- Last updated: 2026-04-12 -->
 
 ## Project Status: CLI-FIRST STABILIZATION
 
-**IMPORTANT**: User-facing documentation must describe the currently implemented local-use CLI workflow, not the former monolithic root workflow.
+**IMPORTANT**: User-facing documentation must describe the currently implemented CLI workflow, including local development and supported static deployment behavior, not the former monolithic root workflow.
 
 ## Active Stabilization Target
 
 The current Phase 1 target is a local-use CLI (`mdsite`) from the root package that orchestrates `mdsite-nuxt` via `_mdsite.yml`.
 
-- Implemented commands: `help`, `init`, `start`, `generate`, `preview`, `stop`
+- Implemented commands: `help`, `init`, `start`, `generate`, `preview`, `stop`, and `prepare github`
 - `init` creates `_mdsite.yml` in the current working directory and derives defaults from local markdown files
 - `start`, `generate`, `preview`, and `stop` operate on the current working directory as the content/project directory
 - `start`, `generate`, `preview`, and `stop` are documented for initialized content directories using `_mdsite.yml`
+- `generate` packages the static site into `server.output` under the content directory for static hosting
+- `prepare github` generates a GitHub Pages workflow in the content directory
 - `preview` is a post-`generate` local preview step
 - `stop` stops tracked `start` and `preview` background processes
 - Breaking changes are acceptable during this stabilization period
@@ -36,7 +38,7 @@ The current Phase 1 target is a local-use CLI (`mdsite`) from the root package t
 - Use TypeScript for all new code
 - Focus on orchestrating the Nuxt submodule, not duplicating its functionality
 - Prioritize reliable local workflows over publish/release hardening
-- Keep docs truthful to implemented behavior: local renderer resolution only, no current clone/pull workflow docs
+- Keep docs truthful to implemented behavior: document `mdsite generate` static deployment output, GitHub Pages workflow generation, and renderer acquisition as currently implemented
 
 ### Legacy Reference
 The previous version of this project (Nuxt-based monolithic SSG) is documented in `LEGACY.md`. This documentation describes how the project used to work and can be used as reference for understanding the existing codebase during the transition, but should NOT guide new development. Legacy root workflows are deprecated and reference-only.
@@ -58,8 +60,9 @@ The previous version of this project (Nuxt-based monolithic SSG) is documented i
 - All rendering logic stays in the Nuxt submodule
 - Configuration format changes from multiple YAML files to single `_mdsite.yml`
 - Process management for starting/stopping Nuxt dev/preview servers
-- Renderer resolution is local-only for now: use `server.path` relative to the content dir if present, otherwise fall back to checked-in `mdsite-nuxt`
+- Renderer resolution uses `server.path` relative to the content dir; if that path is missing, clone `server.repo` there
 - If renderer `node_modules` is missing, the CLI runs `npm install` in the renderer directory
 - `generate` syncs built output into `server.output` under the content dir
+- Document GitHub Pages via `prepare github` and generic static hosting from `generate` output, including Cloudflare Pages
 - The CLI writes compatibility/runtime artifacts such as `_menu.yml`, `.mdsite-runtime/`, and renderer env/config files
-- Git submodule management, clone/pull flows, and release hardening are post-stabilization concerns
+- Git submodule management, npm release hardening, and true submodule conversion are post-stabilization concerns

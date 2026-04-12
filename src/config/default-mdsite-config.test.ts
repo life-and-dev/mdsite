@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createDefaultMdsiteConfig } from './default-mdsite-config.js'
 
 describe('createDefaultMdsiteConfig', () => {
-  it('builds the expected default shape with provided site name and menu', () => {
+  it('builds the expected default shape with renderer acquisition defaults', () => {
     const menu = ['guide/getting-started', { Docs: ['guide/advanced'] }]
 
     const config = createDefaultMdsiteConfig('My Site', menu)
@@ -18,7 +18,7 @@ describe('createDefaultMdsiteConfig', () => {
       server: {
         output: '.output',
         path: '.mdsite',
-        repo: 'https://github.com/life-and-dev/mdsite'
+        repo: 'https://github.com/life-and-dev/mdsite-nuxt'
       },
       site: {
         canonical: '',

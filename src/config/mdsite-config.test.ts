@@ -94,7 +94,7 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.server).toEqual({
       output: 'dist/public',
       path: '.renderer',
-      repo: 'https://github.com/life-and-dev/mdsite'
+      repo: 'https://github.com/life-and-dev/mdsite-nuxt'
     })
     expect(loaded.config.site).toEqual({
       canonical: 'https://example.test',

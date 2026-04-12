@@ -22,7 +22,7 @@ Usage:
 
 Commands:
   init      Create _mdsite.yml in the current directory
-  start     Start the checked-in mdsite-nuxt renderer for local content
+  start     Start the configured mdsite-nuxt renderer for local content
   generate  Build static output through mdsite-nuxt
   preview   Preview the generated site through mdsite-nuxt
   stop      Stop tracked start and preview processes

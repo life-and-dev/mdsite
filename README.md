@@ -2,7 +2,7 @@
 
 # MD-Site
 
-> **Current status:** MD-Site is a **local-use CLI** (`mdsite`) from this repository's root package. It orchestrates the checked-in `mdsite-nuxt` renderer around a single `_mdsite.yml` file in your content directory.
+> **Current status:** MD-Site is a CLI (`mdsite`) from this repository's root package. It orchestrates the `mdsite-nuxt` renderer around a single `_mdsite.yml` file in your content directory for local development and static deployment workflows.
 
 ## Current workflow
 
@@ -15,7 +15,8 @@ Use the CLI from the root package, then operate on your markdown project directo
 5. Run `start` for local development.
 6. Run `generate` to build static output.
 7. Run `preview` after `generate` for a local preview.
-8. Run `stop` to stop tracked background `start` and `preview` processes.
+8. Run `prepare github` to generate a GitHub Pages workflow in the content directory.
+9. Run `stop` to stop tracked background `start` and `preview` processes.
 
 Legacy root workflows such as `npm start`, `npm run generate`, and `npm run preview` are **not** the supported user workflow anymore.
 
@@ -27,6 +28,7 @@ mdsite init
 mdsite start
 mdsite generate
 mdsite preview
+mdsite prepare github
 mdsite stop
 ```
 
@@ -34,7 +36,7 @@ All commands operate on the **current working directory** as the content/project
 
 ## Minimum local setup
 
-This repository currently documents a **local-only** workflow:
+This repository documents the supported CLI workflow for local development and static deployment packaging:
 
 ```bash
 # in this repository
@@ -81,7 +83,7 @@ cd /path/to/your/content
 node /path/to/md-site/dist/index.js generate
 ```
 
-`generate` requires `_mdsite.yml` and writes the generated site to `server.output` under the content directory.
+`generate` requires `_mdsite.yml`, prepares the renderer, runs the renderer generate step, and syncs renderer `.output/public` into `server.output` under the content directory. The default `server.output` is `.output`.
 
 ### 4. Preview generated output
 
@@ -92,7 +94,16 @@ node /path/to/md-site/dist/index.js preview
 
 `preview` is a **post-generate** local preview step. It requires `_mdsite.yml` and an existing generated renderer build.
 
-### 5. Stop background processes
+### 5. Prepare a GitHub Pages workflow
+
+```bash
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js prepare github
+```
+
+`prepare github` generates `.github/workflows/deploy.yml` in the current content directory for GitHub Pages deployment.
+
+### 6. Stop background processes
 
 ```bash
 cd /path/to/your/content
@@ -103,13 +114,49 @@ node /path/to/md-site/dist/index.js stop
 
 ## Renderer resolution
 
-Renderer resolution is currently **local-only**:
+Renderer resolution follows the current CLI implementation:
 
 - If `_mdsite.yml` sets `server.path`, the CLI first looks for that path **relative to the content directory**.
-- If that directory is not present, the CLI falls back to the checked-in repository renderer at `mdsite-nuxt/`.
+- If that directory is not present, the CLI clones `server.repo` into that location.
 - If the renderer's `node_modules` directory is missing, the CLI runs `npm install` in the renderer directory.
 
-Current documentation does **not** describe clone/pull behavior as active usage.
+This applies to local runs and CI builds such as GitHub Pages or Cloudflare Pages.
+
+## Deployment
+
+Deployment is based on a content repository or repo root that contains markdown files and `_mdsite.yml`.
+
+### Static packaging with `mdsite generate`
+
+Run `mdsite generate` from the content directory or repository root that contains `_mdsite.yml`.
+
+- The CLI reads `_mdsite.yml` from the current working directory.
+- It prepares the renderer using `server.path` relative to the content directory.
+- If `server.path` does not exist, it clones `server.repo` there.
+- If renderer dependencies are missing, it runs `npm install` in the renderer directory.
+- It runs the renderer generate step and syncs the built site into `server.output` under the content directory.
+
+That output directory is the packaged static site for any static web server. If `server.output` is omitted, the generated site is written to `.output`.
+
+### GitHub Pages
+
+Use the implemented workflow-generation command:
+
+```bash
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js prepare github
+```
+
+This generates `.github/workflows/deploy.yml` in the content directory. The generated workflow builds the CLI, runs `node dist/index.js generate`, uploads the generated files from `server.output`, and deploys them with GitHub Pages actions.
+
+### Cloudflare Pages
+
+Cloudflare support is the same static-output flow from `mdsite generate`.
+
+- Build command: `npm install && npm run build && node dist/index.js generate`
+- Output directory: the generated `server.output` directory from `_mdsite.yml` relative to the repo root, or `.output` by default
+
+The Cloudflare build environment must be able to fetch or access the renderer and install its dependencies. If `_mdsite.yml` points `server.path` at a missing renderer directory, the build depends on `server.repo` being reachable so the CLI can clone it before generating the site.
 
 ## Expected content project layout
 
@@ -137,11 +184,14 @@ The CLI also writes renderer compatibility/runtime files such as `_menu.yml`, `.
 
 ## Migration notes for existing users
 
-If you previously used the legacy root workflow:
+If you previously used the legacy monolithic or root workflow:
 
 - Replace `npm start` with `node /path/to/md-site/dist/index.js start`.
 - Replace `npm run generate` with `node /path/to/md-site/dist/index.js generate`.
 - Replace `npm run preview` with `node /path/to/md-site/dist/index.js preview` after `node /path/to/md-site/dist/index.js generate`.
+- Use repo-root or content-directory `_mdsite.yml` as the source of configuration for development and deployment.
+- Treat `node /path/to/md-site/dist/index.js generate` as the static packaging step for generic hosting, including Cloudflare Pages.
+- Use `node /path/to/md-site/dist/index.js prepare github` to generate the GitHub Pages workflow for the current content repository.
 - Replace legacy root/domain config assumptions with a single `_mdsite.yml` in the content directory.
 - Treat `content.config.yml` and domain-specific `*.config.yml` files as legacy reference, not current setup.
 - Keep custom markdown content, menus, and theme values, but move current configuration intent into `_mdsite.yml`.
@@ -159,8 +209,8 @@ node /path/to/md-site/dist/index.js init
 ### Renderer directory issues
 
 - If `server.path` is set, confirm it points to a renderer directory relative to the content directory.
-- If that path does not exist, the CLI falls back to the checked-in `mdsite-nuxt` directory in this repository.
-- If neither renderer location exists, the CLI cannot run.
+- If that path does not exist, the CLI clones `server.repo` into that location.
+- If clone or renderer access fails, fix the `server.repo` / `server.path` configuration and rerun the command.
 
 ### Renderer dependencies missing
 
@@ -181,8 +231,6 @@ Run `node /path/to/md-site/dist/index.js generate` first. `preview` requires an 
 
 The following work is still deferred and is **not** documented as current behavior:
 
-- `prepare github`
-- renderer clone/pull flows via `server.repo`
 - npm packaging and publishing hardening
 - true git submodule conversion
 - advanced migration utilities
