@@ -214,14 +214,15 @@ describe('mdsite-nuxt renderer helpers', () => {
     expect(runForegroundMock).not.toHaveBeenCalled()
   })
 
-  it('checks preview artifacts and exposes the generated output path', async () => {
+  it('checks the generated preview artifact and exposes the generated output path', async () => {
     const rendererDir = '/renderer'
 
     await expect(ensurePreviewArtifacts(rendererDir)).resolves.toBeUndefined()
     expect(getRendererGeneratedOutputPath(rendererDir)).toBe(path.join(rendererDir, '.output', 'public'))
+    expect(accessMock).toHaveBeenCalledWith(path.join(rendererDir, '.output', 'public'))
 
-    accessMock.mockImplementationOnce(async () => undefined).mockImplementationOnce(async () => {
-      throw new Error('missing server output')
+    accessMock.mockImplementationOnce(async () => {
+      throw new Error('missing public output')
     })
 
     await expect(ensurePreviewArtifacts(rendererDir)).rejects.toThrow(

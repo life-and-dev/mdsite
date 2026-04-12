@@ -1,0 +1,3 @@
+[submodule "mdsite-nuxt"]
+	path = mdsite-nuxt
+	url = https://github.com/life-and-dev/mdsite-nuxt

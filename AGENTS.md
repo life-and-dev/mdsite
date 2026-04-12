@@ -26,8 +26,6 @@ The current Phase 1 target is a local-use CLI (`mdsite`) from the root package t
 **Legacy**: Monolithic Nuxt application with content processing and root npm workflows
 **Current (Phase 1)**: Lightweight local-use CLI that orchestrates `mdsite-nuxt`
 
-**DO NOT** document or reintroduce legacy root workflows as current usage. Treat `LEGACY.md` as reference-only.
-
 ## Development Guidelines
 
 ### For New Development
@@ -37,9 +35,6 @@ The current Phase 1 target is a local-use CLI (`mdsite`) from the root package t
 - Focus on orchestrating the Nuxt submodule, not duplicating its functionality
 - Prioritize reliable local workflows over publish/release hardening
 - Keep docs truthful to implemented behavior: local renderer resolution only, no current clone/pull workflow docs
-
-### Legacy Reference
-The previous version of this project (Nuxt-based monolithic SSG) is documented in `LEGACY.md`. This documentation describes how the project used to work and can be used as reference for understanding the existing codebase during the transition, but should NOT guide new development. Legacy root workflows are deprecated and reference-only.
 
 ## Project Structure (Target)
 

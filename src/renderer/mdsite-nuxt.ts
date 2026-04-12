@@ -74,8 +74,7 @@ export async function prepareRendererBackend(rendererDir: string, env: NodeJS.Pr
 
 export async function ensurePreviewArtifacts(rendererDir: string): Promise<void> {
   const previewArtifacts = [
-    path.join(rendererDir, '.output', 'public'),
-    path.join(rendererDir, '.output', 'server')
+    path.join(rendererDir, '.output', 'public')
   ]
 
   for (const artifactPath of previewArtifacts) {

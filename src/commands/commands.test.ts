@@ -22,6 +22,12 @@ vi.mock('../process/runtime-state.js', () => ({
   writeRuntimeState: vi.fn()
 }))
 
+vi.mock('../process/child-process.js', () => ({
+  openUrlInBrowser: vi.fn(),
+  stopProcess: vi.fn(),
+  waitForTcpPort: vi.fn()
+}))
+
 vi.mock('../renderer/mdsite-nuxt.js', () => ({
   ensurePreviewArtifacts: vi.fn(),
   ensureRendererDependencies: vi.fn(),
@@ -32,10 +38,6 @@ vi.mock('../renderer/mdsite-nuxt.js', () => ({
   startRendererInBackground: vi.fn()
 }))
 
-vi.mock('../process/child-process.js', () => ({
-  stopProcess: vi.fn()
-}))
-
 import { access, cp, rm, writeFile } from 'node:fs/promises'
 
 import {
@@ -44,7 +46,7 @@ import {
   resolveContentOutputPath,
   serializeMdsiteConfig
 } from '../config/mdsite-config.js'
-import { stopProcess } from '../process/child-process.js'
+import { openUrlInBrowser, stopProcess, waitForTcpPort } from '../process/child-process.js'
 import {
   clearRuntimeState,
   getRuntimeLogPath,
@@ -88,6 +90,8 @@ const prepareRendererMock = vi.mocked(prepareRenderer)
 const previewRendererInBackgroundMock = vi.mocked(previewRendererInBackground)
 const startRendererInBackgroundMock = vi.mocked(startRendererInBackground)
 const stopProcessMock = vi.mocked(stopProcess)
+const openUrlInBrowserMock = vi.mocked(openUrlInBrowser)
+const waitForTcpPortMock = vi.mocked(waitForTcpPort)
 
 const loadedConfig = {
   config: {
@@ -108,9 +112,17 @@ describe('command helpers', () => {
     vi.useRealTimers()
     loadConfigMock.mockResolvedValue(loadedConfig)
     prepareRendererMock.mockResolvedValue({ rendererDir: '/renderer', rendererEnv: { TEST: '1' } })
-    getRuntimeLogPathMock.mockImplementation((contentDir, kind) => `${contentDir}/.mdsite-runtime/${kind}.log`)
+    getRuntimeLogPathMock.mockImplementation((contentDir, kind) => {
+      if (kind === 'preview') {
+        return `${contentDir}/_mdsite.log`
+      }
+
+      return `${contentDir}/.mdsite-runtime/${kind}.log`
+    })
     resolveOutputMock.mockReturnValue('/content/public')
     getRendererGeneratedOutputPathMock.mockReturnValue('/renderer/.output/public')
+    openUrlInBrowserMock.mockResolvedValue(true)
+    waitForTcpPortMock.mockResolvedValue(true)
   })
 
   it('runInitCommand creates _mdsite.yml only when it does not already exist', async () => {
@@ -161,16 +173,98 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(888)
 
     await expect(runPreviewCommand('/content')).resolves.toBe(
-      'mdsite preview running in background (PID 888). Log: /content/.mdsite-runtime/preview.log'
+      'mdsite preview running in background (PID 888). URL: http://localhost:3000 Log: /content/_mdsite.log'
     )
     expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
     expect(ensurePreviewArtifactsMock.mock.invocationCallOrder[0]).toBeGreaterThan(ensureRendererDependenciesMock.mock.invocationCallOrder[0] ?? 0)
+    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
+      TEST: '1',
+      NUXT_HOST: 'localhost',
+      NUXT_PORT: '3000',
+      HOST: 'localhost',
+      PORT: '3000',
+      NITRO_HOST: 'localhost',
+      NITRO_PORT: '3000'
+    }), '/content/_mdsite.log')
+    expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
+    expect(waitForTcpPortMock.mock.invocationCallOrder[0]).toBeGreaterThan(writeRuntimeStateMock.mock.invocationCallOrder[0] ?? 0)
+    expect(openUrlInBrowserMock.mock.invocationCallOrder[0]).toBeGreaterThan(waitForTcpPortMock.mock.invocationCallOrder[0] ?? 0)
+    expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
     expect(writeRuntimeStateMock).toHaveBeenCalledWith('/content', expect.objectContaining({
       kind: 'preview',
       pid: 888,
       command: ['npm', 'run', 'preview'],
       startedAt: '2026-04-10T13:00:00.000Z'
     }))
+  })
+
+  it('runPreviewCommand prefers inherited preview host and port values for the preview URL', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    prepareRendererMock.mockResolvedValueOnce({
+      rendererDir: '/renderer',
+      rendererEnv: { HOST: '127.0.0.1', PORT: '4173', NUXT_HOST: 'preview.local', NUXT_PORT: '4321' }
+    })
+    previewRendererInBackgroundMock.mockResolvedValueOnce(999)
+
+    await expect(runPreviewCommand('/content')).resolves.toBe(
+      'mdsite preview running in background (PID 999). URL: http://preview.local:4321 Log: /content/_mdsite.log'
+    )
+    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
+      HOST: 'preview.local',
+      PORT: '4321',
+      NUXT_HOST: 'preview.local',
+      NUXT_PORT: '4321',
+      NITRO_HOST: 'preview.local',
+      NITRO_PORT: '4321'
+    }), '/content/_mdsite.log')
+    expect(waitForTcpPortMock).toHaveBeenCalledWith('preview.local', 4321)
+    expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://preview.local:4321')
+  })
+
+  it('runPreviewCommand falls back to HOST and PORT when NUXT preview values are unset', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    prepareRendererMock.mockResolvedValueOnce({
+      rendererDir: '/renderer',
+      rendererEnv: { HOST: '127.0.0.1', PORT: '4173' }
+    })
+    previewRendererInBackgroundMock.mockResolvedValueOnce(1000)
+
+    await expect(runPreviewCommand('/content')).resolves.toBe(
+      'mdsite preview running in background (PID 1000). URL: http://127.0.0.1:4173 Log: /content/_mdsite.log'
+    )
+    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
+      HOST: '127.0.0.1',
+      PORT: '4173',
+      NUXT_HOST: '127.0.0.1',
+      NUXT_PORT: '4173',
+      NITRO_HOST: '127.0.0.1',
+      NITRO_PORT: '4173'
+    }), '/content/_mdsite.log')
+    expect(waitForTcpPortMock).toHaveBeenCalledWith('127.0.0.1', 4173)
+    expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://127.0.0.1:4173')
+  })
+
+  it('runPreviewCommand does not open the browser when preview readiness times out', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    previewRendererInBackgroundMock.mockResolvedValueOnce(1001)
+    waitForTcpPortMock.mockResolvedValueOnce(false)
+
+    await expect(runPreviewCommand('/content')).resolves.toBe(
+      'mdsite preview running in background (PID 1001). URL: http://localhost:3000 Log: /content/_mdsite.log'
+    )
+    expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
+    expect(openUrlInBrowserMock).not.toHaveBeenCalled()
+  })
+
+  it('runPreviewCommand keeps succeeding when preview readiness checks fail', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    previewRendererInBackgroundMock.mockResolvedValueOnce(1002)
+    waitForTcpPortMock.mockRejectedValueOnce(new Error('connect failed'))
+
+    await expect(runPreviewCommand('/content')).resolves.toBe(
+      'mdsite preview running in background (PID 1002). URL: http://localhost:3000 Log: /content/_mdsite.log'
+    )
+    expect(openUrlInBrowserMock).not.toHaveBeenCalled()
   })
 
   it('runGenerateCommand syncs renderer output to the configured destination', async () => {

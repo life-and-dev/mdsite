@@ -29,7 +29,8 @@ afterEach(async () => {
 describe('runtime-state helpers', () => {
   it('builds runtime and log paths under .mdsite-runtime', () => {
     expect(getRuntimeDir('/content')).toBe(path.join('/content', '.mdsite-runtime'))
-    expect(getRuntimeLogPath('/content', 'preview')).toBe(path.join('/content', '.mdsite-runtime', 'preview.log'))
+    expect(getRuntimeLogPath('/content', 'preview')).toBe(path.join('/content', '_mdsite.log'))
+    expect(getRuntimeLogPath('/content', 'start')).toBe(path.join('/content', '.mdsite-runtime', 'start.log'))
   })
 
   it('writes, reads, and clears runtime state', async () => {

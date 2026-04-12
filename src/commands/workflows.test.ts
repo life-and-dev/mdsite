@@ -4,14 +4,18 @@ import path from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+const waitForTcpPortMock = vi.hoisted(() => vi.fn())
+
 vi.mock('../process/child-process.js', () => ({
+  openUrlInBrowser: vi.fn(),
   runBackground: vi.fn(),
   runForeground: vi.fn(),
+  waitForTcpPort: waitForTcpPortMock,
   stopProcess: vi.fn()
 }))
 
 import { serializeMdsiteConfig, type MdsiteConfig } from '../config/mdsite-config.js'
-import { stopProcess, runBackground, runForeground } from '../process/child-process.js'
+import { openUrlInBrowser, stopProcess, waitForTcpPort, runBackground, runForeground } from '../process/child-process.js'
 import { readRuntimeState } from '../process/runtime-state.js'
 import { runGenerateCommand } from './generate.js'
 import { runInitCommand } from './init.js'
@@ -21,7 +25,9 @@ import { runStopCommand } from './stop.js'
 
 const runBackgroundMock = vi.mocked(runBackground)
 const runForegroundMock = vi.mocked(runForeground)
+const openUrlInBrowserMock = vi.mocked(openUrlInBrowser)
 const stopProcessMock = vi.mocked(stopProcess)
+const waitForTcpPortMocked = vi.mocked(waitForTcpPort)
 
 const tempDirs: string[] = []
 
@@ -85,6 +91,8 @@ afterEach(async () => {
 describe('CLI workflow coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    openUrlInBrowserMock.mockResolvedValue(true)
+    waitForTcpPortMocked.mockResolvedValue(true)
   })
 
   it('runInitCommand creates a valid _mdsite.yml for the current markdown directory', async () => {
@@ -157,18 +165,27 @@ describe('CLI workflow coverage', () => {
     }))
   })
 
-  it('runPreviewCommand requires preview artifacts and runStopCommand clears preview state', async () => {
+  it('runPreviewCommand works after runGenerateCommand creates only the public artifact', async () => {
     const contentDir = await createContentDir()
     const rendererDir = await createRendererDir(contentDir)
     await writeConfig(contentDir)
-    await mkdir(path.join(rendererDir, '.output', 'public'), { recursive: true })
-    await mkdir(path.join(rendererDir, '.output', 'server'), { recursive: true })
+
+    runForegroundMock.mockImplementation(async (_command, args, cwd) => {
+      if (args[0] === 'run' && args[1] === 'generate') {
+        await mkdir(path.join(cwd, '.output', 'public'), { recursive: true })
+        await writeFile(path.join(cwd, '.output', 'public', 'index.html'), '<h1>generated</h1>', 'utf8')
+      }
+    })
+
+    await expect(runGenerateCommand(contentDir)).resolves.toBe(`Generated site synced to ${path.join(contentDir, '.output')}`)
+
     runBackgroundMock.mockResolvedValueOnce(2468)
     stopProcessMock.mockResolvedValueOnce(true)
 
     await expect(runPreviewCommand(contentDir)).resolves.toBe(
-      `mdsite preview running in background (PID 2468). Log: ${path.join(contentDir, '.mdsite-runtime', 'preview.log')}`
+      `mdsite preview running in background (PID 2468). URL: http://localhost:3000 Log: ${path.join(contentDir, '_mdsite.log')}`
     )
+    expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
     await expect(runStopCommand(contentDir)).resolves.toBe('Stopped preview process 2468.')
     await expect(readRuntimeState(contentDir, 'preview')).resolves.toBeNull()
   })

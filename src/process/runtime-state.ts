@@ -20,6 +20,10 @@ export function getRuntimeDir(contentDir: string): string {
 }
 
 export function getRuntimeLogPath(contentDir: string, kind: RuntimeProcessKind): string {
+  if (kind === 'preview') {
+    return path.join(contentDir, '_mdsite.log')
+  }
+
   return path.join(getRuntimeDir(contentDir), `${kind}.log`)
 }
 
