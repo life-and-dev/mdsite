@@ -180,13 +180,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   process.env.NUXT_CONTENT_PATH = contentDir
   process.env.CONTENT_DIR = contentDir
 
-  ; (async () => {
-    const success = await generateFavicons()
-    if (success) {
-      await copyFaviconsToPublic()
-      await generateWebManifest(config.site.name)
-    } else {
-      process.exit(1)
-    }
-  })()
+    ; (async () => {
+      const success = await generateFavicons()
+      if (success) {
+        await copyFaviconsToPublic()
+        await generateWebManifest(config.site.name)
+      } else {
+        process.exit(1)
+      }
+    })()
 }

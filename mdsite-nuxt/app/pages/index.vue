@@ -25,7 +25,7 @@ const { data: page, pending } = await useAsyncData(
 )
 
 const siteConfig = useSiteConfig()
-const title = page.value?.title || 'Home'
+const title = page.value?.title || siteConfig.siteName || 'Home'
 const description = page.value?.description || ''
 
 useHead(() => ({

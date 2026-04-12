@@ -130,10 +130,11 @@ export function useNavigationTree() {
  * Convert MinimalTreeNode array to TreeNode with parent references
  */
 function buildTreeFromMinimalNodes(minimalNodes: MinimalTreeNode[]): TreeNode {
+  const { siteName } = useSiteConfig()
   // Create root node
   const root: TreeNode = {
     id: 'root',
-    title: 'Home',
+    title: siteName || 'Home',
     path: '/',
     order: -1,
     children: []
