@@ -1,0 +1,87 @@
+/* Bible Tooltip Overlay */
+.bible-tooltip-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: none;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+/* Bible Tooltip Container */
+.bible-tooltip {
+  position: fixed;
+  background: rgb(var(--v-theme-surface-appbar));
+  color: rgb(var(--v-theme-on-surface-appbar));
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  max-width: 25rem;
+  z-index: 10000;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.3);
+  display: none;
+}
+
+/* Bible Tooltip Title */
+.bible-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+/* Bible Tooltip Translation Badge */
+.bible-tooltip-translation {
+  color: rgb(var(--v-theme-on-surface-rail));
+  font-weight: 500;
+}
+
+/* Bible Tooltip Verse Text */
+.bible-tooltip-text {
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+/* Bible Tooltip Footer */
+.bible-tooltip-footer {
+  border-top: 1px solid rgb(var(--v-theme-outline));
+  padding-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Bible Tooltip Links */
+.bible-tooltip-link {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: none;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Bible Tooltip Link Icons (Material Design Icons) */
+.bible-tooltip-link i.mdi {
+  font-size: 1.25rem;
+}
+
+/* Bible Tooltip Hebrew/Greek Characters with Font Fallback */
+.bible-tooltip-hebrew-greek {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 1.5em;
+}
+
+.bible-tooltip-link-text:hover {
+  text-decoration: underline;
+}
+
+/* Bible Reference Spans (in content) */
+.bible-ref {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: underline;
+  cursor: help;
+}

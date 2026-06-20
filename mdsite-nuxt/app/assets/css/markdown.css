@@ -1,0 +1,195 @@
+/* Content Body Styles - Used by @nuxt/content ContentRenderer */
+
+/* Headings */
+.content-body h1 {
+  font-size: 2.6rem;
+  margin-top: 0; /* This is the first line of text, there should be no other text above it */
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.content-body h2 {
+  font-size: 1.8rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.content-body h3 {
+  font-size: 1.4rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.content-body h4 {
+  font-size: 1.2rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.content-body h5 {
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+/* Paragraphs */
+.content-body p {
+  margin: 0.8rem 0;
+}
+
+/* Blockquotes - rendered as VCards via ProseBlockquote.vue */
+.content-body .blockquote-content {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 1.05rem;
+}
+
+/* Nested blockquotes - create visual hierarchy */
+.content-body .blockquote-content .v-card {
+  margin-left: 1rem;
+  margin-right: 0;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-left: 0.25rem solid rgb(var(--v-theme-secondary));
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.content-body .blockquote-content .v-card .v-card-text {
+  padding: 0.75rem 1rem;
+}
+
+/* Nested blockquote text slightly smaller */
+.content-body .blockquote-content .blockquote-content {
+  font-size: 1rem;
+  color: rgb(var(--v-theme-on-surface-rail));
+}
+
+/* Links */
+.content-body a {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: none;
+}
+
+.content-body a:hover {
+  text-decoration: underline;
+}
+
+/* Text formatting */
+.content-body strong {
+  font-weight: 600;
+}
+
+.content-body em {
+  font-style: italic;
+}
+
+/* Lists */
+.content-body ul,
+.content-body ol {
+  margin: 0.8rem 0;
+  padding-left: 2rem;
+}
+
+.content-body ul {
+  list-style-type: disc;
+}
+
+.content-body ol {
+  list-style-type: decimal;
+}
+
+.content-body ul ul {
+  margin: 0.4rem 0;
+  list-style-type: circle;
+}
+
+.content-body ul ul ul {
+  list-style-type: square;
+}
+
+.content-body ol ol {
+  margin: 0.4rem 0;
+  list-style-type: lower-alpha;
+}
+
+.content-body ol ol ol {
+  list-style-type: lower-roman;
+}
+
+.content-body li {
+  margin: 0.4rem 0;
+  line-height: 1.6;
+}
+
+/* Lists inside blockquotes (VCard) need extra padding */
+.content-body .blockquote-content ul,
+.content-body .blockquote-content ol {
+  padding-left: 2.5rem;
+}
+
+/* GFM Alerts (GitHub Flavored Markdown) */
+.content-body .markdown-alert {
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  border-left: 0.25rem solid;
+  border-radius: 0.25rem;
+  background-color: rgb(var(--v-theme-surface));
+}
+
+.content-body .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-top: 0 !important;
+  margin-bottom: 0.5rem !important;
+  font-size: 1rem;
+}
+
+.content-body .markdown-alert-note {
+  border-color: rgb(var(--v-theme-info));
+  background-color: rgba(var(--v-theme-info), 0.05);
+}
+.content-body .markdown-alert-note .markdown-alert-title {
+  color: rgb(var(--v-theme-info));
+}
+
+.content-body .markdown-alert-tip {
+  border-color: rgb(var(--v-theme-success));
+  background-color: rgba(var(--v-theme-success), 0.05);
+}
+.content-body .markdown-alert-tip .markdown-alert-title {
+  color: rgb(var(--v-theme-success));
+}
+
+.content-body .markdown-alert-important {
+  border-color: rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.05);
+}
+.content-body .markdown-alert-important .markdown-alert-title {
+  color: rgb(var(--v-theme-primary));
+}
+
+.content-body .markdown-alert-warning {
+  border-color: rgb(var(--v-theme-warning));
+  background-color: rgba(var(--v-theme-warning), 0.05);
+}
+.content-body .markdown-alert-warning .markdown-alert-title {
+  color: rgb(var(--v-theme-warning));
+}
+
+.content-body .markdown-alert-caution {
+  border-color: rgb(var(--v-theme-error));
+  background-color: rgba(var(--v-theme-error), 0.05);
+}
+.content-body .markdown-alert-caution .markdown-alert-title {
+  color: rgb(var(--v-theme-error));
+}
+
+.content-body .markdown-alert p:last-child {
+  margin-bottom: 0;
+}
