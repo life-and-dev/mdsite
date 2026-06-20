@@ -1,60 +1,42 @@
-# AGENTS.md
+# MD-Site local CLI
 
-This file provides guidance to AI agents when working with code in this repository.
+MD-Site is a local-use CLI for markdown sites.
+It drives `mdsite-nuxt` from one `_mdsite.yml` in content dir.
 
-<!-- Last updated: 2026-04-10 -->
+## Primary features
 
-## Project Status: CLI-FIRST STABILIZATION
+- **`mdsite help`**: Show CLI help.
+- **`mdsite init`**: Create `_mdsite.yml` from local markdown files.
+- **`mdsite start`**: Start local renderer for current content directory.
+- **`mdsite generate`**: Build static output into `server.output`.
+- **`mdsite preview`**: Preview generated output after `generate`.
+- **`mdsite stop`**: Stop tracked `start` and `preview` processes.
+- **`mdsite prepare github`**: Generate `.github/workflows/deploy.yml` for this content dir.
 
-**IMPORTANT**: User-facing documentation must describe the currently implemented local-use CLI workflow, not the former monolithic root workflow.
+## Core flow or states
 
-## Active Stabilization Target
+- `init` runs in current content directory.
+- `start`, `generate`, `preview`, and `stop` use current working directory.
+- `prepare github` uses current working directory.
+- `start` and `preview` are tracked background processes.
+- `preview` expects a prior `generate` run.
+- Missing renderer `node_modules` triggers `npm install` in renderer dir.
+- CLI writes runtime and compatibility artifacts during orchestration.
 
-The current Phase 1 target is a local-use CLI (`mdsite`) from the root package that orchestrates `mdsite-nuxt` via `_mdsite.yml`.
+## Architecture map
 
-- Implemented commands: `help`, `init`, `start`, `generate`, `preview`, `stop`
-- `init` creates `_mdsite.yml` in the current working directory and derives defaults from local markdown files
-- `start`, `generate`, `preview`, and `stop` operate on the current working directory as the content/project directory
-- `start`, `generate`, `preview`, and `stop` are documented for initialized content directories using `_mdsite.yml`
-- `preview` is a post-`generate` local preview step
-- `stop` stops tracked `start` and `preview` background processes
-- Breaking changes are acceptable during this stabilization period
-- Npm release hardening and true git submodule conversion are deferred until local workflows are reliable
+- `src/index.ts`: CLI entrypoint and command dispatch.
+- `src/commands/`: Command handlers.
+- `src/renderer/mdsite-nuxt.ts`: Renderer prep and run helpers.
+- `mdsite-nuxt/`: Checked-in renderer used by the CLI.
+- `package.json`: Root CLI package config.
+- `.agent/plan.md`: Phase 1 spec source.
 
-## Current State vs Target State
+## Rules
 
-**Legacy**: Monolithic Nuxt application with content processing and root npm workflows
-**Current (Phase 1)**: Lightweight local-use CLI that orchestrates `mdsite-nuxt`
-
-## Development Guidelines
-
-### For New Development
-- Follow the specification in `.agent/plan.md`
-- Create CLI commands in `src/` directory
-- Use TypeScript for all new code
-- Focus on orchestrating the Nuxt submodule, not duplicating its functionality
-- Prioritize reliable local workflows over publish/release hardening
-- Keep docs truthful to implemented behavior: local renderer resolution only, no current clone/pull workflow docs
-
-## Project Structure (Target)
-
-```
-/
-├── src/                 # CLI source code (TypeScript)
-├── mdsite-nuxt/         # Nuxt renderer used by the CLI (submodule conversion deferred)
-├── package.json         # CLI package configuration
-├── .agent/plan.md       # Complete specification for new system
-└── README.md           # User-facing documentation
-```
-
-## Key Implementation Notes
-
-- CLI should be lightweight and focus on orchestration
-- All rendering logic stays in the Nuxt submodule
-- Configuration format changes from multiple YAML files to single `_mdsite.yml`
-- Process management for starting/stopping Nuxt dev/preview servers
-- Renderer resolution is local-only for now: use `server.path` relative to the content dir if present, otherwise fall back to checked-in `mdsite-nuxt`
-- If renderer `node_modules` is missing, the CLI runs `npm install` in the renderer directory
-- `generate` syncs built output into `server.output` under the content dir
-- The CLI writes compatibility/runtime artifacts such as `_menu.yml`, `.mdsite-runtime/`, and renderer env/config files
-- Git submodule management, clone/pull flows, and release hardening are post-stabilization concerns
+- Keep docs truthful to current local CLI behavior.
+- Do not document clone/pull workflow as active behavior.
+- Do not move rendering logic into the CLI.
+- Prefer TypeScript for new code.
+- Breaking changes are acceptable during Phase 1 stabilization.
+- Treat npm release hardening and true git submodule conversion as deferred.
