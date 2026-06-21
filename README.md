@@ -1,8 +1,6 @@
-![MD-Site](docs/logo.svg)
+![MDsite](docs/logo.svg)
 
-# MD-Site
-
-> **Current status:** MD-Site is a **local-use CLI** (`mdsite`) from this repository's root package. It orchestrates the checked-in `mdsite-nuxt` renderer around a single `_mdsite.yml` file in your content directory.
+# MDsite
 
 ## Current workflow
 
@@ -16,6 +14,10 @@ Use the CLI from the root package, then operate on your markdown project directo
 6. Run `generate` to build static output.
 7. Run `preview` after `generate` for a local preview.
 8. Run `stop` to stop tracked background `start` and `preview` processes.
+
+## Documentation location
+
+[Primary project documentation](docs/index.md) and demo content belong in this repository root, such as this `README.md` and `docs/`. Keep `mdsite-nuxt/` documentation limited to renderer internals.
 
 ## Implemented commands
 
@@ -46,6 +48,26 @@ node /path/to/md-site/dist/index.js help
 ```
 
 If you create a local shell alias or link for that built file, the shorter `mdsite ...` examples below refer to that local alias/link.
+
+### Start the demo documentation site from a fresh clone
+
+From a fresh clone or fresh machine, `docs/_mdsite.yml` is already included as the demo config and should be committed as the repository demo config. Run these commands from the repository root to install dependencies, build the local CLI, then start `docs/` as a mdsite local dev preview:
+
+```bash
+npm install
+npm run build
+(cd docs && node ../dist/index.js start)
+```
+
+Open http://localhost:3000/.
+
+The `start` command is a local dev preview of `docs/` as a mdsite and launches the renderer in the background for local development.
+
+To stop the local preview:
+
+```bash
+(cd docs && node ../dist/index.js stop)
+```
 
 For example, without any alias:
 
@@ -192,19 +214,19 @@ Run `node /path/to/md-site/dist/index.js generate` first. `preview` requires an 
 
 `_mdsite.yml` is the only active content-directory configuration file. `mdsite init` creates it and fills defaults from local markdown files where possible.
 
-| Key | Default | Description |
-| --- | --- | --- |
-| `favicon` | empty string | Optional favicon path relative to the content directory. |
-| `features.bibleTooltips` | `true` | Enables renderer Bible tooltip support. |
-| `features.sourceEdit` | `true` | Enables renderer source-edit support. |
-| `menu` | derived from markdown files | Menu structure used to generate `_menu.yml`. |
-| `server.output` | `.output` | Static output path under the content directory. |
-| `server.path` | `.mdsite` | Renderer path relative to the content directory. Local commands fall back to checked-in `mdsite-nuxt/` when this path is absent, except `prepare github`. |
-| `server.repo` | `https://github.com/life-and-dev/mdsite` | Stored for compatibility and generated renderer config. It is not used for active clone/pull behaviour. |
-| `site.canonical` | empty string | Canonical site URL passed to the renderer. |
-| `site.name` | derived from `index.md` or directory | Site name passed to the renderer. |
-| `themes.light.colors` | built-in palette | Light theme colour overrides. |
-| `themes.dark.colors` | built-in palette | Dark theme colour overrides. |
+| Key                      | Default                                  | Description                                                                                                                                               |
+| ------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `favicon`                | empty string                             | Optional favicon path relative to the content directory.                                                                                                  |
+| `features.bibleTooltips` | `true`                                   | Enables renderer Bible tooltip support.                                                                                                                   |
+| `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                     |
+| `menu`                   | derived from markdown files              | Menu structure used to generate `_menu.yml`.                                                                                                              |
+| `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                           |
+| `server.path`            | `.mdsite`                                | Renderer path relative to the content directory. Local commands fall back to checked-in `mdsite-nuxt/` when this path is absent, except `prepare github`. |
+| `server.repo`            | `https://github.com/life-and-dev/mdsite` | Stored for compatibility and generated renderer config. It is not used for active clone/pull behaviour.                                                   |
+| `site.canonical`         | empty string                             | Canonical site URL passed to the renderer.                                                                                                                |
+| `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                         |
+| `themes.light.colors`    | built-in palette                         | Light theme colour overrides.                                                                                                                             |
+| `themes.dark.colors`     | built-in palette                         | Dark theme colour overrides.                                                                                                                              |
 
 ## Deferred follow-up items
 
@@ -222,4 +244,4 @@ These remain follow-up items from `.kiro/specs/cli-migration/tasks.md` and `.kir
 
 ## Additional project documentation
 
-The renderer and feature documentation in `docs/` remains useful for content/rendering context, but root command examples should be interpreted through the current CLI-first workflow above.
+Primary project documentation and demo content should stay at the repository root, including `docs/`. Documentation inside `mdsite-nuxt/` should be treated as renderer-specific reference, and root command examples should be interpreted through the current CLI-first workflow above.

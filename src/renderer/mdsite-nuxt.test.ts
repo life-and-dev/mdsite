@@ -197,7 +197,7 @@ describe('mdsite-nuxt renderer helpers', () => {
     expect(copyFileMock).not.toHaveBeenCalled()
   })
 
-  it('installs renderer dependencies only when node_modules is missing', async () => {
+  it('installs renderer dependencies with npm ci when node_modules is missing and package-lock exists', async () => {
     const rendererDir = '/renderer'
     accessMock.mockImplementation(async (targetPath) => {
       if (targetPath === path.join(rendererDir, 'node_modules')) {
@@ -206,10 +206,26 @@ describe('mdsite-nuxt renderer helpers', () => {
     })
 
     await ensureRendererDependencies(rendererDir)
-    expect(runForegroundMock).toHaveBeenCalledWith('npm', ['install'], rendererDir, process.env)
+    expect(runForegroundMock).toHaveBeenCalledWith('npm', ['ci'], rendererDir, process.env)
+  })
 
-    vi.clearAllMocks()
-    accessMock.mockResolvedValue(undefined)
+  it('installs renderer dependencies with npm install when node_modules and package-lock are missing', async () => {
+    const rendererDir = '/renderer'
+    const nodeModulesPath = path.join(rendererDir, 'node_modules')
+    const packageLockPath = path.join(rendererDir, 'package-lock.json')
+    accessMock.mockImplementation(async (targetPath) => {
+      if (targetPath === nodeModulesPath || targetPath === packageLockPath) {
+        throw new Error('missing path')
+      }
+    })
+
+    await ensureRendererDependencies(rendererDir)
+    expect(runForegroundMock).toHaveBeenCalledWith('npm', ['install'], rendererDir, process.env)
+  })
+
+  it('skips renderer dependency install when node_modules exists', async () => {
+    const rendererDir = '/renderer'
+
     await ensureRendererDependencies(rendererDir)
     expect(runForegroundMock).not.toHaveBeenCalled()
   })

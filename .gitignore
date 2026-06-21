@@ -6,6 +6,8 @@
 .cache
 dist
 .mdsite-runtime
+/docs/_menu.yml
+/docs/favicon/
 
 # Node dependencies
 node_modules

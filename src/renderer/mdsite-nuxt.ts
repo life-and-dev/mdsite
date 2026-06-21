@@ -52,7 +52,9 @@ export async function ensureRendererDependencies(rendererDir: string): Promise<v
   try {
     await access(path.join(rendererDir, 'node_modules'))
   } catch {
-    await runForeground('npm', ['install'], rendererDir, process.env)
+    const hasLockfile = await pathExists(path.join(rendererDir, 'package-lock.json'))
+    const installCommand = hasLockfile ? 'ci' : 'install'
+    await runForeground('npm', [installCommand], rendererDir, process.env)
   }
 }
 
