@@ -23,6 +23,7 @@ Use the CLI from the root package, then operate on your markdown project directo
 
 ```text
 mdsite help
+mdsite version
 mdsite init
 mdsite start
 mdsite generate
@@ -32,6 +33,7 @@ mdsite prepare github
 ```
 
 All commands operate on the **current working directory** as the content/project directory.
+`version` prints the CLI version from the root `package.json`; run it as `mdsite version` or `node /path/to/md-site/dist/index.js version`.
 `prepare github` also requires `_mdsite.yml` and writes a GitHub Pages workflow for that content directory.
 
 ## Minimum local setup
@@ -48,6 +50,31 @@ node /path/to/md-site/dist/index.js help
 ```
 
 If you create a local shell alias or link for that built file, the shorter `mdsite ...` examples below refer to that local alias/link.
+
+### Create a local development alias
+
+To test CLI changes from this repository without redeploying or reinstalling the package, create a shell alias that points to the built local entrypoint:
+
+```bash
+# in this repository
+npm run build
+
+# for your current shell session
+alias mdsite-dev="node $(pwd)/dist/index.js"
+```
+
+Then run the CLI from any content directory with the development alias:
+
+```bash
+cd /docs # or your own content directory
+mdsite-dev start
+```
+
+To keep the alias across terminal sessions, add it to your shell profile after replacing the path with this repository's absolute path:
+
+```bash
+alias mdsite-dev="node /path/to/md-site/dist/index.js"
+```
 
 ### Start the demo documentation site from a fresh clone
 
@@ -77,6 +104,17 @@ node /path/to/md-site/dist/index.js help
 ```
 
 ## Supported CLI flow
+
+### Check the CLI version
+
+```bash
+mdsite version
+
+# or invoke the built CLI directly
+node /path/to/md-site/dist/index.js version
+```
+
+`version` prints the CLI version from the root `package.json`.
 
 ### 1. Initialize a content directory
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 
 import { runGenerateCommand } from './commands/generate.js'
@@ -18,6 +19,7 @@ Usage:
   mdsite generate
   mdsite preview
   mdsite stop
+  mdsite version
   mdsite prepare github
 
 Commands:
@@ -26,8 +28,24 @@ Commands:
   generate  Build static output through mdsite-nuxt
   preview   Preview the generated site through mdsite-nuxt
   stop      Stop tracked start and preview processes
+  version   Print the CLI package version
   prepare   Generate the GitHub Pages workflow for this content directory
 `
+
+type PackageMetadata = {
+  version?: unknown
+}
+
+async function readPackageVersion(): Promise<string> {
+  const packageJsonPath = new URL('../package.json', import.meta.url)
+  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as PackageMetadata
+
+  if (typeof packageJson.version !== 'string') {
+    throw new Error('Unable to read package version from package.json')
+  }
+
+  return packageJson.version
+}
 
 async function main(): Promise<void> {
   const [command, subcommand] = process.argv.slice(2)
@@ -55,6 +73,11 @@ async function main(): Promise<void> {
       return
     case 'stop':
       console.log(await runStopCommand(currentDirectory))
+      return
+    case 'version':
+    case '--version':
+    case '-v':
+      console.log(await readPackageVersion())
       return
     case 'prepare':
       if (subcommand === 'github') {

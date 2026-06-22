@@ -16,58 +16,52 @@ A preview of MD Site's output is available at [https://life-and-dev.github.io/md
 - NPM (>= 10.0.0)
 - Git
 
-### 1. Installation
+### 1. Local CLI setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/gizbar/md-site.git
-
-# Navigate to the project directory
-cd md-site
-
-# Install dependencies
+# In this repository
 npm install
+npm run build
 ```
 
-### 2. Starting the Project
-
-The most common way to start the project is using the `npm start` command.
+Use the built CLI from your markdown content directory:
 
 ```bash
-# Start the project with the default `content.config.yml` configuration
-npm start
+cd /path/to/your/content
+node /path/to/md-site/dist/index.js help
 ```
 
-By running this command, you should see this documentation site running at `http://localhost:3000`.
+If you create a local alias or link for the built CLI, the shorter `mdsite ...` examples refer to that alias or link.
 
-This command does several things behind the scenes:
-1.  **Reads Configuration**: It looks for `content.config.yml` (or `.yaml`) in the root directory.
-2.  **Starts the Watcher**: It fires up the `sync-content.ts` script to watch for file changes.
-3.  **Launches Nuxt**: It starts the local development server.
+### 2. Implemented commands
+
+```bash
+mdsite help
+mdsite version
+mdsite init
+mdsite start
+mdsite generate
+mdsite preview
+mdsite stop
+mdsite prepare github
+```
+
+`version` prints the CLI version from the root `package.json`; run it as `mdsite version` or `node /path/to/md-site/dist/index.js version`.
+
+### 3. Starting the demo documentation site
+
+From the repository root, build the CLI and start `docs/` as a local mdsite preview:
+
+```bash
+npm install
+npm run build
+(cd docs && node ../dist/index.js start)
+```
+
+Open `http://localhost:3000/`.
 
 > [!NOTE]
 > The `/docs` directory contains this documentation as sample content to get you started. You can create your own content at any other location and configure it independantly.
-
-#### Multiple Domains
-
-If you want to start the project with a different configuration file, you can specify the domain as a parameter:
-
-```bash
-# Start the project with the `example.config.yml` configuration instead of the default `content.config.yml`
-npm start example
-```
-
-For every domain (like `example`), there must be a corresponding configuration file in the root directory:
-
-**Example: `example.config.yaml`**
-```yaml
-contentPath: "../relative/path/to/content"
-# Add other specific configurations here
-```
-
-The content does not have to live inside the same project as your md-cms project. You can point it to any directory you want. Preferrably you want to keep it in a separate git repository so that you can version control your content independantly.
-
-If you don't provide a `contentPath`, the system defaults to assuming your content is in `../md-content/<domain>`.
 
 ## Tutorials
 

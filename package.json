@@ -1,6 +1,6 @@
 {
   "name": "mdsite",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "type": "module",
   "private": true,
   "description": "Local-first CLI that orchestrates mdsite-nuxt",
@@ -14,6 +14,8 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "install-alias": "node scripts/mdsite-dev-alias.js install",
+    "uninstall-alias": "node scripts/mdsite-dev-alias.js uninstall",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },

@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -12,6 +13,20 @@ vi.mock('./commands/prepare.js', () => ({ runPrepareGithubCommand: vi.fn() }))
 import { runPrepareGithubCommand } from './commands/prepare.js'
 
 const runPrepareGithubCommandMock = vi.mocked(runPrepareGithubCommand)
+
+type PackageMetadata = {
+  version?: unknown
+}
+
+async function readRootPackageVersion(): Promise<string> {
+  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as PackageMetadata
+
+  if (typeof packageJson.version !== 'string') {
+    throw new Error('Unable to read package version from package.json')
+  }
+
+  return packageJson.version
+}
 
 describe('root CLI entrypoint', () => {
   const originalArgv = process.argv
@@ -51,6 +66,16 @@ describe('root CLI entrypoint', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('prepare github'))
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('prints the package version when the version command is requested', async () => {
+    process.argv = ['node', 'mdsite', 'version']
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(logSpy).toHaveBeenCalledWith(await readRootPackageVersion())
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
