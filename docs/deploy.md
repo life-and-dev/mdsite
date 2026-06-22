@@ -51,17 +51,17 @@ Go to **Settings > Environment variables** in Cloudflare and add:
 
 ## 5. Local Usage
 
-You can now run commands with or without a domain parameter:
+Run local CLI commands from the content directory. If you do not use a `mdsite` alias or link, replace `mdsite` with `node /path/to/md-site/dist/index.js`:
 
 ```bash
-# Start development for the default site (uses content.config.yml)
-npm start
+# Show the CLI version from the root package.json
+mdsite version
 
-# Generate a static version of a specific site
-npm run generate example
+# Generate static output for the current content directory
+mdsite generate
 
-# Build a production server version of the default site
-npm run build
+# Prepare a GitHub Pages workflow for the current content directory
+mdsite prepare github
 ```
 
 ## 6. The Build Process
@@ -70,12 +70,7 @@ When Cloudflare runs `npm run generate`:
 1.  It installs dependencies.
 2.  The `start.ts` script checks for a domain argument or the `CONTENT` environment variable.
 3.  If no domain is found, it loads the default `content.config.yml` configuration.
-4.  If `content.git.repo` is specified in the config, it automatically checks out (clones or pulls) that repository:
-    - **In all modes**: It automatically clones the repo if the destination is missing.
-    - **In Build/Generate modes**: It also pulls the latest changes if the repo already exists.
-    - Target directory: `content.git.path` (defaults to `content.path`).
-    - Branch: `content.git.branch` (defaults to `main`).
-    - If the git operation fails, the operation aborts with an error.
+4.  It uses the configured local content and renderer paths. Current CLI documentation does not describe clone or pull behaviour as active usage.
 5.  It resolves the content source directory:
     - Path: `content.path` (defaults to `../{domain}` relative to project root, where domain is the config name or `cms`).
 6.  It syncs your images and assets into the `public/` folder.
