@@ -13,9 +13,9 @@ import { runStopCommand } from './commands/stop.js'
 const helpText = `mdsite - local-first CLI for mdsite-nuxt
 
 Usage:
-  mdsite help
+  mdsite help [-h|--help]
   mdsite init
-  mdsite start
+  mdsite start [-d|--detached]
   mdsite generate
   mdsite preview
   mdsite stop
@@ -30,6 +30,10 @@ Commands:
   stop      Stop tracked start and preview processes
   version   Print the CLI package version
   prepare   Generate the GitHub Pages workflow for this content directory
+
+Options:
+  -h, --help      Show this help output
+  -d, --detached  Run mdsite start in the background and write runtime state
 `
 
 type PackageMetadata = {
@@ -63,7 +67,12 @@ async function main(): Promise<void> {
       console.log(`Created _mdsite.yml in ${currentDirectory}`)
       return
     case 'start':
-      console.log(await runStartCommand(currentDirectory))
+      {
+        const message = await runStartCommand(currentDirectory, { detached: subcommand === '-d' || subcommand === '--detached' })
+        if (message) {
+          console.log(message)
+        }
+      }
       return
     case 'generate':
       console.log(await runGenerateCommand(currentDirectory))

@@ -35,6 +35,7 @@ vi.mock('../renderer/mdsite-nuxt.js', () => ({
   getRendererGeneratedOutputPath: vi.fn(),
   prepareRenderer: vi.fn(),
   previewRendererInBackground: vi.fn(),
+  startRendererForeground: vi.fn(),
   startRendererInBackground: vi.fn()
 }))
 
@@ -61,6 +62,7 @@ import {
   getRendererGeneratedOutputPath,
   prepareRenderer,
   previewRendererInBackground,
+  startRendererForeground,
   startRendererInBackground
 } from '../renderer/mdsite-nuxt.js'
 import { runGenerateCommand } from './generate.js'
@@ -88,6 +90,7 @@ const generateRendererMock = vi.mocked(generateRenderer)
 const getRendererGeneratedOutputPathMock = vi.mocked(getRendererGeneratedOutputPath)
 const prepareRendererMock = vi.mocked(prepareRenderer)
 const previewRendererInBackgroundMock = vi.mocked(previewRendererInBackground)
+const startRendererForegroundMock = vi.mocked(startRendererForeground)
 const startRendererInBackgroundMock = vi.mocked(startRendererInBackground)
 const stopProcessMock = vi.mocked(stopProcess)
 const openUrlInBrowserMock = vi.mocked(openUrlInBrowser)
@@ -138,22 +141,33 @@ describe('command helpers', () => {
     await expect(runInitCommand('/content')).rejects.toThrow('_mdsite.yml already exists at /content/_mdsite.yml.')
   })
 
-  it('runStartCommand rejects when an active start process is already running', async () => {
+  it('runStartCommand starts the renderer in the foreground by default without runtime metadata', async () => {
+    await expect(runStartCommand('/content')).resolves.toBeUndefined()
+
+    expect(readRuntimeStateMock).not.toHaveBeenCalled()
+    expect(getRuntimeLogPathMock).not.toHaveBeenCalled()
+    expect(startRendererInBackgroundMock).not.toHaveBeenCalled()
+    expect(writeRuntimeStateMock).not.toHaveBeenCalled()
+    expect(ensureRendererDependenciesMock).toHaveBeenCalledWith('/renderer')
+    expect(startRendererForegroundMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
+  })
+
+  it('runStartCommand rejects detached mode when an active start process is already running', async () => {
     readRuntimeStateMock.mockResolvedValueOnce({ kind: 'start', pid: 44 } as never)
     isProcessRunningMock.mockReturnValueOnce(true)
 
-    await expect(runStartCommand('/content')).rejects.toThrow('mdsite start is already running with PID 44.')
+    await expect(runStartCommand('/content', { detached: true })).rejects.toThrow('mdsite start is already running with PID 44.')
     expect(loadConfigMock).not.toHaveBeenCalled()
   })
 
-  it('runStartCommand starts the renderer for stale state and persists fresh runtime metadata', async () => {
+  it('runStartCommand starts detached renderer for stale state and persists fresh runtime metadata', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-10T12:34:56.000Z'))
     readRuntimeStateMock.mockResolvedValueOnce({ kind: 'start', pid: 44 } as never)
     isProcessRunningMock.mockReturnValueOnce(false)
     startRendererInBackgroundMock.mockResolvedValueOnce(777)
 
-    await expect(runStartCommand('/content')).resolves.toBe(
+    await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
       'mdsite start running in background (PID 777). Log: /content/.mdsite-runtime/start.log'
     )
     expect(ensureRendererDependenciesMock).toHaveBeenCalledWith('/renderer')

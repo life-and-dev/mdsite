@@ -107,13 +107,13 @@ describe('CLI workflow coverage', () => {
     expect(configText).toContain('- docs/guide')
   })
 
-  it('runStartCommand prepares the renderer against the current markdown directory and tracks the background process', async () => {
+  it('runStartCommand in detached mode prepares the renderer against the current markdown directory and tracks the background process', async () => {
     const contentDir = await createContentDir()
     const rendererDir = await createRendererDir(contentDir)
     await writeConfig(contentDir)
     runBackgroundMock.mockResolvedValueOnce(4321)
 
-    await expect(runStartCommand(contentDir)).resolves.toBe(
+    await expect(runStartCommand(contentDir, { detached: true })).resolves.toBe(
       `mdsite start running in background (PID 4321). Log: ${path.join(contentDir, '.mdsite-runtime', 'start.log')}`
     )
 
@@ -216,14 +216,15 @@ describe('CLI workflow coverage', () => {
     await expect(readRuntimeState(contentDir, 'start')).resolves.toBeNull()
   })
 
-  it('does not leave tracked start state behind when the renderer fails to boot', async () => {
+  it('does not leave tracked start state or logs behind when foreground renderer fails to boot', async () => {
     const contentDir = await createContentDir()
     await createRendererDir(contentDir)
     await writeConfig(contentDir)
-    runBackgroundMock.mockRejectedValueOnce(new Error('Failed to start npm run dev.'))
+    runForegroundMock.mockRejectedValueOnce(new Error('Failed to start npm run dev.'))
 
     await expect(runStartCommand(contentDir)).rejects.toThrow('Failed to start npm run dev.')
     await expect(readRuntimeState(contentDir, 'start')).resolves.toBeNull()
     await expect(access(path.join(contentDir, '.mdsite-runtime', 'start.json'))).rejects.toThrow()
+    await expect(access(path.join(contentDir, '.mdsite-runtime', 'start.log'))).rejects.toThrow()
   })
 })

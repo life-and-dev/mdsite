@@ -1,8 +1,26 @@
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
 import { getRuntimeLogPath, isProcessRunning, readRuntimeState, writeRuntimeState } from '../process/runtime-state.js'
-import { ensureRendererDependencies, prepareRenderer, startRendererInBackground } from '../renderer/mdsite-nuxt.js'
+import { ensureRendererDependencies, prepareRenderer, startRendererForeground, startRendererInBackground } from '../renderer/mdsite-nuxt.js'
 
-export async function runStartCommand(contentDir: string): Promise<string> {
+interface StartCommandOptions {
+  detached?: boolean
+}
+
+export async function runStartCommand(contentDir: string, options: StartCommandOptions = {}): Promise<string | undefined> {
+  if (options.detached) {
+    return runDetachedStartCommand(contentDir)
+  }
+
+  const { config } = await loadMdsiteConfig(contentDir)
+  const { rendererDir, rendererEnv } = await prepareRenderer(contentDir, config)
+
+  await ensureRendererDependencies(rendererDir)
+  await startRendererForeground(rendererDir, rendererEnv)
+
+  return undefined
+}
+
+async function runDetachedStartCommand(contentDir: string): Promise<string> {
   const existingState = await readRuntimeState(contentDir, 'start')
   if (existingState && isProcessRunning(existingState.pid)) {
     throw new Error(`mdsite start is already running with PID ${existingState.pid}.`)

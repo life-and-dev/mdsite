@@ -48,7 +48,13 @@ description: Use this skill to understand how to install, setup, run or deploy p
    ```bash
    node /path/to/md-site/dist/index.js start
    ```
-   Expect: background renderer, log at `_mdsite.log`.
+   Expect: foreground renderer output in the terminal. Closing the terminal or interrupting the command stops the process.
+
+   For a tracked background renderer, run:
+   ```bash
+   node /path/to/md-site/dist/index.js start -d
+   ```
+   Expect: background renderer log at `.mdsite-runtime/start.log`.
 
 2. Generate static output for preview or deploy.
    ```bash
@@ -66,7 +72,7 @@ description: Use this skill to understand how to install, setup, run or deploy p
    ```bash
    node /path/to/md-site/dist/index.js stop
    ```
-   Expect: stop `start` and `preview` processes.
+   Expect: stop `start -d` and `preview` processes.
 
 [Common Project Commands/URLs]
 

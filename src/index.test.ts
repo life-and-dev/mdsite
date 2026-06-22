@@ -11,8 +11,10 @@ vi.mock('./commands/stop.js', () => ({ runStopCommand: vi.fn() }))
 vi.mock('./commands/prepare.js', () => ({ runPrepareGithubCommand: vi.fn() }))
 
 import { runPrepareGithubCommand } from './commands/prepare.js'
+import { runStartCommand } from './commands/start.js'
 
 const runPrepareGithubCommandMock = vi.mocked(runPrepareGithubCommand)
+const runStartCommandMock = vi.mocked(runStartCommand)
 
 type PackageMetadata = {
   version?: unknown
@@ -56,17 +58,55 @@ describe('root CLI entrypoint', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite - local-first CLI for mdsite-nuxt'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('prepare github'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite preview'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('-d, --detached'))
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('prints help output when the help command is requested', async () => {
-    process.argv = ['node', 'mdsite', 'help']
+  it('dispatches mdsite start in foreground mode by default', async () => {
+    process.argv = ['node', 'mdsite', 'start']
+    runStartCommandMock.mockResolvedValue(undefined)
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: false })
+    expect(logSpy).not.toHaveBeenCalled()
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite start detached mode for -d', async () => {
+    process.argv = ['node', 'mdsite', 'start', '-d']
+    runStartCommandMock.mockResolvedValueOnce('detached')
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: true })
+    expect(logSpy).toHaveBeenCalledWith('detached')
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite start detached mode for --detached', async () => {
+    process.argv = ['node', 'mdsite', 'start', '--detached']
+    runStartCommandMock.mockResolvedValueOnce('detached')
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: true })
+    expect(logSpy).toHaveBeenCalledWith('detached')
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it.each(['help', '-h', '--help'])('prints help output when %s is requested', async (helpCommand) => {
+    process.argv = ['node', 'mdsite', helpCommand]
 
     await import('./index.js')
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('prepare github'))
     expect(errorSpy).not.toHaveBeenCalled()
+    expect(process.exitCode).toBeUndefined()
   })
 
   it('prints the package version when the version command is requested', async () => {
