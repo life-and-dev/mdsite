@@ -11,9 +11,11 @@ vi.mock('./commands/stop.js', () => ({ runStopCommand: vi.fn() }))
 vi.mock('./commands/prepare.js', () => ({ runPrepareGithubCommand: vi.fn() }))
 
 import { runPrepareGithubCommand } from './commands/prepare.js'
+import { runPreviewCommand } from './commands/preview.js'
 import { runStartCommand } from './commands/start.js'
 
 const runPrepareGithubCommandMock = vi.mocked(runPrepareGithubCommand)
+const runPreviewCommandMock = vi.mocked(runPreviewCommand)
 const runStartCommandMock = vi.mocked(runStartCommand)
 
 type PackageMetadata = {
@@ -57,7 +59,7 @@ describe('root CLI entrypoint', () => {
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite - local-first CLI for mdsite-nuxt'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('prepare github'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite preview'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite preview [-d|--detached]'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('-d, --detached'))
     expect(errorSpy).not.toHaveBeenCalled()
   })
@@ -95,6 +97,30 @@ describe('root CLI entrypoint', () => {
 
     expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: true })
     expect(logSpy).toHaveBeenCalledWith('detached')
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite preview in foreground mode by default', async () => {
+    process.argv = ['node', 'mdsite', 'preview']
+    runPreviewCommandMock.mockResolvedValue(undefined)
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runPreviewCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: false })
+    expect(logSpy).not.toHaveBeenCalled()
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it.each(['-d', '--detached'])('dispatches mdsite preview detached mode for %s', async (flag) => {
+    process.argv = ['node', 'mdsite', 'preview', flag]
+    runPreviewCommandMock.mockResolvedValueOnce('detached preview')
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runPreviewCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: true })
+    expect(logSpy).toHaveBeenCalledWith('detached preview')
     expect(errorSpy).not.toHaveBeenCalled()
   })
 

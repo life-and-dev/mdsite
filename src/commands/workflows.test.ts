@@ -128,6 +128,8 @@ describe('CLI workflow coverage', () => {
       }),
       path.join(contentDir, '.mdsite-runtime', 'start.log')
     )
+    expect(waitForTcpPortMocked).toHaveBeenCalledWith('localhost', 3000)
+    expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
 
     expect(await readFile(path.join(contentDir, '_menu.yml'), 'utf8')).toContain('- docs/guide')
     expect(await readFile(path.join(rendererDir, '.env'), 'utf8')).toContain(`NUXT_CONTENT_PATH=${JSON.stringify(contentDir)}`)
@@ -182,7 +184,7 @@ describe('CLI workflow coverage', () => {
     runBackgroundMock.mockResolvedValueOnce(2468)
     stopProcessMock.mockResolvedValueOnce(true)
 
-    await expect(runPreviewCommand(contentDir)).resolves.toBe(
+    await expect(runPreviewCommand(contentDir, { detached: true })).resolves.toBe(
       `mdsite preview running in background (PID 2468). URL: http://localhost:3000 Log: ${path.join(contentDir, '_mdsite.log')}`
     )
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')

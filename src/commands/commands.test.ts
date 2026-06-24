@@ -34,6 +34,7 @@ vi.mock('../renderer/mdsite-nuxt.js', () => ({
   generateRenderer: vi.fn(),
   getRendererGeneratedOutputPath: vi.fn(),
   prepareRenderer: vi.fn(),
+  previewRendererForeground: vi.fn(),
   previewRendererInBackground: vi.fn(),
   startRendererForeground: vi.fn(),
   startRendererInBackground: vi.fn()
@@ -61,6 +62,7 @@ import {
   generateRenderer,
   getRendererGeneratedOutputPath,
   prepareRenderer,
+  previewRendererForeground,
   previewRendererInBackground,
   startRendererForeground,
   startRendererInBackground
@@ -89,6 +91,7 @@ const ensureRendererDependenciesMock = vi.mocked(ensureRendererDependencies)
 const generateRendererMock = vi.mocked(generateRenderer)
 const getRendererGeneratedOutputPathMock = vi.mocked(getRendererGeneratedOutputPath)
 const prepareRendererMock = vi.mocked(prepareRenderer)
+const previewRendererForegroundMock = vi.mocked(previewRendererForeground)
 const previewRendererInBackgroundMock = vi.mocked(previewRendererInBackground)
 const startRendererForegroundMock = vi.mocked(startRendererForeground)
 const startRendererInBackgroundMock = vi.mocked(startRendererInBackground)
@@ -171,6 +174,10 @@ describe('command helpers', () => {
       'mdsite start running in background (PID 777). Log: /content/.mdsite-runtime/start.log'
     )
     expect(ensureRendererDependenciesMock).toHaveBeenCalledWith('/renderer')
+    expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
+    expect(waitForTcpPortMock.mock.invocationCallOrder[0]).toBeGreaterThan(writeRuntimeStateMock.mock.invocationCallOrder[0] ?? 0)
+    expect(openUrlInBrowserMock.mock.invocationCallOrder[0]).toBeGreaterThan(waitForTcpPortMock.mock.invocationCallOrder[0] ?? 0)
+    expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
     expect(writeRuntimeStateMock).toHaveBeenCalledWith('/content', expect.objectContaining({
       kind: 'start',
       pid: 777,
@@ -180,13 +187,81 @@ describe('command helpers', () => {
     }))
   })
 
-  it('runPreviewCommand enforces preview artifacts and persists preview runtime state', async () => {
+  it('runStartCommand uses the configured start host and port when opening detached start', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    prepareRendererMock.mockResolvedValueOnce({
+      rendererDir: '/renderer',
+      rendererEnv: { HOST: '127.0.0.1', PORT: '4173', NUXT_HOST: 'start.local', NUXT_PORT: '4321' }
+    })
+    startRendererInBackgroundMock.mockResolvedValueOnce(778)
+
+    await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
+      'mdsite start running in background (PID 778). Log: /content/.mdsite-runtime/start.log'
+    )
+    expect(waitForTcpPortMock).toHaveBeenCalledWith('start.local', 4321)
+    expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://start.local:4321')
+  })
+
+  it('runStartCommand does not open the browser when detached start readiness times out', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    startRendererInBackgroundMock.mockResolvedValueOnce(779)
+    waitForTcpPortMock.mockResolvedValueOnce(false)
+
+    await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
+      'mdsite start running in background (PID 779). Log: /content/.mdsite-runtime/start.log'
+    )
+    expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
+    expect(openUrlInBrowserMock).not.toHaveBeenCalled()
+  })
+
+  it('runStartCommand keeps succeeding when detached start readiness checks fail', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    startRendererInBackgroundMock.mockResolvedValueOnce(780)
+    waitForTcpPortMock.mockRejectedValueOnce(new Error('connect failed'))
+
+    await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
+      'mdsite start running in background (PID 780). Log: /content/.mdsite-runtime/start.log'
+    )
+    expect(openUrlInBrowserMock).not.toHaveBeenCalled()
+  })
+
+  it('runPreviewCommand previews in the foreground by default without runtime metadata', async () => {
+    await expect(runPreviewCommand('/content')).resolves.toBeUndefined()
+
+    expect(readRuntimeStateMock).not.toHaveBeenCalled()
+    expect(getRuntimeLogPathMock).not.toHaveBeenCalled()
+    expect(previewRendererInBackgroundMock).not.toHaveBeenCalled()
+    expect(writeRuntimeStateMock).not.toHaveBeenCalled()
+    expect(waitForTcpPortMock).not.toHaveBeenCalled()
+    expect(openUrlInBrowserMock).not.toHaveBeenCalled()
+    expect(ensureRendererDependenciesMock).toHaveBeenCalledWith('/renderer')
+    expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(previewRendererForegroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
+      TEST: '1',
+      NUXT_HOST: 'localhost',
+      NUXT_PORT: '3000',
+      HOST: 'localhost',
+      PORT: '3000',
+      NITRO_HOST: 'localhost',
+      NITRO_PORT: '3000'
+    }))
+  })
+
+  it('runPreviewCommand rejects detached mode when an active preview process is already running', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce({ kind: 'preview', pid: 55 } as never)
+    isProcessRunningMock.mockReturnValueOnce(true)
+
+    await expect(runPreviewCommand('/content', { detached: true })).rejects.toThrow('mdsite preview is already running with PID 55.')
+    expect(loadConfigMock).not.toHaveBeenCalled()
+  })
+
+  it('runPreviewCommand enforces preview artifacts and persists preview runtime state in detached mode', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-10T13:00:00.000Z'))
     readRuntimeStateMock.mockResolvedValueOnce(null)
     previewRendererInBackgroundMock.mockResolvedValueOnce(888)
 
-    await expect(runPreviewCommand('/content')).resolves.toBe(
+    await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
       'mdsite preview running in background (PID 888). URL: http://localhost:3000 Log: /content/_mdsite.log'
     )
     expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
@@ -212,7 +287,7 @@ describe('command helpers', () => {
     }))
   })
 
-  it('runPreviewCommand prefers inherited preview host and port values for the preview URL', async () => {
+  it('runPreviewCommand prefers inherited preview host and port values for the detached preview URL', async () => {
     readRuntimeStateMock.mockResolvedValueOnce(null)
     prepareRendererMock.mockResolvedValueOnce({
       rendererDir: '/renderer',
@@ -220,7 +295,7 @@ describe('command helpers', () => {
     })
     previewRendererInBackgroundMock.mockResolvedValueOnce(999)
 
-    await expect(runPreviewCommand('/content')).resolves.toBe(
+    await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
       'mdsite preview running in background (PID 999). URL: http://preview.local:4321 Log: /content/_mdsite.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
@@ -235,7 +310,7 @@ describe('command helpers', () => {
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://preview.local:4321')
   })
 
-  it('runPreviewCommand falls back to HOST and PORT when NUXT preview values are unset', async () => {
+  it('runPreviewCommand falls back to HOST and PORT when NUXT preview values are unset in detached mode', async () => {
     readRuntimeStateMock.mockResolvedValueOnce(null)
     prepareRendererMock.mockResolvedValueOnce({
       rendererDir: '/renderer',
@@ -243,7 +318,7 @@ describe('command helpers', () => {
     })
     previewRendererInBackgroundMock.mockResolvedValueOnce(1000)
 
-    await expect(runPreviewCommand('/content')).resolves.toBe(
+    await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
       'mdsite preview running in background (PID 1000). URL: http://127.0.0.1:4173 Log: /content/_mdsite.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
@@ -258,24 +333,24 @@ describe('command helpers', () => {
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://127.0.0.1:4173')
   })
 
-  it('runPreviewCommand does not open the browser when preview readiness times out', async () => {
+  it('runPreviewCommand does not open the browser when detached preview readiness times out', async () => {
     readRuntimeStateMock.mockResolvedValueOnce(null)
     previewRendererInBackgroundMock.mockResolvedValueOnce(1001)
     waitForTcpPortMock.mockResolvedValueOnce(false)
 
-    await expect(runPreviewCommand('/content')).resolves.toBe(
+    await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
       'mdsite preview running in background (PID 1001). URL: http://localhost:3000 Log: /content/_mdsite.log'
     )
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
   })
 
-  it('runPreviewCommand keeps succeeding when preview readiness checks fail', async () => {
+  it('runPreviewCommand keeps succeeding when detached preview readiness checks fail', async () => {
     readRuntimeStateMock.mockResolvedValueOnce(null)
     previewRendererInBackgroundMock.mockResolvedValueOnce(1002)
     waitForTcpPortMock.mockRejectedValueOnce(new Error('connect failed'))
 
-    await expect(runPreviewCommand('/content')).resolves.toBe(
+    await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
       'mdsite preview running in background (PID 1002). URL: http://localhost:3000 Log: /content/_mdsite.log'
     )
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()

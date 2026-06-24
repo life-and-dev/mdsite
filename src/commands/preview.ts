@@ -1,9 +1,28 @@
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
 import { openUrlInBrowser, waitForTcpPort } from '../process/child-process.js'
 import { getRuntimeLogPath, isProcessRunning, readRuntimeState, writeRuntimeState } from '../process/runtime-state.js'
-import { ensurePreviewArtifacts, ensureRendererDependencies, prepareRenderer, previewRendererInBackground } from '../renderer/mdsite-nuxt.js'
+import { ensurePreviewArtifacts, ensureRendererDependencies, prepareRenderer, previewRendererForeground, previewRendererInBackground } from '../renderer/mdsite-nuxt.js'
 
-export async function runPreviewCommand(contentDir: string): Promise<string> {
+interface PreviewCommandOptions {
+  detached?: boolean
+}
+
+export async function runPreviewCommand(contentDir: string, options: PreviewCommandOptions = {}): Promise<string | undefined> {
+  if (options.detached) {
+    return runDetachedPreviewCommand(contentDir)
+  }
+
+  const { config } = await loadMdsiteConfig(contentDir)
+  const { rendererDir, rendererEnv } = await prepareRenderer(contentDir, config)
+
+  await ensureRendererDependencies(rendererDir)
+  await ensurePreviewArtifacts(rendererDir)
+  await previewRendererForeground(rendererDir, getPreviewEnv(rendererEnv))
+
+  return undefined
+}
+
+async function runDetachedPreviewCommand(contentDir: string): Promise<string> {
   const existingState = await readRuntimeState(contentDir, 'preview')
   if (existingState && isProcessRunning(existingState.pid)) {
     throw new Error(`mdsite preview is already running with PID ${existingState.pid}.`)

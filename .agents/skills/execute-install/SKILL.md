@@ -66,13 +66,19 @@ description: Use this skill to understand how to install, setup, run or deploy p
    ```bash
    node /path/to/md-site/dist/index.js preview
    ```
-   Expect: preview URL `http://localhost:3000`.
+   Expect: foreground preview output in the terminal. Closing the terminal or interrupting the command stops the process.
+
+   For a tracked background preview, run:
+   ```bash
+   node /path/to/md-site/dist/index.js preview -d
+   ```
+   Expect: preview URL `http://localhost:3000` and background preview log at `_mdsite.log`.
 
 4. Stop tracked background jobs from same content dir.
    ```bash
    node /path/to/md-site/dist/index.js stop
    ```
-   Expect: stop `start -d` and `preview` processes.
+   Expect: stop `start -d` and `preview -d` processes.
 
 [Common Project Commands/URLs]
 

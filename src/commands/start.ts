@@ -1,4 +1,5 @@
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
+import { openUrlInBrowser, waitForTcpPort } from '../process/child-process.js'
 import { getRuntimeLogPath, isProcessRunning, readRuntimeState, writeRuntimeState } from '../process/runtime-state.js'
 import { ensureRendererDependencies, prepareRenderer, startRendererForeground, startRendererInBackground } from '../renderer/mdsite-nuxt.js'
 
@@ -33,6 +34,7 @@ async function runDetachedStartCommand(contentDir: string): Promise<string> {
 
   const logPath = getRuntimeLogPath(contentDir, 'start')
   const pid = await startRendererInBackground(rendererDir, rendererEnv, logPath)
+  const startUrl = getStartUrl(rendererEnv)
 
   await writeRuntimeState(contentDir, {
     kind: 'start',
@@ -44,5 +46,22 @@ async function runDetachedStartCommand(contentDir: string): Promise<string> {
     startedAt: new Date().toISOString()
   })
 
+  const startReady = await waitForTcpPort(getStartHost(rendererEnv), Number.parseInt(getStartPort(rendererEnv), 10)).catch(() => false)
+  if (startReady) {
+    await openUrlInBrowser(startUrl)
+  }
+
   return `mdsite start running in background (PID ${pid}). Log: ${logPath}`
+}
+
+function getStartUrl(env: NodeJS.ProcessEnv): string {
+  return `http://${getStartHost(env)}:${getStartPort(env)}`
+}
+
+function getStartHost(env: NodeJS.ProcessEnv): string {
+  return env.NUXT_HOST ?? env.HOST ?? 'localhost'
+}
+
+function getStartPort(env: NodeJS.ProcessEnv): string {
+  return env.NUXT_PORT ?? env.PORT ?? '3000'
 }

@@ -17,7 +17,7 @@ Usage:
   mdsite init
   mdsite start [-d|--detached]
   mdsite generate
-  mdsite preview
+  mdsite preview [-d|--detached]
   mdsite stop
   mdsite version
   mdsite prepare github
@@ -33,7 +33,7 @@ Commands:
 
 Options:
   -h, --help      Show this help output
-  -d, --detached  Run mdsite start in the background and write runtime state
+  -d, --detached  Run mdsite start or preview in the background and write runtime state
 `
 
 type PackageMetadata = {
@@ -78,7 +78,12 @@ async function main(): Promise<void> {
       console.log(await runGenerateCommand(currentDirectory))
       return
     case 'preview':
-      console.log(await runPreviewCommand(currentDirectory))
+      {
+        const message = await runPreviewCommand(currentDirectory, { detached: subcommand === '-d' || subcommand === '--detached' })
+        if (message) {
+          console.log(message)
+        }
+      }
       return
     case 'stop':
       console.log(await runStopCommand(currentDirectory))

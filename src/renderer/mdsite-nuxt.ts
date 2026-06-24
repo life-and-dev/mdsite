@@ -70,6 +70,10 @@ export async function previewRendererInBackground(rendererDir: string, env: Node
   return runRendererScriptInBackground(rendererDir, env, 'preview', logPath)
 }
 
+export async function previewRendererForeground(rendererDir: string, env: NodeJS.ProcessEnv): Promise<void> {
+  await runRendererScript(rendererDir, env, 'preview')
+}
+
 export async function generateRenderer(rendererDir: string, env: NodeJS.ProcessEnv): Promise<void> {
   await runRendererScript(rendererDir, env, 'generate')
 }

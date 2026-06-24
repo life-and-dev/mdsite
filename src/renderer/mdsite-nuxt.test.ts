@@ -33,6 +33,7 @@ import {
   prepareRendererBackend,
   prepareConfiguredRenderer,
   prepareRenderer,
+  previewRendererForeground,
   previewRendererInBackground,
   startRendererForeground,
   startRendererInBackground
@@ -254,11 +255,13 @@ describe('mdsite-nuxt renderer helpers', () => {
     await previewRendererInBackground('/renderer', env, '/logs/preview.log')
     await generateRenderer('/renderer', env)
     await startRendererForeground('/renderer', env)
+    await previewRendererForeground('/renderer', env)
 
     expect(runBackgroundMock).toHaveBeenNthCalledWith(1, 'npm', ['run', 'dev'], '/renderer', env, '/logs/start.log')
     expect(runBackgroundMock).toHaveBeenNthCalledWith(2, 'npm', ['run', 'preview'], '/renderer', env, '/logs/preview.log')
     expect(runForegroundMock).toHaveBeenNthCalledWith(1, 'npm', ['run', 'generate'], '/renderer', env)
     expect(runForegroundMock).toHaveBeenNthCalledWith(2, 'npm', ['run', 'dev'], '/renderer', env)
+    expect(runForegroundMock).toHaveBeenNthCalledWith(3, 'npm', ['run', 'preview'], '/renderer', env)
   })
 
   it('delegates renderer backend preparation to the stable prepare:renderer hook name', async () => {

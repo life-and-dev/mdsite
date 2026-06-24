@@ -10,10 +10,10 @@ Use the CLI from the root package, then operate on your markdown project directo
 2. Change into the markdown/content directory you want to serve.
 3. Invoke the built CLI from this repository path, or use a local alias/link that points to it.
 4. Run `init` once to create `_mdsite.yml`.
-5. Run `start` for foreground local development, or `start -d` for a tracked background process.
+5. Run `start` for foreground local development, or `start -d` for a tracked background process that opens the browser after the server is ready.
 6. Run `generate` to build static output.
-7. Run `preview` after `generate` for a local preview.
-8. Run `stop` to stop tracked background `start -d` and `preview` processes.
+7. Run `preview` after `generate` for a foreground local preview, or `preview -d` for a tracked background preview.
+8. Run `stop` to stop tracked detached `start` and `preview` processes.
 
 ## Documentation location
 
@@ -26,8 +26,6 @@ mdsite help
 mdsite version
 mdsite init
 mdsite start
-mdsite start -d
-mdsite start --detached
 mdsite generate
 mdsite preview
 mdsite stop
@@ -90,7 +88,7 @@ npm run build
 
 Open http://localhost:3000/. The command runs in the foreground and writes renderer output to the terminal; closing the terminal or interrupting the command stops the process.
 
-To run the demo as a tracked background process instead, use `start -d` or `start --detached`. Detached start logs to `.mdsite-runtime/start.log` in the content directory.
+To run the demo as a tracked background process instead, use `start -d` or `start --detached`. Detached start logs to `.mdsite-runtime/start.log` in the content directory and opens the browser automatically after the server is ready.
 
 To stop a detached local preview:
 
@@ -136,7 +134,7 @@ node /path/to/md-site/dist/index.js start
 
 `start` requires `_mdsite.yml`, prepares renderer compatibility files, installs renderer dependencies when `node_modules` is missing, and runs the renderer in the foreground with terminal output. Closing the terminal or interrupting the command stops the foreground process.
 
-Use `start -d` or `start --detached` to run a tracked background renderer instead. Detached start logs to `.mdsite-runtime/start.log` in the content directory.
+Use `start -d` or `start --detached` to run a tracked background renderer instead. Detached start logs to `.mdsite-runtime/start.log` in the content directory and opens the browser automatically after the server is ready.
 
 ### 3. Generate static output
 
@@ -155,6 +153,9 @@ node /path/to/md-site/dist/index.js preview
 ```
 
 `preview` is a **post-generate** local preview step. It requires `_mdsite.yml` and an existing generated renderer build.
+By default, it runs in the foreground with terminal output. Closing the terminal or interrupting the command stops the foreground preview.
+
+Use `preview -d` or `preview --detached` to run a tracked background preview instead. Detached preview logs to `_mdsite.log` in the content directory and writes runtime state under `.mdsite-runtime/`.
 
 ### 5. Stop background processes
 
@@ -163,7 +164,7 @@ cd /path/to/your/content
 node /path/to/md-site/dist/index.js stop
 ```
 
-`stop` is intended for initialized content directories and stops tracked `start -d` and `preview` background processes for the current content directory.
+`stop` is intended for initialized content directories and stops tracked detached `start` and `preview` background processes for the current content directory, not foreground processes.
 
 ### 6. Prepare a GitHub Pages workflow
 

@@ -40,7 +40,6 @@ mdsite help
 mdsite version
 mdsite init
 mdsite start
-mdsite start --detached
 mdsite generate
 mdsite preview
 mdsite stop
@@ -61,7 +60,11 @@ npm run build
 
 Open `http://localhost:3000/`. `mdsite start` runs in the foreground and writes output to the terminal; closing the terminal or interrupting the command stops the process.
 
-Use `mdsite start -d` or `mdsite start --detached` for a tracked background process. Detached start logs to `.mdsite-runtime/start.log` in the content directory.
+Use `mdsite start -d` or `mdsite start --detached` for a tracked background process. Detached start logs to `.mdsite-runtime/start.log` in the content directory and opens the browser automatically after the server is ready.
+
+After `mdsite generate`, use `mdsite preview` for a foreground local preview. Closing the terminal or interrupting the command stops it. Use `mdsite preview -d` or `mdsite preview --detached` for a tracked background preview that logs to `_mdsite.log` in the content directory.
+
+Use `mdsite stop` to stop tracked detached `start` and `preview` processes, not foreground processes.
 
 > [!NOTE]
 > The `/docs` directory contains this documentation as sample content to get you started. You can create your own content at any other location and configure it independantly.
