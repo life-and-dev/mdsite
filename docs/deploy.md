@@ -1,78 +1,111 @@
-
 # Deployment Guide
-
-> [!NOTE]
-> **Goal**: This tutorial guides you through deploying your content to production using Cloudflare Pages.
 
 ## 1. Prerequisites
 
 You need:
-1.  A GitHub repository containing this codebase.
-2.  A Cloudflare account.
 
-## 2. Choosing a Deployment Strategy
+1. A content directory with `mdsite.yml`.
+2. The built `mdsite` CLI available where you run deployment commands.
+3. A GitHub repository for GitHub Pages or Cloudflare Pages.
+4. A Cloudflare account if you deploy with Cloudflare Pages.
 
-There are two ways to deploy this Nuxt application:
+Run all `mdsite` commands from the content directory that contains `mdsite.yml`.
 
-### A. Static Site Generation (SSG) - **Highly Recommended**
-Run `npm run generate {domain}`. This crawls your site and generates static HTML files.
-*   **Pros**: Fastest performance, zero server cost, ultra-secure (no server-side code), can be hosted anywhere.
-*   **Cons**: Requires a redeploy/rebuild to see content changes.
+## 2. Preview Locally
 
-### B. Server-Side Rendering (SSR)
-Run `npm run build {domain}`. This creates Nuxt server output.
-*   **Pros**: Real-time content updates (if linked to a live CMS), dynamic features.
-*   **Cons**: Requires a running Nuxt server (more complex/expensive), slightly slower time-to-first-byte.
+### 🧭 Configure your Markdown Site
 
-> [!TIP]
-> **Use Static Generation** unless you are an advanced user with a specific requirement for a live Nuxt server in production. Unless you know what you are doing, `npm run generate` is the correct choice.
+Confirm `mdsite.yml` exists and has correct configuration in the content directory.
 
-## 3. Cloudflare Pages Configuration
+Pay attention to `server.output` which indicates where generated static pages will be written to. The default value is `.output`, so the static site is generated in `.output/public` by default.
 
-When you create a new project in Cloudflare Pages, connect it to your GitHub repo and use the following settings:
-
-*   **Build command**: `npm run generate`
-*   **Build output directory**: `.output/public`
-*   **Root directory**: `/` (Leave default)
-
-## 4. Environment Variables
-
-This is the most critical part. Your application is "content-agnostic" until you tell it which domain to build.
-
-Go to **Settings > Environment variables** in Cloudflare and add:
-
-| Variable         | Example Value | Description                                                                         |
-| :--------------- | :------------ | :---------------------------------------------------------------------------------- |
-| `CONTENT`        | `example`     | (Optional) The name of the configuration. If omitted, it uses `content.config.yml`. |
-| `CONTENT_CONFIG` | (Optional)    | JSON string of configuration if you need to override defaults without a file.       |
-
-> [!TIP]
-> If you only host **one site**, you don't need to specify a domain. Just create a `content.config.yml` in the root and run commands without arguments.
-
-## 5. Local Usage
-
-Run local CLI commands from the content directory. If you do not use a `mdsite` alias or link, replace `mdsite` with `node /path/to/md-site/dist/index.js`:
+### 🏗️ Generate the static site
 
 ```bash
-# Show the CLI version from the root package.json
-mdsite version
-
-# Generate static output for the current content directory
 mdsite generate
+```
 
-# Prepare a GitHub Pages workflow for the current content directory
+`mdsite generate` builds the static site.
+
+### 🔎 Preview the generated site
+
+```bash
+mdsite preview
+```
+
+Use `mdsite preview` after `mdsite generate` to check the generated static site locally before deploying. The foreground preview stops when you interrupt the command or close the terminal. Use `mdsite preview -d` for a tracked background preview, and `mdsite stop` to stop tracked detached previews.
+
+## 3. GitHub Pages
+
+### ⚙️ Generate the workflow
+
+From the content directory, run:
+
+```bash
 mdsite prepare github
 ```
 
-## 6. The Build Process
+This creates `.github/workflows/deploy.yml` in the current content directory.
 
-When Cloudflare runs `npm run generate`:
-1.  It installs dependencies.
-2.  The `start.ts` script checks for a domain argument or the `CONTENT` environment variable.
-3.  If no domain is found, it loads the default `content.config.yml` configuration.
-4.  It uses the configured local content and renderer paths. Current CLI documentation does not describe clone or pull behaviour as active usage.
-5.  It resolves the content source directory:
-    - Path: `content.path` (defaults to `../{domain}` relative to project root, where domain is the config name or `cms`).
-6.  It syncs your images and assets into the `public/` folder.
-7.  It generates the static JSON indices (`_navigation.json`, `_search-index.json`).
-8.  Nuxt crawls all your pages and generates static HTML in `.output/public`.
+### 🚀 Deploy with GitHub Actions
+
+Commit `mdsite.yml`, your content files, and the generated workflow:
+
+```bash
+git add .
+git commit -m "Add GitHub Pages deployment"
+git push
+```
+
+In GitHub, set **Settings > Pages > Build and deployment > Source** to **GitHub Actions**. The generated workflow builds on pushes to `main` and publishes the static site from `<server.output>/public`.
+
+After the workflow finishes, preview the site online at:
+
+```text
+https://<github-username>.github.io/<repository-name>/
+```
+
+## 4. Cloudflare Pages
+
+### ☁️ Create a Pages project
+
+In Cloudflare Pages, connect the repository that contains your mdsite content and `mdsite.yml`.
+
+### 🛠️ Configure build settings
+
+Use these settings when `server.output` is the default `.output`:
+
+| Setting                | Value                                                                          |
+| :--------------------- | :----------------------------------------------------------------------------- |
+| Build command          | `mdsite generate`                                                              |
+| Build output directory | `.output/public`                                                               |
+| Root directory         | Your content directory, or `/` if the repository root is the content directory |
+
+If `mdsite.yml` sets a different `server.output`, set the Cloudflare **Build output directory** to `<server.output>/public`.
+
+> [!IMPORTANT]
+> The Cloudflare build environment must be able to run `mdsite generate` from the content directory. Provide the built CLI in your project setup.
+
+## 5. Troubleshooting
+
+### ⚠️ `mdsite.yml` is missing
+
+In the content directory, run:
+
+```bash
+mdsite init
+```
+
+Then configure the generated `mdsite.yml`
+
+### ⚠️ Deployed site is empty or 404s
+
+Check that the host publishes `<server.output>/public`. With the default config, this is `.output/public`.
+
+### ⚠️ GitHub workflow generation fails
+
+`mdsite prepare github` requires a valid `mdsite.yml` and the configured local renderer path to exist when the workflow is generated.
+
+### ⚠️ Renderer clone or pull expected
+
+Current MD-Site commands use local renderer resolution. `start`, `generate`, and `preview` fall back to the checked-in `mdsite-nuxt/` renderer when `server.path` is absent; `prepare github` requires the configured local renderer path to exist. The CLI does not use active clone or pull behavior.

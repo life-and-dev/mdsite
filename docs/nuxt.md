@@ -1,8 +1,7 @@
 
 # Nuxt Configuration & Workflow
 
-> [!NOTE]
-> **Goal**: This tutorial explains how our Nuxt application is configured, why we use specific settings, and how to use the low-level development commands if you need more control.
+This tutorial explains how our Nuxt application is configured, why we use specific settings, and how to use the low-level development commands if you need more control.
 
 ## 1. `nuxt.config.ts` Overview
 
@@ -25,60 +24,53 @@ We rely heavily on Nuxt "hooks" to integrate our custom scripts:
     - **What**: Starts our `sync-content.ts` watcher. This ensures images are copied and JSON data is generated while you code.
 
 2.  **`build:before` Hook**:
-    - **When**: Runs before `npm run generate` (production build).
+    - **When**: Runs before `mdsite generate` invokes the renderer production build.
     - **What**: Runs `generate-indices.ts` to build the search index and navigation tree ONE TIME. It also generates favicons.
 
 3.  **`content:file:beforeParse` Hook**:
     - **What**: This is a special hook for `@nuxt/content`.
     - **Why**: We use it to find Bible references (e.g., `John 3:16`) and GFM Alerts (e.g., `> [!NOTE]`) in your Markdown and transform them *before* the markdown parser sees them. This allows us to add tooltips and custom styling automatically!
 
-## 2. Universal Command Wrapper
+## 2. CLI Orchestration
 
-Most `npm` scripts in this project are wrappers around `scripts/start.ts`. This script handles configuration loading and environment setup.
-
-### `npm start [domain]`
-- **What**: The primary command for development.
-- **Default**: It looks for `content.config.yml`.
-- **Domain**: If you provide a domain (e.g., `npm start example`), it looks for `example.config.yml`.
-
-### `npm run dev`
-- **What**: Similar to `npm start`, but clears the `.data` directory (hard restart) before starting.
-- **Use when**: You want a clean slate or if you suspect caching issues.
-
-### `npm run dev:cached`
-- **What**: Runs without cleaning the `.data` directory.
-- **Use when**: You want the fastest possible restart time.
-
-### `npm run build` vs `npm run generate`
-- **`build`**: Produces a build meant for a Nuxt server.
-- **`generate`**: The command we use for production. It builds the static HTML files into `.output/public`.
-
-## 3. Advanced Development Modes
-
-### Cached vs. Uncached Start
-When using the wrapper `npm start`, you can choose to skip the cache cleaning step.
-
-*   **Uncached (Default)**: `npm start [domain]`
-*   **Cached Mode**: `npm start [domain] --cached`
-
-### Manual Configuration
-Sometimes you might want to run the lower-level scripts directly for debugging. You can simulate what `npm start` does by setting environment variables manually:
+The active workflow uses the root MD-Site CLI from a content directory.
 
 ```bash
-# 1. Set the variables
-export CONTENT=example
-export CONTENT_DIR=/absolute/path/to/my/content
-
-# 2. Run the Nuxt dev server manually
-npx nuxt dev
+mdsite init
+mdsite start
+mdsite generate
+mdsite preview
+mdsite stop
+mdsite prepare github
 ```
 
-> [!WARNING]
-> If you run `npx nuxt dev` directly without setting these variables:
-> - `CONTENT` will default to `cms`.
-> - `CONTENT_DIR` will default to the `docs/` folder in the project root.
+All commands operate on the current working directory as the content directory. `mdsite.yml` is the active configuration file.
+
+### Foreground and detached modes
+
+- `mdsite start` runs the renderer in the foreground with terminal output.
+- `mdsite start -d` or `mdsite start --detached` starts a tracked background renderer and logs to `.mdsite-runtime/start.log`.
+- `mdsite generate` builds static output under `server.output`.
+- `mdsite preview` previews generated output in the foreground after `generate`.
+- `mdsite preview -d` or `mdsite preview --detached` starts a tracked background preview and logs to `mdsite.log`.
+- `mdsite stop` stops tracked detached `start` and `preview` processes.
+
+## 3. Renderer Resolution
+
+Renderer resolution is local-only:
+
+- If `mdsite.yml` sets `server.path`, the CLI first looks for that path relative to the content directory.
+- If that directory is not present, `start`, `generate`, and `preview` fall back to the checked-in repository renderer at `mdsite-nuxt/`.
+- If the renderer's `node_modules` directory is missing, the CLI runs `npm install` in the renderer directory.
+- `prepare github` requires the configured `server.path` renderer directory to exist when the workflow is generated.
+
+Current documentation does not describe renderer clone or pull behavior as active usage.
+
+## 4. Low-Level Renderer Work
+
+Use renderer-level Nuxt commands only when working directly on `mdsite-nuxt/` internals. For normal content projects, use the MD-Site CLI commands above.
 
 ---
 
 > [!TIP]
-> **Output**: You now understand that `npm start` is just a convenience wrapper. You also know that our project relies on "Hooks" to bridge the gap between static files and the Nuxt runtime.
+> **Output**: You now understand how the local CLI prepares and runs the Nuxt renderer for content directories.

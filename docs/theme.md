@@ -1,10 +1,10 @@
 # Theme Configuration
 
-The Markdown CMS allows you to define custom themes for each configuration. Themes are configured in the `content.config.yml` or `{domain}.config.yml` file and leverage Vuetify's theme system under the hood.
+MD-Site allows you to define custom themes in `mdsite.yml`. Themes leverage Vuetify's theme system under the hood.
 
 ## Structure
 
-Themes are defined under the `themes` property in your configuration file. You can define multiple themes (e.g., `light`, `dark`), and the system will allow users to toggle between them.
+Themes are defined under the `themes` property in `mdsite.yml`. You can define multiple themes (e.g., `light`, `dark`), and the system will allow users to toggle between them.
 
 ```yaml
 themes:
@@ -42,7 +42,7 @@ The system automatically determines if a theme is "dark" or "light" based on its
 
 ## Color Tokens
 
-The CMS uses a comprehensive set of color tokens to ensure consistent styling across the application.
+MD-Site uses a comprehensive set of color tokens to ensure consistent styling across the application.
 
 ### Core Colors
 - `primary`: Main brand color (links, primary buttons).

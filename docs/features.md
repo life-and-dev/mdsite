@@ -4,7 +4,7 @@ This site includes several optional features that can be toggled on or off depen
 
 ## Global Feature Toggles
 
-Features are managed in the `features` section of your `{domain}.config.yml` file. Each feature can be enabled by setting its value to `true`. By default, features are disabled (`false`).
+Features are managed in the `features` section of `mdsite.yml` in your content directory. Each feature can be enabled by setting its value to `true`.
 
 ```yaml
 features:
@@ -20,7 +20,7 @@ features:
 ## How to Enable/Disable
 
 To change the status of a feature:
-1.  Open your configuration file (e.g., `content.config.yml` or `example.config.yml`).
+1.  Open `mdsite.yml` in your content directory.
 2.  Locate the `features` section.
 3.  Set the desired feature to `true` or `false`.
-4.  Restart the development server or rebuild the site to see the changes.
+4.  Restart `mdsite start` or rerun `mdsite generate` to see the changes.

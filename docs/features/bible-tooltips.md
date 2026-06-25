@@ -8,7 +8,7 @@ The site uses a set of regex patterns to match common Bible reference formats (e
 
 ## Configuration
 
-This feature is controlled by the `bibleTooltips` toggle in your `{domain}.config.yml` file:
+This feature is controlled by the `bibleTooltips` toggle in `mdsite.yml`:
 
 ```yaml
 features:

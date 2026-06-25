@@ -1,8 +1,7 @@
 
 # Testing Guide
 
-> [!NOTE]
-> **Goal**: In this short tutorial, you will learn how to verify your code changes using the automated test suite.
+In this short tutorial, you will learn how to verify your code changes using the automated test suite.
 
 ## 1. The Test Runner
 

@@ -2,9 +2,9 @@
 
 # MD Site Documentation
 
-Welcome to the MD Site! This project is designed to be a flexible, file-based Markdown Static Site Generator (SSG) where content MD (Markdown) files are completely separated from the renderer (the Nuxt framework).
+Welcome to MD-Site! This project is a local CLI for Markdown sites where content files are separated from the Nuxt renderer.
 
-Our goal is to allow content creators to write simple Markdown files while this project provide a robust, high-performance rendering engine that can be deployed anywhere (like Cloudflare Pages).
+The current workflow is local-only: build the CLI from this repository, run it from a content directory, and configure that content directory with `mdsite.yml`.
 
 A preview of MD Site's output is available at [https://life-and-dev.github.io/md-site](https://life-and-dev.github.io/md-site).
 
@@ -24,14 +24,22 @@ npm install
 npm run build
 ```
 
-Use the built CLI from your markdown content directory:
+Use the built CLI from your markdown content directory. Run `init` once to create `mdsite.yml`:
 
 ```bash
 cd /path/to/your/content
-node /path/to/md-site/dist/index.js help
+node /path/to/md-site/dist/index.js init
 ```
 
 If you create a local alias or link for the built CLI, the shorter `mdsite ...` examples refer to that alias or link.
+
+You can also install the local development alias from the repository root:
+
+```bash
+npm run install-alias
+```
+
+After restarting your terminal session, use `mdsite-dev ...` from any content directory.
 
 ### 2. Implemented commands
 
@@ -50,11 +58,12 @@ mdsite prepare github
 
 ### 3. Starting the demo documentation site
 
-From the repository root, build the CLI and start `docs/` as a local mdsite preview:
+From the repository root, build the CLI, initialize `docs/` if needed, and start it as a local mdsite preview:
 
 ```bash
 npm install
 npm run build
+(cd docs && node ../dist/index.js init)
 (cd docs && node ../dist/index.js start)
 ```
 
@@ -62,7 +71,7 @@ Open `http://localhost:3000/`. `mdsite start` runs in the foreground and writes 
 
 Use `mdsite start -d` or `mdsite start --detached` for a tracked background process. Detached start logs to `.mdsite-runtime/start.log` in the content directory and opens the browser automatically after the server is ready.
 
-After `mdsite generate`, use `mdsite preview` for a foreground local preview. Closing the terminal or interrupting the command stops it. Use `mdsite preview -d` or `mdsite preview --detached` for a tracked background preview that logs to `_mdsite.log` in the content directory.
+After `mdsite generate`, use `mdsite preview` for a foreground local preview. Closing the terminal or interrupting the command stops it. Use `mdsite preview -d` or `mdsite preview --detached` for a tracked background preview that logs to `mdsite.log` in the content directory.
 
 Use `mdsite stop` to stop tracked detached `start` and `preview` processes, not foreground processes.
 
@@ -77,10 +86,10 @@ We have prepared a series of tutorials to guide you through every aspect of work
   Learn about the supported GFM alerts, Bible references, and custom markdown rendering.
 
 - **[Menu Configuration](menu)**  
-  Learn the syntax of the `_menu.yml` file. We cover everything from simple links to dropdowns, external URLs, and separators.
+  Learn the syntax of the `menu` section in `mdsite.yml`. The generated `_menu.yml` file is a renderer compatibility artifact.
 
 - **[Generating Favicons](favicon)**  
-  Learn how to generate favicons from a single SVG logo.
+  Learn how to configure a favicon path in `mdsite.yml`.
 
 - **[Theme Configuration](theme)**  
   Learn how to customize the look and feel of your site with custom color tokens and automatic dark mode support.
@@ -89,10 +98,10 @@ We have prepared a series of tutorials to guide you through every aspect of work
   Learn how to toggle and configure site features like Bible tooltips and source editing.
 
 - **[Nuxt Configuration](nuxt)**  
-  Dive into the `nuxt.config.ts` file. We explain the modules we use, the custom hooks we've written, and the difference between standard development and the low-level scripts.
+  Dive into the `nuxt.config.ts` file and how the CLI orchestrates the local renderer.
 
 - **[Architecture](architecture)**  
-  Understand the "Why" and "How". This tutorial explains the separation of concerns between our content scripts and the frontend application.
+  Understand the "Why" and "How". This tutorial explains the separation of concerns between content directories and the renderer.
 
 - **[Testing](tests)**  
   Learn how to run our automated test suite to ensure your changes don't break anything.

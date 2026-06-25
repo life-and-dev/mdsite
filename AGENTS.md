@@ -1,17 +1,17 @@
 # MD-Site local CLI
 
 MD-Site is a local-use CLI for markdown sites.
-It drives `mdsite-nuxt` from one `_mdsite.yml` in content dir.
+It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 
 ## Primary features
 
 - **`mdsite help`**: Show CLI help.
-- **`mdsite init`**: Create `_mdsite.yml` from local markdown files.
+- **`mdsite init`**: Create `mdsite.yml` from local markdown files.
 - **`mdsite start`**: Start local renderer in the foreground for current content directory.
 - **`mdsite start -d` / `mdsite start --detached`**: Start tracked background renderer and log to `.mdsite-runtime/start.log`.
 - **`mdsite generate`**: Build static output into `server.output`.
 - **`mdsite preview`**: Preview generated output after `generate` in the foreground.
-- **`mdsite preview -d` / `mdsite preview --detached`**: Start tracked background preview and log to `_mdsite.log`.
+- **`mdsite preview -d` / `mdsite preview --detached`**: Start tracked background preview and log to `mdsite.log`.
 - **`mdsite stop`**: Stop tracked detached `start` and `preview` processes.
 - **`mdsite prepare github`**: Generate `.github/workflows/deploy.yml` for this content dir.
 

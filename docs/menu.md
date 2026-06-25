@@ -1,12 +1,14 @@
 
-# Menu Configuration (_menu.yml)
+# Menu Configuration
 
-> [!NOTE]
-> **Goal**: This is a comprehensive reference for the `_menu.yml` file. You will learn every possible way to define items in your navigation sidebar.
+This is a reference for the `menu` section in `mdsite.yml`. You will learn common ways to define items in your navigation sidebar.
+
+> [!IMPORTANT]
+> Edit the `menu` section in `mdsite.yml` when changing your site's navigation. The CLI generates `_menu.yml` as a renderer compatibility artifact.
 
 ## 1. Basic Structure
 
-The `_menu.yml` file is a YAML list. Each item in the list becomes an item in the sidebar.
+The `menu` section is a YAML list. Each item in the list becomes an item in the sidebar.
 
 ```yaml
 - Introduction: intro.md
@@ -73,4 +75,4 @@ Just paste the URL as the value.
 ---
 
 > [!TIP]
-> **Output**: If you configure your `_menu.yml` correctly, you will see a perfectly organized sidebar navigation that matches your content structure.
+> **Output**: If you configure `menu` in `mdsite.yml` correctly, you will see a sidebar navigation that matches your content structure.

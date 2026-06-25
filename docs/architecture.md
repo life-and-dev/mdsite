@@ -1,43 +1,39 @@
 
 # Project Architecture
 
-> [!NOTE]
-> **Goal**: This tutorial explains the high-level design of the Markdown CMS. You will understand why we separated the "Content" from the "Renderer" and how data flows from a Markdown file to the browser.
+This tutorial explains the high-level design of MD-Site. You will understand why content is separated from the renderer and how data flows from a Markdown file to the browser.
 
 ## 1. The Core Philosophy: Separation of Concerns
 
 This project is built on a strict separation:
 
-*   **The Content (Data)**: Markdown files (`.md`), Images, YAML menus. These live in separate Git repositories or directories.
-*   **The Renderer (Code)**: This Nuxt application. It knows *how* to display a page, but it doesn't know *what* the page is until build time.
+*   **The Content (Data)**: Markdown files (`.md`), images, and `mdsite.yml`. These live in the content directory where you run the CLI.
+*   **The Renderer (Code)**: The local Nuxt renderer. It knows *how* to display a page, but it doesn't know *what* the page is until runtime or build time.
 
 **Why?**
-This allows multiple websites (domains) to share the exact same code. We can fix a bug in the renderer, and *all* our websites get the fix immediately.
+This allows content projects to use the same local renderer while keeping site content and configuration in their own directories.
 
 ## 2. The Data Flow
 
-When you run `npm start` or `npm run generate`, the following pipeline executes:
+When you run `mdsite start` or `mdsite generate` from a content directory, the CLI prepares renderer compatibility files and then runs the local Nuxt renderer:
 
 ```mermaid
 graph TB
-    A[Markdown Content] -->|sync-content.ts| B[Public Folder]
-    A -->|generate-indices.ts| C[JSON Indices]
-    B --> D[Nuxt App]
-    C --> D
+    A[Content Directory] -->|mdsite.yml and markdown files| B[CLI Orchestration]
+    B -->|compatibility files| C[Local Nuxt Renderer]
+    C --> D[Browser or Static Output]
 ```
 
-### Step 1: explicit Sync (`sync-content.ts`)
-We do not let Nuxt read directly from your source content folder. Instead, we explicitly **copy** assets (images, favicons) to the `public/` folder.
-*   *Benefit*: Nuxt's `public/` folder is served statically and efficiently.
+### Step 1: Content-directory configuration
+`mdsite.yml` is the active configuration file. `mdsite init` creates it and derives defaults from local markdown files.
 
-### Step 2: Index Generation (`generate-indices.ts`)
-We pre-calculate the "database" of the site.
-*   **`_navigation.json`**: Scanning all headers and `_menu.yml` files to build the sidebar.
-*   **`_search-index.json`**: Reading all markdown files to create a searchable index of titles, descriptions, and keywords.
+### Step 2: CLI orchestration
+The CLI prepares compatibility artifacts such as `_menu.yml`, `mdsite-nuxt/.env`, and `mdsite-nuxt/content.config.yml` before running the renderer.
 
-### Step 3: Client-Side Consumption
-The Nuxt app (Vue components) does **not** parse Markdown in real-time for navigation. It simply fetches `/_navigation.json`.
-*   *Benefit*: Extremely fast page loads. The data is just a static JSON file.
+### Step 3: Renderer execution
+`mdsite start` runs the renderer in the foreground by default, while `mdsite start -d` runs a tracked background renderer. `mdsite generate` writes static output under `server.output`, and `mdsite preview` previews a generated build.
+
+Renderer resolution is local-only. If `server.path` is missing for `start`, `generate`, or `preview`, the CLI falls back to the checked-in `mdsite-nuxt/` renderer. It does not clone or pull a renderer as active workflow.
 
 ## 3. Technology Stack
 
