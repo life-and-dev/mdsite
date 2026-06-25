@@ -1,11 +1,12 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { loadMdsiteConfig, resolveContentOutputPath } from '../config/mdsite-config.js'
-import { ensureRendererDependencies, prepareConfiguredRenderer, prepareRendererBackend } from '../renderer/mdsite-nuxt.js'
+import { loadMdsiteConfig } from '../config/mdsite-config.js'
+import { ensureConfiguredRendererInstalled, ensureRendererDependencies, prepareConfiguredRenderer, prepareRendererBackend } from '../renderer/mdsite-nuxt.js'
 
 export async function runPrepareGithubCommand(contentDir: string): Promise<string> {
   const loaded = await loadMdsiteConfig(contentDir)
+  await ensureConfiguredRendererInstalled(loaded.contentDir, loaded.config, loaded)
   const { rendererDir, rendererEnv } = await prepareConfiguredRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
@@ -13,14 +14,14 @@ export async function runPrepareGithubCommand(contentDir: string): Promise<strin
 
   const workflowPath = path.join(contentDir, '.github', 'workflows', 'deploy.yml')
   await mkdir(path.dirname(workflowPath), { recursive: true })
-  await writeFile(workflowPath, buildGithubWorkflow(loaded.configDir, loaded.config), 'utf8')
+  await writeFile(workflowPath, buildGithubWorkflow(loaded.config), 'utf8')
 
   return `Generated GitHub Pages workflow at ${workflowPath}`
 }
 
-function buildGithubWorkflow(contentDir: string, config: Awaited<ReturnType<typeof loadMdsiteConfig>>['config']): string {
+function buildGithubWorkflow(config: Awaited<ReturnType<typeof loadMdsiteConfig>>['config']): string {
   const rendererPath = path.posix.normalize(config.server.path.replace(/\\/g, '/'))
-  const outputPath = path.posix.normalize(path.relative(contentDir, resolveContentOutputPath(contentDir, config)).replace(/\\/g, '/'))
+  const outputPath = path.posix.join(rendererPath, path.posix.normalize(config.server.output.replace(/\\/g, '/')))
   const workflowName = `Deploy ${config.site.name} to GitHub Pages`
   const artifactPath = `./${outputPath}/public`
   const workspaceContentPath = config.content?.path ? `\${{ github.workspace }}/${path.posix.normalize(config.content.path.replace(/\\/g, '/'))}` : '${{ github.workspace }}'
@@ -53,6 +54,18 @@ function buildGithubWorkflow(contentDir: string, config: Awaited<ReturnType<type
     '      - name: Checkout',
     '        uses: actions/checkout@v4',
     '',
+    '      - name: Setup mdsite renderer',
+    '        run: |',
+    '          npm install --no-save mdsite',
+    "          node <<'NODE'",
+    "          const fs = require('node:fs')",
+    "          const path = require('node:path')",
+    "          const ignored = new Set(['node_modules', '.nuxt', '.output', 'dist', '.cache'])",
+    "          const source = path.join(process.cwd(), 'node_modules', 'mdsite', 'mdsite-nuxt')",
+    `          const target = path.join(process.cwd(), ${JSON.stringify(rendererPath)})`,
+    '          fs.cpSync(source, target, { recursive: true, force: true, filter: (sourcePath) => !ignored.has(path.basename(sourcePath)) })',
+    '          NODE',
+    '',
     '      - name: Setup Node',
     '        uses: actions/setup-node@v4',
     '        with:',
@@ -70,7 +83,7 @@ function buildGithubWorkflow(contentDir: string, config: Awaited<ReturnType<type
     '          path: |',
     `            ${rendererPath}/node_modules`,
     `            ${rendererPath}/.nuxt`,
-    `            ${rendererPath}/.output`,
+    `            ${outputPath}`,
     "          key: ${{ runner.os }}-nuxt-build-${{ hashFiles('" + rendererPath + "/package-lock.json') }}",
     '          restore-keys: |',
     '            ${{ runner.os }}-nuxt-build-',

@@ -1,4 +1,4 @@
-import { access, copyFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import { access, copyFile, cp, mkdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -10,6 +10,7 @@ import { runForeground, runBackground } from '../process/child-process.js'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const checkedInRendererDir = path.join(repoRoot, 'mdsite-nuxt')
+const rendererCopyIgnoredNames = new Set(['node_modules', '.nuxt', '.output', 'dist', '.cache'])
 
 interface PreparedRenderer {
   rendererDir: string
@@ -33,6 +34,23 @@ export async function prepareConfiguredRenderer(contentDir: string, config: Mdsi
   const rendererDir = await resolveConfiguredRendererDir(rendererBaseDir, config)
 
   return prepareRendererEnvironment(contentDir, config, rendererDir, options.configPath)
+}
+
+export async function ensureConfiguredRendererInstalled(contentDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<string> {
+  const rendererBaseDir = options.configDir ?? contentDir
+  const rendererDir = path.resolve(rendererBaseDir, config.server.path)
+
+  await ensureDirectoryIsAvailable(rendererDir)
+
+  if (rendererDir !== checkedInRendererDir) {
+    await cp(checkedInRendererDir, rendererDir, {
+      recursive: true,
+      force: true,
+      filter: shouldCopyRendererPath
+    })
+  }
+
+  return rendererDir
 }
 
 async function prepareRendererEnvironment(contentDir: string, config: MdsiteConfig, rendererDir: string, configPath?: string): Promise<PreparedRenderer> {
@@ -135,6 +153,25 @@ async function resolveConfiguredRendererDir(contentDir: string, config: MdsiteCo
   }
 
   return rendererDir
+}
+
+async function ensureDirectoryIsAvailable(directoryPath: string): Promise<void> {
+  let directoryStats: Awaited<ReturnType<typeof stat>>
+
+  try {
+    directoryStats = await stat(directoryPath)
+  } catch {
+    await mkdir(directoryPath, { recursive: true })
+    return
+  }
+
+  if (!directoryStats.isDirectory()) {
+    throw new Error(`Configured renderer path is not a directory: ${directoryPath}`)
+  }
+}
+
+function shouldCopyRendererPath(sourcePath: string): boolean {
+  return !rendererCopyIgnoredNames.has(path.basename(sourcePath))
 }
 
 async function ensureMenuFile(contentDir: string, config: MdsiteConfig): Promise<void> {

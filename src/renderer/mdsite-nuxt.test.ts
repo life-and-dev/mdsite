@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('node:fs/promises', () => ({
   access: vi.fn(),
   copyFile: vi.fn(),
+  cp: vi.fn(),
+  mkdir: vi.fn(),
   rm: vi.fn(),
   stat: vi.fn(),
   symlink: vi.fn(),
@@ -21,12 +23,13 @@ vi.mock('../process/child-process.js', () => ({
   runBackground: vi.fn()
 }))
 
-import { access, copyFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import { access, copyFile, cp, mkdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 
 import { generateMenuFromMarkdownFiles } from '../config/menu.js'
 import { runBackground, runForeground } from '../process/child-process.js'
 import {
   ensurePreviewArtifacts,
+  ensureConfiguredRendererInstalled,
   ensureRendererDependencies,
   generateRenderer,
   getRendererGeneratedOutputPath,
@@ -41,6 +44,8 @@ import {
 
 const accessMock = vi.mocked(access)
 const copyFileMock = vi.mocked(copyFile)
+const cpMock = vi.mocked(cp)
+const mkdirMock = vi.mocked(mkdir)
 const rmMock = vi.mocked(rm)
 const statMock = vi.mocked(stat)
 const symlinkMock = vi.mocked(symlink)
@@ -158,6 +163,29 @@ describe('mdsite-nuxt renderer helpers', () => {
     await expect(prepareConfiguredRenderer(contentDir, baseConfig)).rejects.toThrow(
       `Configured renderer path is not a directory: ${configuredRendererDir}`
     )
+  })
+
+  it('ensureConfiguredRendererInstalled creates and populates the configured renderer dir', async () => {
+    const contentDir = '/workspace/content'
+    const configuredRendererDir = path.resolve(contentDir, '.renderer')
+    const checkedInRendererDir = path.resolve(process.cwd(), 'mdsite-nuxt')
+
+    statMock.mockRejectedValueOnce(new Error('missing renderer'))
+
+    await expect(ensureConfiguredRendererInstalled(contentDir, baseConfig)).resolves.toBe(configuredRendererDir)
+    expect(mkdirMock).toHaveBeenCalledWith(configuredRendererDir, { recursive: true })
+    expect(cpMock).toHaveBeenCalledWith(checkedInRendererDir, configuredRendererDir, expect.objectContaining({
+      force: true,
+      recursive: true
+    }))
+
+    const copyOptions = cpMock.mock.calls[0]?.[2]
+    expect(copyOptions?.filter?.(path.join(checkedInRendererDir, 'package.json'), configuredRendererDir)).toBe(true)
+    expect(copyOptions?.filter?.(path.join(checkedInRendererDir, 'node_modules'), configuredRendererDir)).toBe(false)
+    expect(copyOptions?.filter?.(path.join(checkedInRendererDir, '.nuxt'), configuredRendererDir)).toBe(false)
+    expect(copyOptions?.filter?.(path.join(checkedInRendererDir, '.output'), configuredRendererDir)).toBe(false)
+    expect(copyOptions?.filter?.(path.join(checkedInRendererDir, 'dist'), configuredRendererDir)).toBe(false)
+    expect(copyOptions?.filter?.(path.join(checkedInRendererDir, '.cache'), configuredRendererDir)).toBe(false)
   })
 
   it('throws an actionable error when neither the configured nor checked-in renderer directory exists', async () => {

@@ -28,7 +28,7 @@ describe('runPrepareGithubCommand', () => {
     }
   })
 
-  it('reads mdsite.yml, uses the configured renderer path, and writes the GitHub Pages workflow', async () => {
+  it('reads mdsite.yml, generates in the configured renderer path, and writes the GitHub Pages workflow', async () => {
     const contentDir = await mkdtemp(path.join(os.tmpdir(), 'mdsite-prepare-'))
     tempDirs.push(contentDir)
 
@@ -62,7 +62,13 @@ describe('runPrepareGithubCommand', () => {
     expect(workflow).toContain('CONTENT_DIR: "${{ github.workspace }}"')
     expect(workflow).toContain('MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"')
     expect(workflow).toContain('cache-dependency-path: "renderer/package-lock.json"')
-    expect(workflow).toContain('path: "./build/site/public"')
+    expect(workflow).toContain('name: Setup mdsite renderer')
+    expect(workflow).toContain('npm install --no-save mdsite')
+    expect(workflow).toContain("node_modules', 'mdsite', 'mdsite-nuxt")
+    expect(workflow).toContain('renderer/build/site')
+    expect(workflow).toContain('path: "./renderer/build/site/public"')
+    expect(workflow).toContain('run: npm run generate')
+    expect(workflow).not.toContain('npm start -- --generate')
     expect(workflow).toContain('actions/upload-pages-artifact@v3')
     expect(workflow).toContain('actions/deploy-pages@v4')
 
@@ -110,7 +116,9 @@ describe('runPrepareGithubCommand', () => {
     expect(workflow).toContain('CONTENT_DIR: "${{ github.workspace }}/docs"')
     expect(workflow).toContain('MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"')
     expect(workflow).toContain('working-directory: renderer')
-    expect(workflow).toContain('path: "./build/site/public"')
+    expect(workflow).toContain('run: npm run generate')
+    expect(workflow).not.toContain('npm start -- --generate')
+    expect(workflow).toContain('path: "./renderer/build/site/public"')
     expect(runForegroundMock).toHaveBeenCalledWith(
       'npm',
       ['run', 'prepare:renderer'],
@@ -118,6 +126,47 @@ describe('runPrepareGithubCommand', () => {
       expect.objectContaining({
         CONTENT_DIR: contentDir,
         MDSITE_CONFIG_PATH: path.join(configDir, 'mdsite.yml'),
+        NUXT_CONTENT_PATH: contentDir
+      })
+    )
+  })
+
+  it('creates the configured renderer before preparing the GitHub workflow', async () => {
+    const contentDir = await mkdtemp(path.join(os.tmpdir(), 'mdsite-prepare-'))
+    tempDirs.push(contentDir)
+
+    const rendererDir = path.join(contentDir, '.mdsite')
+    await writeFile(
+      path.join(contentDir, 'mdsite.yml'),
+      [
+        'site:',
+        '  name: Default Renderer Docs',
+        'server:',
+        '  path: .mdsite',
+        '  output: .output',
+        ''
+      ].join('\n'),
+      'utf8'
+    )
+    await writeFile(path.join(contentDir, 'index.md'), '# Default Renderer Docs\n', 'utf8')
+
+    await runPrepareGithubCommand(contentDir)
+    const workflow = await readFile(path.join(contentDir, '.github', 'workflows', 'deploy.yml'), 'utf8')
+
+    expect(await readFile(path.join(rendererDir, 'package.json'), 'utf8')).toContain('mdsite-nuxt')
+    expect(workflow).toContain('working-directory: .mdsite')
+    expect(workflow).toContain('cache-dependency-path: ".mdsite/package-lock.json"')
+    expect(workflow).toContain('path: "./.mdsite/.output/public"')
+    expect(workflow).toContain('run: npm run generate')
+    expect(workflow).not.toContain('npm start -- --generate')
+    expect(runForegroundMock).toHaveBeenCalledWith('npm', ['ci'], rendererDir, process.env)
+    expect(runForegroundMock).toHaveBeenCalledWith(
+      'npm',
+      ['run', 'prepare:renderer'],
+      rendererDir,
+      expect.objectContaining({
+        CONTENT_DIR: contentDir,
+        MDSITE_CONFIG_PATH: path.join(contentDir, 'mdsite.yml'),
         NUXT_CONTENT_PATH: contentDir
       })
     )

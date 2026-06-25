@@ -1,4 +1,4 @@
-name: Deploy Nuxt site to Pages
+name: "Deploy MD Site Documentation to GitHub Pages"
 
 on:
   push:
@@ -17,31 +17,20 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NUXT_CONTENT_PATH: "${{ github.workspace }}/docs"
+      CONTENT_DIR: "${{ github.workspace }}/docs"
+      MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Detect package manager
-        id: detect-package-manager
-        run: |
-          if [ -f "${{ github.workspace }}/yarn.lock" ]; then
-            echo "manager=yarn" >> $GITHUB_OUTPUT
-            echo "command=install" >> $GITHUB_OUTPUT
-            exit 0
-          elif [ -f "${{ github.workspace }}/package.json" ]; then
-            echo "manager=npm" >> $GITHUB_OUTPUT
-            echo "command=ci" >> $GITHUB_OUTPUT
-            exit 0
-          else
-            echo "Unable to determine package manager"
-            exit 1
-          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: ${{ steps.detect-package-manager.outputs.manager }}
+          cache: npm
+          cache-dependency-path: ".mdsite/package-lock.json"
 
       - name: Setup Pages
         id: pages
@@ -51,24 +40,27 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            .nuxt
-            .output
-          key: ${{ runner.os }}-nuxt-build-${{ hashFiles('package-lock.json') }}
+            .mdsite/node_modules
+            .mdsite/.nuxt
+            .mdsite/.output
+          key: ${{ runner.os }}-nuxt-build-${{ hashFiles('.mdsite/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuxt-build-
 
       - name: Install dependencies
-        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        working-directory: .mdsite
+        run: npm install
 
-      - name: Static HTML export with Nuxt
-        run: npm start -- --generate
+      - name: Generate static site
+        working-directory: .mdsite
+        run: npm run generate
         env:
           NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./.output/public
+          path: "./.mdsite/.output/public"
 
   deploy:
     environment:
