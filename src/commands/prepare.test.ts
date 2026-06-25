@@ -56,6 +56,7 @@ describe('runPrepareGithubCommand', () => {
     expect(result).toBe(`Generated GitHub Pages workflow at ${workflowPath}`)
     expect(workflow).toContain('name: "Deploy Example Docs to GitHub Pages"')
     expect(workflow).toContain('runs-on: ubuntu-latest')
+    expect(workflow).toContain('node-version: "24"')
     expect(workflow).toContain('working-directory: renderer')
     expect(workflow).toContain('NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}')
     expect(workflow).toContain('NUXT_CONTENT_PATH: "${{ github.workspace }}"')
@@ -116,6 +117,7 @@ describe('runPrepareGithubCommand', () => {
     expect(workflow).toContain('CONTENT_DIR: "${{ github.workspace }}/docs"')
     expect(workflow).toContain('MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"')
     expect(workflow).toContain('working-directory: renderer')
+    expect(workflow).toContain('node-version: "24"')
     expect(workflow).toContain('run: npm run generate')
     expect(workflow).not.toContain('npm start -- --generate')
     expect(workflow).toContain('path: "./renderer/build/site/public"')
@@ -155,6 +157,7 @@ describe('runPrepareGithubCommand', () => {
 
     expect(await readFile(path.join(rendererDir, 'package.json'), 'utf8')).toContain('mdsite-nuxt')
     expect(workflow).toContain('working-directory: .mdsite')
+    expect(workflow).toContain('node-version: "24"')
     expect(workflow).toContain('cache-dependency-path: ".mdsite/package-lock.json"')
     expect(workflow).toContain('path: "./.mdsite/.output/public"')
     expect(workflow).toContain('run: npm run generate')

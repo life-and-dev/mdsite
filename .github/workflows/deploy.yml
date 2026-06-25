@@ -25,10 +25,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup mdsite renderer
+        run: |
+          npm install --no-save mdsite
+          node <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+          const ignored = new Set(['node_modules', '.nuxt', '.output', 'dist', '.cache'])
+          const source = path.join(process.cwd(), 'node_modules', 'mdsite', 'mdsite-nuxt')
+          const target = path.join(process.cwd(), ".mdsite")
+          fs.cpSync(source, target, { recursive: true, force: true, filter: (sourcePath) => !ignored.has(path.basename(sourcePath)) })
+          NODE
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: ".mdsite/package-lock.json"
 

@@ -69,7 +69,7 @@ function buildGithubWorkflow(config: Awaited<ReturnType<typeof loadMdsiteConfig>
     '      - name: Setup Node',
     '        uses: actions/setup-node@v4',
     '        with:',
-    '          node-version: "20"',
+    '          node-version: "24"',
     '          cache: npm',
     `          cache-dependency-path: ${JSON.stringify(`${rendererPath}/package-lock.json`)}`,
     '',
