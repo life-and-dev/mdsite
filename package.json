@@ -2,7 +2,7 @@
   "name": "mdsite",
   "version": "0.0.1",
   "type": "module",
-  "private": true,
+  "private": false,
   "description": "Local-first CLI that orchestrates mdsite-nuxt",
   "bin": {
     "mdsite": "./dist/index.js"
@@ -12,12 +12,17 @@
     "mdsite-nuxt/",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "install-alias": "node scripts/mdsite-dev-alias.js install",
     "uninstall-alias": "node scripts/mdsite-dev-alias.js uninstall",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify:package": "node --experimental-strip-types scripts/verify-package-artifacts.ts",
+    "prepublishOnly": "npm test && npm run typecheck && npm run build && npm run verify:package"
   },
   "dependencies": {
     "yaml": "^2.8.1"
