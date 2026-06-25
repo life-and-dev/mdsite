@@ -23,7 +23,7 @@ Usage:
   mdsite prepare github
 
 Commands:
-  init      Create _mdsite.yml in the current directory
+  init      Create mdsite.yml in the current directory
   start     Start the checked-in mdsite-nuxt renderer for local content
   generate  Build static output through mdsite-nuxt
   preview   Preview the generated site through mdsite-nuxt
@@ -64,7 +64,7 @@ async function main(): Promise<void> {
       return
     case 'init':
       await runInitCommand(currentDirectory)
-      console.log(`Created _mdsite.yml in ${currentDirectory}`)
+      console.log(`Created mdsite.yml in ${currentDirectory}`)
       return
     case 'start':
       {

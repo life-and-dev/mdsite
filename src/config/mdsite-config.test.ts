@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -47,11 +47,11 @@ describe('mdsite config helpers', () => {
     expect(yamlText).toContain('output: .output')
   })
 
-  it('loadMdsiteConfig errors when _mdsite.yml is missing', async () => {
+  it('loadMdsiteConfig errors when mdsite.yml is missing', async () => {
     const contentDir = await makeTempDir()
 
     await expect(loadMdsiteConfig(contentDir)).rejects.toThrow(
-      `Missing _mdsite.yml in ${contentDir}. Run \`mdsite init\` first.`
+      `Missing mdsite.yml in ${contentDir}. Run \`mdsite init\` first.`
     )
   })
 
@@ -59,7 +59,7 @@ describe('mdsite config helpers', () => {
     const contentDir = await makeTempDir()
     await writeFile(path.join(contentDir, 'index.md'), '# Derived Name', 'utf8')
     await writeFile(path.join(contentDir, 'guide.md'), '# Guide', 'utf8')
-    await writeFile(path.join(contentDir, '_mdsite.yml'), [
+    await writeFile(path.join(contentDir, 'mdsite.yml'), [
       'favicon: assets/favicon.svg',
       'features:',
       '  bibleTooltips: false',
@@ -83,7 +83,7 @@ describe('mdsite config helpers', () => {
 
     const loaded = await loadMdsiteConfig(contentDir)
 
-    expect(loaded.configPath).toBe(path.join(contentDir, '_mdsite.yml'))
+    expect(loaded.configPath).toBe(path.join(contentDir, 'mdsite.yml'))
     expect(loaded.contentDir).toBe(contentDir)
     expect(loaded.config.favicon).toBe('assets/favicon.svg')
     expect(loaded.config.features).toEqual({
@@ -104,6 +104,27 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.themes.light.colors.background).toBe('#f6f8fa')
     expect(loaded.config.themes.dark.colors.outline).toBe('#abcdef')
     expect(loaded.config.themes.dark.colors.primary).toBe('#58a6ff')
+  })
+
+  it('loadMdsiteConfig resolves content.path relative to the config directory', async () => {
+    const configDir = await makeTempDir()
+    const contentDir = path.join(configDir, 'docs')
+    await writeFile(path.join(configDir, 'mdsite.yml'), [
+      'content:',
+      '  path: docs',
+      'site:',
+      '  name: Root Config Docs',
+      ''
+    ].join('\n'), 'utf8')
+    await mkdir(contentDir, { recursive: true })
+    await writeFile(path.join(contentDir, 'index.md'), '# Docs Index', 'utf8')
+
+    const loaded = await loadMdsiteConfig(configDir)
+
+    expect(loaded.configDir).toBe(configDir)
+    expect(loaded.configPath).toBe(path.join(configDir, 'mdsite.yml'))
+    expect(loaded.contentDir).toBe(contentDir)
+    expect(loaded.config.content).toEqual({ path: 'docs' })
   })
 
   it('resolveContentOutputPath resolves the configured output relative to the content directory', () => {

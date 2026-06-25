@@ -4,7 +4,7 @@ import path from 'node:path'
 import { buildDefaultMdsiteConfig, serializeMdsiteConfig } from '../config/mdsite-config.js'
 
 export async function runInitCommand(contentDir: string): Promise<void> {
-  const configPath = path.join(contentDir, '_mdsite.yml')
+  const configPath = path.join(contentDir, 'mdsite.yml')
 
   try {
     await access(configPath)
@@ -14,5 +14,5 @@ export async function runInitCommand(contentDir: string): Promise<void> {
     return
   }
 
-  throw new Error(`_mdsite.yml already exists at ${configPath}.`)
+  throw new Error(`mdsite.yml already exists at ${configPath}.`)
 }

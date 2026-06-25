@@ -4,14 +4,14 @@ import { loadMdsiteConfig, resolveContentOutputPath } from '../config/mdsite-con
 import { ensureRendererDependencies, generateRenderer, getRendererGeneratedOutputPath, prepareRenderer } from '../renderer/mdsite-nuxt.js'
 
 export async function runGenerateCommand(contentDir: string): Promise<string> {
-  const { config } = await loadMdsiteConfig(contentDir)
-  const { rendererDir, rendererEnv } = await prepareRenderer(contentDir, config)
+  const loaded = await loadMdsiteConfig(contentDir)
+  const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
   await generateRenderer(rendererDir, rendererEnv)
 
   const rendererOutputPath = getRendererGeneratedOutputPath(rendererDir)
-  const destinationOutputPath = resolveContentOutputPath(contentDir, config)
+  const destinationOutputPath = resolveContentOutputPath(loaded.configDir, loaded.config)
 
   try {
     await rm(destinationOutputPath, { recursive: true, force: true })

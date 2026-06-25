@@ -6,11 +6,11 @@ description: Use `execute-code` to get "Technical Design" when you must design t
 # Technical Design
 
 ## Architectural Overview
-Local-first `mdsite` CLI drives checked-in `mdsite-nuxt` renderer from current content dir. CLI loads `_mdsite.yml`, prepares renderer env/files, runs Nuxt scripts, syncs generated output back to content dir, and tracks background PIDs.
+Local-first `mdsite` CLI drives checked-in `mdsite-nuxt` renderer from current content dir. CLI loads `mdsite.yml`, prepares renderer env/files, runs Nuxt scripts, syncs generated output back to content dir, and tracks background PIDs.
 
 ## Technology Choices
 - **TypeScript**: CLI, config, process, renderer glue live in `src/`.
-- **YAML**: `_mdsite.yml`, `_menu.yml`, renderer compat files use YAML.
+- **YAML**: `mdsite.yml`, `_menu.yml`, renderer compat files use YAML.
 - **Node child process APIs**: start/stop/background orchestration.
 
 ## Key Data Models
@@ -19,7 +19,7 @@ Local-first `mdsite` CLI drives checked-in `mdsite-nuxt` renderer from current c
 
 ## Key API Endpoints
 - `mdsite help` (`src/index.ts`): show supported commands.
-- `mdsite init` (`src/index.ts`): create `_mdsite.yml`.
+- `mdsite init` (`src/index.ts`): create `mdsite.yml`.
 - `mdsite start` (`src/index.ts`): start renderer dev server.
 - `mdsite generate` (`src/index.ts`): build static output.
 - `mdsite preview` (`src/index.ts`): preview generated output.
@@ -27,7 +27,7 @@ Local-first `mdsite` CLI drives checked-in `mdsite-nuxt` renderer from current c
 - `mdsite prepare github` (`src/index.ts`): generate GitHub Pages workflow.
 
 ## Error Handling
-- **loadMdsiteConfig** (`src/config/mdsite-config.ts`): missing `_mdsite.yml` throws init hint.
+- **loadMdsiteConfig** (`src/config/mdsite-config.ts`): missing `mdsite.yml` throws init hint.
 - **runStartCommand** (`src/commands/start.ts`): blocks duplicate running PID.
 - **runPreviewCommand** (`src/commands/preview.ts`): blocks duplicate preview PID.
 - **ensurePreviewArtifacts** (`src/renderer/mdsite-nuxt.ts`): preview needs prior `generate`.
@@ -45,7 +45,7 @@ No auth or role layer in CLI. Renderer env built from local content dir and curr
 - **Runtime state** (`.mdsite-runtime/`): tracked process JSON and logs.
 
 ## Special Files
-- `_mdsite.yml`: single content-dir config file.
+- `mdsite.yml`: single content-dir config file.
 - `_menu.yml`: generated menu compatibility file.
 - `.mdsite-runtime/`: start/preview state and logs.
 - `mdsite-nuxt/.env`: renderer env written by CLI.

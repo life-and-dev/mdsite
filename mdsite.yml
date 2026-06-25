@@ -1,6 +1,8 @@
+content:
+  path: docs
 favicon: ""
 features:
-  bibleTooltips: true
+  bibleTooltips: false
   sourceEdit: true
 menu:
   - architecture

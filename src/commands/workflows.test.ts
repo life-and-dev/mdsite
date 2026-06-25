@@ -79,7 +79,7 @@ async function writeConfig(contentDir: string, overrides: Partial<MdsiteConfig> 
     ...overrides
   }
 
-  await writeFile(path.join(contentDir, '_mdsite.yml'), serializeMdsiteConfig(config), 'utf8')
+  await writeFile(path.join(contentDir, 'mdsite.yml'), serializeMdsiteConfig(config), 'utf8')
   return config
 }
 
@@ -95,12 +95,12 @@ describe('CLI workflow coverage', () => {
     waitForTcpPortMocked.mockResolvedValue(true)
   })
 
-  it('runInitCommand creates a valid _mdsite.yml for the current markdown directory', async () => {
+  it('runInitCommand creates a valid mdsite.yml for the current markdown directory', async () => {
     const contentDir = await createContentDir()
 
     await expect(runInitCommand(contentDir)).resolves.toBeUndefined()
 
-    const configPath = path.join(contentDir, '_mdsite.yml')
+    const configPath = path.join(contentDir, 'mdsite.yml')
     const configText = await readFile(configPath, 'utf8')
     expect(configText).toContain('name: Workspace Docs')
     expect(configText).toContain('output: .output')
@@ -124,7 +124,7 @@ describe('CLI workflow coverage', () => {
       expect.objectContaining({
         NUXT_CONTENT_PATH: contentDir,
         CONTENT_DIR: contentDir,
-        MDSITE_CONFIG_PATH: path.join(contentDir, '_mdsite.yml')
+        MDSITE_CONFIG_PATH: path.join(contentDir, 'mdsite.yml')
       }),
       path.join(contentDir, '.mdsite-runtime', 'start.log')
     )
@@ -185,24 +185,24 @@ describe('CLI workflow coverage', () => {
     stopProcessMock.mockResolvedValueOnce(true)
 
     await expect(runPreviewCommand(contentDir, { detached: true })).resolves.toBe(
-      `mdsite preview running in background (PID 2468). URL: http://localhost:3000 Log: ${path.join(contentDir, '_mdsite.log')}`
+      `mdsite preview running in background (PID 2468). URL: http://localhost:3000 Log: ${path.join(contentDir, 'mdsite.log')}`
     )
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
     await expect(runStopCommand(contentDir)).resolves.toBe('Stopped preview process 2468.')
     await expect(readRuntimeState(contentDir, 'preview')).resolves.toBeNull()
   })
 
-  it('rejects start when _mdsite.yml is missing', async () => {
+  it('rejects start when mdsite.yml is missing', async () => {
     const contentDir = await createContentDir()
 
     await expect(runStartCommand(contentDir)).rejects.toThrow(
-      `Missing _mdsite.yml in ${contentDir}. Run \`mdsite init\` first.`
+      `Missing mdsite.yml in ${contentDir}. Run \`mdsite init\` first.`
     )
   })
 
   it('rejects invalid config files before starting the renderer', async () => {
     const contentDir = await createContentDir()
-    await writeFile(path.join(contentDir, '_mdsite.yml'), 'site: [broken\n', 'utf8')
+    await writeFile(path.join(contentDir, 'mdsite.yml'), 'site: [broken\n', 'utf8')
 
     await expect(runStartCommand(contentDir)).rejects.toThrow()
     await expect(readRuntimeState(contentDir, 'start')).resolves.toBeNull()

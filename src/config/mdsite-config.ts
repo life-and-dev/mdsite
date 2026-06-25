@@ -9,6 +9,9 @@ import { deriveSiteNameFromIndex, generateMenuFromMarkdownFiles } from './menu.j
 export type MenuItem = string | null | { [key: string]: string | null | MenuItem[] }
 
 export interface MdsiteConfig {
+  content?: {
+    path?: string
+  }
   favicon: string
   features: {
     bibleTooltips: boolean
@@ -36,26 +39,29 @@ export interface MdsiteConfig {
 
 export interface LoadedMdsiteConfig {
   config: MdsiteConfig
+  configDir: string
   configPath: string
   contentDir: string
 }
 
-const configFileName = '_mdsite.yml'
+const configFileName = 'mdsite.yml'
 
-export async function loadMdsiteConfig(contentDir: string): Promise<LoadedMdsiteConfig> {
-  const configPath = path.join(contentDir, configFileName)
+export async function loadMdsiteConfig(configDir: string): Promise<LoadedMdsiteConfig> {
+  const configPath = path.join(configDir, configFileName)
 
   let rawText: string
   try {
     rawText = await readFile(configPath, 'utf8')
   } catch {
-    throw new Error(`Missing ${configFileName} in ${contentDir}. Run \`mdsite init\` first.`)
+    throw new Error(`Missing ${configFileName} in ${configDir}. Run \`mdsite init\` first.`)
   }
 
   const parsed = YAML.parse(rawText) ?? {}
+  const contentDir = resolveConfiguredContentDir(configDir, parsed)
 
   return {
     config: await normalizeMdsiteConfig(parsed, contentDir),
+    configDir,
     configPath,
     contentDir
   }
@@ -80,6 +86,7 @@ async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir:
       bibleTooltips: rawConfig.features?.bibleTooltips ?? fallbackConfig.features.bibleTooltips,
       sourceEdit: rawConfig.features?.sourceEdit ?? fallbackConfig.features.sourceEdit
     },
+    content: typeof rawConfig.content?.path === 'string' ? { path: rawConfig.content.path } : fallbackConfig.content,
     menu: Array.isArray(rawConfig.menu) ? rawConfig.menu : fallbackConfig.menu,
     server: {
       output: typeof rawConfig.server?.output === 'string' ? rawConfig.server.output : fallbackConfig.server.output,
@@ -109,4 +116,8 @@ async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir:
 
 export function resolveContentOutputPath(contentDir: string, config: MdsiteConfig): string {
   return path.resolve(contentDir, config.server.output)
+}
+
+export function resolveConfiguredContentDir(configDir: string, rawConfig: Record<string, any>): string {
+  return typeof rawConfig.content?.path === 'string' ? path.resolve(configDir, rawConfig.content.path) : configDir
 }

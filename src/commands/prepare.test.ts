@@ -28,14 +28,14 @@ describe('runPrepareGithubCommand', () => {
     }
   })
 
-  it('reads _mdsite.yml, uses the configured renderer path, and writes the GitHub Pages workflow', async () => {
+  it('reads mdsite.yml, uses the configured renderer path, and writes the GitHub Pages workflow', async () => {
     const contentDir = await mkdtemp(path.join(os.tmpdir(), 'mdsite-prepare-'))
     tempDirs.push(contentDir)
 
     const rendererDir = path.join(contentDir, 'renderer')
     await mkdir(path.join(rendererDir, 'node_modules'), { recursive: true })
     await writeFile(
-      path.join(contentDir, '_mdsite.yml'),
+      path.join(contentDir, 'mdsite.yml'),
       [
         'site:',
         '  name: Example Docs',
@@ -60,7 +60,7 @@ describe('runPrepareGithubCommand', () => {
     expect(workflow).toContain('NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}')
     expect(workflow).toContain('NUXT_CONTENT_PATH: "${{ github.workspace }}"')
     expect(workflow).toContain('CONTENT_DIR: "${{ github.workspace }}"')
-    expect(workflow).toContain('MDSITE_CONFIG_PATH: "${{ github.workspace }}/_mdsite.yml"')
+    expect(workflow).toContain('MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"')
     expect(workflow).toContain('cache-dependency-path: "renderer/package-lock.json"')
     expect(workflow).toContain('path: "./build/site/public"')
     expect(workflow).toContain('actions/upload-pages-artifact@v3')
@@ -73,7 +73,51 @@ describe('runPrepareGithubCommand', () => {
       rendererDir,
       expect.objectContaining({
         CONTENT_DIR: contentDir,
-        MDSITE_CONFIG_PATH: path.join(contentDir, '_mdsite.yml'),
+        MDSITE_CONFIG_PATH: path.join(contentDir, 'mdsite.yml'),
+        NUXT_CONTENT_PATH: contentDir
+      })
+    )
+  })
+
+  it('writes GitHub workflow paths for a root config with content.path', async () => {
+    const configDir = await mkdtemp(path.join(os.tmpdir(), 'mdsite-prepare-'))
+    tempDirs.push(configDir)
+
+    const contentDir = path.join(configDir, 'docs')
+    const rendererDir = path.join(configDir, 'renderer')
+    await mkdir(path.join(contentDir), { recursive: true })
+    await mkdir(path.join(rendererDir, 'node_modules'), { recursive: true })
+    await writeFile(
+      path.join(configDir, 'mdsite.yml'),
+      [
+        'content:',
+        '  path: docs',
+        'site:',
+        '  name: Root Docs',
+        'server:',
+        '  path: renderer',
+        '  output: build/site',
+        ''
+      ].join('\n'),
+      'utf8'
+    )
+    await writeFile(path.join(contentDir, 'index.md'), '# Root Docs\n', 'utf8')
+
+    await runPrepareGithubCommand(configDir)
+    const workflow = await readFile(path.join(configDir, '.github', 'workflows', 'deploy.yml'), 'utf8')
+
+    expect(workflow).toContain('NUXT_CONTENT_PATH: "${{ github.workspace }}/docs"')
+    expect(workflow).toContain('CONTENT_DIR: "${{ github.workspace }}/docs"')
+    expect(workflow).toContain('MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"')
+    expect(workflow).toContain('working-directory: renderer')
+    expect(workflow).toContain('path: "./build/site/public"')
+    expect(runForegroundMock).toHaveBeenCalledWith(
+      'npm',
+      ['run', 'prepare:renderer'],
+      rendererDir,
+      expect.objectContaining({
+        CONTENT_DIR: contentDir,
+        MDSITE_CONFIG_PATH: path.join(configDir, 'mdsite.yml'),
         NUXT_CONTENT_PATH: contentDir
       })
     )

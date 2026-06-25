@@ -108,7 +108,8 @@ const loadedConfig = {
     site: { canonical: '', name: 'Docs' },
     themes: { light: { colors: {} }, dark: { colors: {} } }
   },
-  configPath: '/content/_mdsite.yml',
+  configDir: '/content',
+  configPath: '/content/mdsite.yml',
   contentDir: '/content'
 }
 
@@ -120,7 +121,7 @@ describe('command helpers', () => {
     prepareRendererMock.mockResolvedValue({ rendererDir: '/renderer', rendererEnv: { TEST: '1' } })
     getRuntimeLogPathMock.mockImplementation((contentDir, kind) => {
       if (kind === 'preview') {
-        return `${contentDir}/_mdsite.log`
+        return `${contentDir}/mdsite.log`
       }
 
       return `${contentDir}/.mdsite-runtime/${kind}.log`
@@ -131,17 +132,17 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockResolvedValue(true)
   })
 
-  it('runInitCommand creates _mdsite.yml only when it does not already exist', async () => {
+  it('runInitCommand creates mdsite.yml only when it does not already exist', async () => {
     accessMock.mockRejectedValueOnce(new Error('missing'))
     buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
     serializeConfigMock.mockReturnValue('serialized-config')
 
     await expect(runInitCommand('/content')).resolves.toBeUndefined()
     expect(buildDefaultConfigMock).toHaveBeenCalledWith('/content')
-    expect(writeFileMock).toHaveBeenCalledWith('/content/_mdsite.yml', 'serialized-config', 'utf8')
+    expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
 
     accessMock.mockResolvedValueOnce(undefined)
-    await expect(runInitCommand('/content')).rejects.toThrow('_mdsite.yml already exists at /content/_mdsite.yml.')
+    await expect(runInitCommand('/content')).rejects.toThrow('mdsite.yml already exists at /content/mdsite.yml.')
   })
 
   it('runStartCommand starts the renderer in the foreground by default without runtime metadata', async () => {
@@ -262,7 +263,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(888)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 888). URL: http://localhost:3000 Log: /content/_mdsite.log'
+      'mdsite preview running in background (PID 888). URL: http://localhost:3000 Log: /content/mdsite.log'
     )
     expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
     expect(ensurePreviewArtifactsMock.mock.invocationCallOrder[0]).toBeGreaterThan(ensureRendererDependenciesMock.mock.invocationCallOrder[0] ?? 0)
@@ -274,7 +275,7 @@ describe('command helpers', () => {
       PORT: '3000',
       NITRO_HOST: 'localhost',
       NITRO_PORT: '3000'
-    }), '/content/_mdsite.log')
+    }), '/content/mdsite.log')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
     expect(waitForTcpPortMock.mock.invocationCallOrder[0]).toBeGreaterThan(writeRuntimeStateMock.mock.invocationCallOrder[0] ?? 0)
     expect(openUrlInBrowserMock.mock.invocationCallOrder[0]).toBeGreaterThan(waitForTcpPortMock.mock.invocationCallOrder[0] ?? 0)
@@ -296,7 +297,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(999)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 999). URL: http://preview.local:4321 Log: /content/_mdsite.log'
+      'mdsite preview running in background (PID 999). URL: http://preview.local:4321 Log: /content/mdsite.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       HOST: 'preview.local',
@@ -305,7 +306,7 @@ describe('command helpers', () => {
       NUXT_PORT: '4321',
       NITRO_HOST: 'preview.local',
       NITRO_PORT: '4321'
-    }), '/content/_mdsite.log')
+    }), '/content/mdsite.log')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('preview.local', 4321)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://preview.local:4321')
   })
@@ -319,7 +320,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(1000)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 1000). URL: http://127.0.0.1:4173 Log: /content/_mdsite.log'
+      'mdsite preview running in background (PID 1000). URL: http://127.0.0.1:4173 Log: /content/mdsite.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       HOST: '127.0.0.1',
@@ -328,7 +329,7 @@ describe('command helpers', () => {
       NUXT_PORT: '4173',
       NITRO_HOST: '127.0.0.1',
       NITRO_PORT: '4173'
-    }), '/content/_mdsite.log')
+    }), '/content/mdsite.log')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('127.0.0.1', 4173)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://127.0.0.1:4173')
   })
@@ -339,7 +340,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockResolvedValueOnce(false)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 1001). URL: http://localhost:3000 Log: /content/_mdsite.log'
+      'mdsite preview running in background (PID 1001). URL: http://localhost:3000 Log: /content/mdsite.log'
     )
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
@@ -351,7 +352,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockRejectedValueOnce(new Error('connect failed'))
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 1002). URL: http://localhost:3000 Log: /content/_mdsite.log'
+      'mdsite preview running in background (PID 1002). URL: http://localhost:3000 Log: /content/mdsite.log'
     )
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
   })

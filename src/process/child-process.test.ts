@@ -41,10 +41,10 @@ describe('child-process helpers', () => {
   })
 
   it('creates the parent log directory before opening a background process log file', async () => {
-    await expect(runBackground('npm', ['run', 'preview'], '/renderer', { TEST: '1' }, '/content/_mdsite.log')).resolves.toBe(1234)
+    await expect(runBackground('npm', ['run', 'preview'], '/renderer', { TEST: '1' }, '/content/mdsite.log')).resolves.toBe(1234)
 
     expect(mkdirMock).toHaveBeenCalledWith('/content', { recursive: true })
-    expect(openMock).toHaveBeenCalledWith('/content/_mdsite.log', 'a')
+    expect(openMock).toHaveBeenCalledWith('/content/mdsite.log', 'a')
     expect(mkdirMock.mock.invocationCallOrder[0]).toBeLessThan(openMock.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY)
   })
 

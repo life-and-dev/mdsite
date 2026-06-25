@@ -12,8 +12,8 @@ export async function runStartCommand(contentDir: string, options: StartCommandO
     return runDetachedStartCommand(contentDir)
   }
 
-  const { config } = await loadMdsiteConfig(contentDir)
-  const { rendererDir, rendererEnv } = await prepareRenderer(contentDir, config)
+  const loaded = await loadMdsiteConfig(contentDir)
+  const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
   await startRendererForeground(rendererDir, rendererEnv)
@@ -27,8 +27,8 @@ async function runDetachedStartCommand(contentDir: string): Promise<string> {
     throw new Error(`mdsite start is already running with PID ${existingState.pid}.`)
   }
 
-  const { config } = await loadMdsiteConfig(contentDir)
-  const { rendererDir, rendererEnv } = await prepareRenderer(contentDir, config)
+  const loaded = await loadMdsiteConfig(contentDir)
+  const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
 

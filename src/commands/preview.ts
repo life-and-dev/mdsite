@@ -12,8 +12,8 @@ export async function runPreviewCommand(contentDir: string, options: PreviewComm
     return runDetachedPreviewCommand(contentDir)
   }
 
-  const { config } = await loadMdsiteConfig(contentDir)
-  const { rendererDir, rendererEnv } = await prepareRenderer(contentDir, config)
+  const loaded = await loadMdsiteConfig(contentDir)
+  const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
   await ensurePreviewArtifacts(rendererDir)
@@ -28,8 +28,8 @@ async function runDetachedPreviewCommand(contentDir: string): Promise<string> {
     throw new Error(`mdsite preview is already running with PID ${existingState.pid}.`)
   }
 
-  const { config } = await loadMdsiteConfig(contentDir)
-  const { rendererDir, rendererEnv } = await prepareRenderer(contentDir, config)
+  const loaded = await loadMdsiteConfig(contentDir)
+  const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
   await ensurePreviewArtifacts(rendererDir)

@@ -30,9 +30,9 @@ description: Use this skill to understand how to install, setup, run or deploy p
    cd /path/to/content
    node /path/to/md-site/dist/index.js init
    ```
-   Expect: `_mdsite.yml` created in current dir.
+   Expect: `mdsite.yml` created in current dir.
 
-2. Edit `_mdsite.yml` for local config. `server.path` is relative to content dir.
+2. Edit `mdsite.yml` for local config. `server.path` is relative to content dir.
    Example:
    ```yml
    server:
@@ -72,7 +72,7 @@ description: Use this skill to understand how to install, setup, run or deploy p
    ```bash
    node /path/to/md-site/dist/index.js preview -d
    ```
-   Expect: preview URL `http://localhost:3000` and background preview log at `_mdsite.log`.
+   Expect: preview URL `http://localhost:3000` and background preview log at `mdsite.log`.
 
 4. Stop tracked background jobs from same content dir.
    ```bash

@@ -78,7 +78,7 @@ describe('mdsite-nuxt renderer helpers', () => {
 
     expect(prepared.rendererDir).toBe(rendererDir)
     expect(prepared.rendererEnv.NUXT_CONTENT_PATH).toBe(contentDir)
-    expect(prepared.rendererEnv.MDSITE_CONFIG_PATH).toBe(path.join(contentDir, '_mdsite.yml'))
+    expect(prepared.rendererEnv.MDSITE_CONFIG_PATH).toBe(path.join(contentDir, 'mdsite.yml'))
     expect(generateMenuMock).toHaveBeenCalledWith(contentDir)
     expect(writeFileMock).toHaveBeenCalledWith(path.join(contentDir, '_menu.yml'), '- generated/page\n', 'utf8')
     expect(writeFileMock).toHaveBeenCalledWith(
@@ -91,6 +91,22 @@ describe('mdsite-nuxt renderer helpers', () => {
       expect.stringContaining(`NUXT_CONTENT_PATH=${JSON.stringify(contentDir)}`),
       'utf8'
     )
+  })
+
+  it('prepareRenderer uses effective content dir for content files and config dir for renderer path', async () => {
+    const configDir = '/workspace'
+    const contentDir = '/workspace/docs'
+    const rendererDir = path.resolve(configDir, '.renderer')
+    const configPath = path.join(configDir, 'mdsite.yml')
+
+    const prepared = await prepareRenderer(contentDir, baseConfig, { configDir, configPath })
+
+    expect(prepared.rendererDir).toBe(rendererDir)
+    expect(prepared.rendererEnv.NUXT_CONTENT_PATH).toBe(contentDir)
+    expect(prepared.rendererEnv.CONTENT_DIR).toBe(contentDir)
+    expect(prepared.rendererEnv.MDSITE_CONFIG_PATH).toBe(configPath)
+    expect(generateMenuMock).toHaveBeenCalledWith(contentDir)
+    expect(writeFileMock).toHaveBeenCalledWith(path.join(contentDir, '_menu.yml'), '- generated/page\n', 'utf8')
   })
 
   it('falls back to the checked-in renderer when the configured renderer dir is absent', async () => {

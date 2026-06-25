@@ -16,19 +16,26 @@ interface PreparedRenderer {
   rendererEnv: NodeJS.ProcessEnv
 }
 
-export async function prepareRenderer(contentDir: string, config: MdsiteConfig): Promise<PreparedRenderer> {
-  const rendererDir = await resolveRendererDir(contentDir, config)
-
-  return prepareRendererEnvironment(contentDir, config, rendererDir)
+interface PrepareRendererOptions {
+  configDir?: string
+  configPath?: string
 }
 
-export async function prepareConfiguredRenderer(contentDir: string, config: MdsiteConfig): Promise<PreparedRenderer> {
-  const rendererDir = await resolveConfiguredRendererDir(contentDir, config)
+export async function prepareRenderer(contentDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<PreparedRenderer> {
+  const rendererBaseDir = options.configDir ?? contentDir
+  const rendererDir = await resolveRendererDir(rendererBaseDir, config)
 
-  return prepareRendererEnvironment(contentDir, config, rendererDir)
+  return prepareRendererEnvironment(contentDir, config, rendererDir, options.configPath)
 }
 
-async function prepareRendererEnvironment(contentDir: string, config: MdsiteConfig, rendererDir: string): Promise<PreparedRenderer> {
+export async function prepareConfiguredRenderer(contentDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<PreparedRenderer> {
+  const rendererBaseDir = options.configDir ?? contentDir
+  const rendererDir = await resolveConfiguredRendererDir(rendererBaseDir, config)
+
+  return prepareRendererEnvironment(contentDir, config, rendererDir, options.configPath)
+}
+
+async function prepareRendererEnvironment(contentDir: string, config: MdsiteConfig, rendererDir: string, configPath?: string): Promise<PreparedRenderer> {
   await ensureMenuFile(contentDir, config)
   await ensureRendererFaviconAlias(contentDir, config)
   await writeCompatibilityConfigFile(rendererDir, contentDir, config)
@@ -37,7 +44,7 @@ async function prepareRendererEnvironment(contentDir: string, config: MdsiteConf
     ...process.env,
     NUXT_CONTENT_PATH: contentDir,
     CONTENT_DIR: contentDir,
-    MDSITE_CONFIG_PATH: path.join(contentDir, '_mdsite.yml')
+    MDSITE_CONFIG_PATH: configPath ?? path.join(contentDir, 'mdsite.yml')
   }
 
   await writeEnvFile(rendererDir, rendererEnv)

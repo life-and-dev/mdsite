@@ -5,15 +5,15 @@ import { loadMdsiteConfig, resolveContentOutputPath } from '../config/mdsite-con
 import { ensureRendererDependencies, prepareConfiguredRenderer, prepareRendererBackend } from '../renderer/mdsite-nuxt.js'
 
 export async function runPrepareGithubCommand(contentDir: string): Promise<string> {
-  const { config } = await loadMdsiteConfig(contentDir)
-  const { rendererDir, rendererEnv } = await prepareConfiguredRenderer(contentDir, config)
+  const loaded = await loadMdsiteConfig(contentDir)
+  const { rendererDir, rendererEnv } = await prepareConfiguredRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
   await prepareRendererBackend(rendererDir, rendererEnv)
 
   const workflowPath = path.join(contentDir, '.github', 'workflows', 'deploy.yml')
   await mkdir(path.dirname(workflowPath), { recursive: true })
-  await writeFile(workflowPath, buildGithubWorkflow(contentDir, config), 'utf8')
+  await writeFile(workflowPath, buildGithubWorkflow(loaded.configDir, loaded.config), 'utf8')
 
   return `Generated GitHub Pages workflow at ${workflowPath}`
 }
@@ -23,6 +23,7 @@ function buildGithubWorkflow(contentDir: string, config: Awaited<ReturnType<type
   const outputPath = path.posix.normalize(path.relative(contentDir, resolveContentOutputPath(contentDir, config)).replace(/\\/g, '/'))
   const workflowName = `Deploy ${config.site.name} to GitHub Pages`
   const artifactPath = `./${outputPath}/public`
+  const workspaceContentPath = config.content?.path ? `\${{ github.workspace }}/${path.posix.normalize(config.content.path.replace(/\\/g, '/'))}` : '${{ github.workspace }}'
 
   return [
     `name: ${JSON.stringify(workflowName)}`,
@@ -45,9 +46,9 @@ function buildGithubWorkflow(contentDir: string, config: Awaited<ReturnType<type
     '  build:',
     '    runs-on: ubuntu-latest',
     '    env:',
-    '      NUXT_CONTENT_PATH: "${{ github.workspace }}"',
-    '      CONTENT_DIR: "${{ github.workspace }}"',
-    '      MDSITE_CONFIG_PATH: "${{ github.workspace }}/_mdsite.yml"',
+    `      NUXT_CONTENT_PATH: "${workspaceContentPath}"`,
+    `      CONTENT_DIR: "${workspaceContentPath}"`,
+    '      MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"',
     '    steps:',
     '      - name: Checkout',
     '        uses: actions/checkout@v4',
