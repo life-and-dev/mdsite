@@ -105,12 +105,12 @@ Images are supported using standard Markdown syntax. You can reference local ima
 For example, to include the project logo:
 
 ```md
-![MD-Site Logo](./logo.svg)
+![MD-Site Logo](../logo.svg)
 ```
 
 Will be rendered as:
 
-![MD-Site Logo](./logo.svg)
+![MD-Site Logo](../logo.svg)
 
 ## 7. Mermaid Diagrams
 

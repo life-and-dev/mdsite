@@ -6,7 +6,7 @@ Welcome to MD-Site! This project is a local CLI for Markdown sites where content
 
 The current workflow is local-only: build the CLI from this repository, run it from a content directory, and configure that content directory with `mdsite.yml`.
 
-A preview of MD Site's output is available at [https://life-and-dev.github.io/md-site](https://life-and-dev.github.io/md-site).
+A preview of MD Site's output is available at [https://life-and-dev.github.io/mdsite/](https://life-and-dev.github.io/mdsite/).
 
 ## Getting Started
 
