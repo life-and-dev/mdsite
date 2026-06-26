@@ -11,6 +11,10 @@ type PackageJson = {
   publishConfig?: {
     access?: string;
   };
+  repository?: {
+    type?: string;
+    url?: string;
+  };
   files?: string[];
 };
 
@@ -42,6 +46,14 @@ if (packageJson.private !== false) {
 
 if (packageJson.publishConfig?.access !== "public") {
   throw new Error("Expected publishConfig.access to be public");
+}
+
+if (packageJson.repository?.type !== "git") {
+  throw new Error(`Expected repository.type to be git, got ${packageJson.repository?.type}`);
+}
+
+if (packageJson.repository?.url !== "https://github.com/life-and-dev/mdsite") {
+  throw new Error(`Expected repository.url to be https://github.com/life-and-dev/mdsite, got ${packageJson.repository?.url}`);
 }
 
 if (!Array.isArray(packageJson.files) || !includesPackagePath(packageJson.files, "dist")) {

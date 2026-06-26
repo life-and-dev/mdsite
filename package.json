@@ -5,6 +5,10 @@
   "private": false,
   "description": "Local-first CLI that orchestrates mdsite-nuxt",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/life-and-dev/mdsite"
+  },
   "bin": {
     "mdsite": "./bin/mdsite.js"
   },
