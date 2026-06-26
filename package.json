@@ -1,9 +1,10 @@
 {
   "name": "@life-and-dev/mdsite",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "type": "module",
   "private": false,
   "description": "Local-first CLI that orchestrates mdsite-nuxt",
+  "license": "MIT",
   "bin": {
     "mdsite": "./bin/mdsite.js"
   },
