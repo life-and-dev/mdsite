@@ -23,7 +23,7 @@ jobs:
       MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup mdsite renderer
         run: |
@@ -38,7 +38,7 @@ jobs:
           NODE
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: npm
@@ -46,15 +46,13 @@ jobs:
 
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             .mdsite/node_modules
-            .mdsite/.nuxt
-            .mdsite/.output
           key: ${{ runner.os }}-nuxt-build-${{ hashFiles('.mdsite/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuxt-build-
@@ -67,10 +65,10 @@ jobs:
         working-directory: .mdsite
         run: npm run generate
         env:
-          NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}
+          NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: "./.mdsite/.output/public"
 
@@ -83,4 +81,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

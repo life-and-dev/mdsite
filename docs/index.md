@@ -12,7 +12,7 @@ A preview of MD Site's output is available at [https://life-and-dev.github.io/md
 
 ### 0. Prerequisites
 
-- Node.js (>= 20.0.0)
+- Node.js (>= 24.0.0)
 - NPM (>= 10.0.0)
 - Git
 
