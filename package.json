@@ -1,6 +1,6 @@
 {
   "name": "@life-and-dev/mdsite",
-  "version": "0.0.4",
+  "version": "0.0.7",
   "type": "module",
   "private": false,
   "description": "Local-first CLI that orchestrates mdsite-nuxt",
@@ -24,6 +24,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "install-alias": "node scripts/mdsite-dev-alias.js install",
+    "release:version": "node scripts/release-version.mjs",
     "uninstall-alias": "node scripts/mdsite-dev-alias.js uninstall",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
