@@ -22,7 +22,7 @@ export async function runPrepareGithubCommand(contentDir: string): Promise<strin
 function buildGithubWorkflow(config: Awaited<ReturnType<typeof loadMdsiteConfig>>['config']): string {
   const rendererPath = path.posix.normalize(config.server.path.replace(/\\/g, '/'))
   const outputPath = path.posix.join(rendererPath, path.posix.normalize(config.server.output.replace(/\\/g, '/')))
-  const workflowName = `Deploy ${config.site.name} to GitHub Pages`
+  const workflowName = 'Deploy Docs'
   const artifactPath = `./${outputPath}/public`
   const workspaceContentPath = config.content?.path ? `\${{ github.workspace }}/${path.posix.normalize(config.content.path.replace(/\\/g, '/'))}` : '${{ github.workspace }}'
 
@@ -56,12 +56,12 @@ function buildGithubWorkflow(config: Awaited<ReturnType<typeof loadMdsiteConfig>
     '',
     '      - name: Setup mdsite renderer',
     '        run: |',
-    '          npm install --no-save mdsite',
+    '          npm install --no-save @life-and-dev/mdsite',
     "          node <<'NODE'",
     "          const fs = require('node:fs')",
     "          const path = require('node:path')",
     "          const ignored = new Set(['node_modules', '.nuxt', '.output', 'dist', '.cache'])",
-    "          const source = path.join(process.cwd(), 'node_modules', 'mdsite', 'mdsite-nuxt')",
+    "          const source = path.join(process.cwd(), 'node_modules', '@life-and-dev', 'mdsite', 'mdsite-nuxt')",
     `          const target = path.join(process.cwd(), ${JSON.stringify(rendererPath)})`,
     '          fs.cpSync(source, target, { recursive: true, force: true, filter: (sourcePath) => !ignored.has(path.basename(sourcePath)) })',
     '          NODE',

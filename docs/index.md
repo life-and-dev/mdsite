@@ -106,6 +106,9 @@ We have prepared a series of tutorials to guide you through every aspect of work
 - **[Testing](tests)**  
   Learn how to run our automated test suite to ensure your changes don't break anything.
 
+- **[Release](release)**  
+  Learn how to bump the npm package version and trigger tag-based publishing.
+
 - **[Deployment](deploy)**  
   Ready to go live? This guide explains how to deploy your content to production using Cloudflare Pages.
 

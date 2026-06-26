@@ -1,4 +1,4 @@
-name: "Deploy MD Site Documentation to GitHub Pages"
+name: "Deploy Docs"
 
 on:
   push:
@@ -27,12 +27,12 @@ jobs:
 
       - name: Setup mdsite renderer
         run: |
-          npm install --no-save mdsite
+          npm install --no-save @life-and-dev/mdsite
           node <<'NODE'
           const fs = require('node:fs')
           const path = require('node:path')
           const ignored = new Set(['node_modules', '.nuxt', '.output', 'dist', '.cache'])
-          const source = path.join(process.cwd(), 'node_modules', 'mdsite', 'mdsite-nuxt')
+          const source = path.join(process.cwd(), 'node_modules', '@life-and-dev', 'mdsite', 'mdsite-nuxt')
           const target = path.join(process.cwd(), ".mdsite")
           fs.cpSync(source, target, { recursive: true, force: true, filter: (sourcePath) => !ignored.has(path.basename(sourcePath)) })
           NODE

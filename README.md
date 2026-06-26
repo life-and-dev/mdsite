@@ -67,6 +67,29 @@ mdsite-dev stop
 
 > [!NOTE] When using `mdsite-dev` locally (e.g. `npm run install-alias`), the CLI utility is called `mdsite-dev`. When installed globally via npm registry, the CLI utility is called `mdsite` instead.
 
+## Release version and npm publish
+
+The npm package is `@life-and-dev/mdsite`. To bump the package version and create a release tag, run:
+
+```bash
+npm run release:version -- patch
+npm run release:version -- minor
+npm run release:version -- major
+npm run release:version -- x.y.z
+```
+
+The script updates `package.json` and `package-lock.json` with `npm version`, runs typecheck, build, and package verification, commits `chore: release v<version>`, and creates a local annotated tag named `v<version>`.
+
+The script does not push changes or publish to npm. Push the release commit and tag manually:
+
+```bash
+git push origin main
+git push origin v<version>
+```
+
+> [!WARNING]
+> Pushing the `v<version>` tag triggers the GitHub Actions npm publish workflow with provenance. The `npm-publish.yml` workflow requires npm Trusted Publisher configuration for `@life-and-dev/mdsite`.
+
 ## Supported CLI flow
 
 ### Check the CLI version
@@ -225,4 +248,3 @@ Run `mdsite generate` first. `preview` requires an existing generated renderer b
 | `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                         |
 | `themes.light.colors`    | built-in palette                         | Light theme colour overrides.                                                                                                                             |
 | `themes.dark.colors`     | built-in palette                         | Dark theme colour overrides.                                                                                                                              |
-
