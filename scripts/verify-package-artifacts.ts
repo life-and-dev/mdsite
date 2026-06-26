@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 type PackageJson = {
+  name?: string;
   bin?: {
     mdsite?: string;
   };
@@ -18,6 +19,7 @@ const packageJsonPath = resolve(rootDir, "package.json");
 const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8")) as PackageJson;
 
 const requiredFiles = [
+  resolve(rootDir, "bin", "mdsite.js"),
   resolve(rootDir, "dist", "index.js"),
   resolve(rootDir, "dist", "index.d.ts"),
 ];
@@ -26,8 +28,12 @@ for (const filePath of requiredFiles) {
   await access(filePath);
 }
 
-if (packageJson.bin?.mdsite !== "./dist/index.js") {
-  throw new Error(`Expected bin.mdsite to be ./dist/index.js, got ${packageJson.bin?.mdsite}`);
+if (packageJson.bin?.mdsite !== "./bin/mdsite.js") {
+  throw new Error(`Expected bin.mdsite to be ./bin/mdsite.js, got ${packageJson.bin?.mdsite}`);
+}
+
+if (packageJson.name !== "@life-and-dev/mdsite") {
+  throw new Error(`Expected package name to be @life-and-dev/mdsite, got ${packageJson.name}`);
 }
 
 if (packageJson.private !== false) {
@@ -40,6 +46,10 @@ if (packageJson.publishConfig?.access !== "public") {
 
 if (!Array.isArray(packageJson.files) || !includesPackagePath(packageJson.files, "dist")) {
   throw new Error("Expected package files to include dist/ or dist");
+}
+
+if (!Array.isArray(packageJson.files) || !includesPackagePath(packageJson.files, "bin")) {
+  throw new Error("Expected package files to include bin/ or bin");
 }
 
 if (!Array.isArray(packageJson.files) || !includesPackagePath(packageJson.files, "mdsite-nuxt")) {

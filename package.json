@@ -1,13 +1,14 @@
 {
-  "name": "mdsite",
+  "name": "@life-and-dev/mdsite",
   "version": "0.0.1",
   "type": "module",
   "private": false,
   "description": "Local-first CLI that orchestrates mdsite-nuxt",
   "bin": {
-    "mdsite": "./dist/index.js"
+    "mdsite": "./bin/mdsite.js"
   },
   "files": [
+    "bin/",
     "dist/",
     "mdsite-nuxt/",
     "README.md"
