@@ -32,11 +32,11 @@
     "prepublishOnly": "npm test && npm run typecheck && npm run build && npm run verify:package"
   },
   "dependencies": {
-    "yaml": "^2.8.1"
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@types/node": "^24.10.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.8"
+    "@types/node": "^26.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
   }
 }
