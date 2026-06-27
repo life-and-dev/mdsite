@@ -25,24 +25,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup mdsite renderer
-        run: |
-          npm install --no-save @life-and-dev/mdsite
-          node <<'NODE'
-          const fs = require('node:fs')
-          const path = require('node:path')
-          const ignored = new Set(['node_modules', '.nuxt', '.output', 'dist', '.cache'])
-          const source = path.join(process.cwd(), 'node_modules', '@life-and-dev', 'mdsite', 'mdsite-nuxt')
-          const target = path.join(process.cwd(), ".mdsite")
-          fs.cpSync(source, target, { recursive: true, force: true, filter: (sourcePath) => !ignored.has(path.basename(sourcePath)) })
-          NODE
+      - name: Use checked-in mdsite renderer
+        run: test -f mdsite-nuxt/package.json
 
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: ".mdsite/package-lock.json"
+          cache-dependency-path: "mdsite-nuxt/package-lock.json"
 
       - name: Setup Pages
         id: pages
@@ -52,17 +43,17 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            .mdsite/node_modules
-          key: ${{ runner.os }}-nuxt-build-${{ hashFiles('.mdsite/package-lock.json') }}
+            mdsite-nuxt/node_modules
+          key: ${{ runner.os }}-nuxt-build-${{ hashFiles('mdsite-nuxt/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuxt-build-
 
       - name: Install dependencies
-        working-directory: .mdsite
+        working-directory: mdsite-nuxt
         run: npm install
 
       - name: Generate static site
-        working-directory: .mdsite
+        working-directory: mdsite-nuxt
         run: npm run generate
         env:
           NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/
@@ -70,7 +61,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: "./.mdsite/.output/public"
+          path: "./mdsite-nuxt/.output/public"
 
   deploy:
     environment:
