@@ -5,17 +5,20 @@ features:
   bibleTooltips: false
   sourceEdit: true
 menu:
-  - architecture
-  - deploy
-  - favicon
-  - features
-  - features/bible-tooltips
-  - features/source-edit
+  - index
+  - features:
+      - bible-tooltips
+      - source-edit
   - markdown
   - menu
+  - theme
+  - favicon
+  - deploy
+  - ===
+  - architecture
   - nuxt
   - tests
-  - theme
+  - release
 server:
   output: .output
   path: .mdsite
