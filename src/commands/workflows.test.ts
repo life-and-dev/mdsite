@@ -131,7 +131,6 @@ describe('CLI workflow coverage', () => {
     expect(waitForTcpPortMocked).toHaveBeenCalledWith('localhost', 3000)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
 
-    expect(await readFile(path.join(contentDir, '_menu.yml'), 'utf8')).toContain('- docs/guide')
     expect(await readFile(path.join(rendererDir, '.env'), 'utf8')).toContain(`NUXT_CONTENT_PATH=${JSON.stringify(contentDir)}`)
     expect(await readFile(path.join(rendererDir, 'content.config.yml'), 'utf8')).toContain('siteName: Workspace Docs')
     await expect(readRuntimeState(contentDir, 'start')).resolves.toEqual(expect.objectContaining({

@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 
 import type { MdsiteConfig } from '../config/mdsite-config.js'
-import { generateMenuFromMarkdownFiles } from '../config/menu.js'
 import { runForeground, runBackground } from '../process/child-process.js'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -54,7 +53,6 @@ export async function ensureConfiguredRendererInstalled(contentDir: string, conf
 }
 
 async function prepareRendererEnvironment(contentDir: string, config: MdsiteConfig, rendererDir: string, configPath?: string): Promise<PreparedRenderer> {
-  await ensureMenuFile(contentDir, config)
   await ensureRendererFaviconAlias(contentDir, config)
   await writeCompatibilityConfigFile(rendererDir, contentDir, config)
 
@@ -172,11 +170,6 @@ async function ensureDirectoryIsAvailable(directoryPath: string): Promise<void> 
 
 function shouldCopyRendererPath(sourcePath: string): boolean {
   return !rendererCopyIgnoredNames.has(path.basename(sourcePath))
-}
-
-async function ensureMenuFile(contentDir: string, config: MdsiteConfig): Promise<void> {
-  const menu = config.menu.length > 0 ? config.menu : await generateMenuFromMarkdownFiles(contentDir)
-  await writeFile(path.join(contentDir, '_menu.yml'), YAML.stringify(menu), 'utf8')
 }
 
 async function ensureRendererFaviconAlias(contentDir: string, config: MdsiteConfig): Promise<void> {

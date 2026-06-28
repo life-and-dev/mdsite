@@ -14,10 +14,6 @@ vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn()
 }))
 
-vi.mock('../config/menu.js', () => ({
-  generateMenuFromMarkdownFiles: vi.fn()
-}))
-
 vi.mock('../process/child-process.js', () => ({
   runForeground: vi.fn(),
   runBackground: vi.fn()
@@ -25,7 +21,6 @@ vi.mock('../process/child-process.js', () => ({
 
 import { access, copyFile, cp, mkdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 
-import { generateMenuFromMarkdownFiles } from '../config/menu.js'
 import { runBackground, runForeground } from '../process/child-process.js'
 import {
   ensurePreviewArtifacts,
@@ -50,7 +45,6 @@ const rmMock = vi.mocked(rm)
 const statMock = vi.mocked(stat)
 const symlinkMock = vi.mocked(symlink)
 const writeFileMock = vi.mocked(writeFile)
-const generateMenuMock = vi.mocked(generateMenuFromMarkdownFiles)
 const runForegroundMock = vi.mocked(runForeground)
 const runBackgroundMock = vi.mocked(runBackground)
 
@@ -71,7 +65,6 @@ describe('mdsite-nuxt renderer helpers', () => {
     vi.clearAllMocks()
     accessMock.mockResolvedValue(undefined)
     statMock.mockResolvedValue({ isDirectory: () => true } as Stats)
-    generateMenuMock.mockResolvedValue(['generated/page'])
     runBackgroundMock.mockResolvedValue(999)
   })
 
@@ -84,8 +77,6 @@ describe('mdsite-nuxt renderer helpers', () => {
     expect(prepared.rendererDir).toBe(rendererDir)
     expect(prepared.rendererEnv.NUXT_CONTENT_PATH).toBe(contentDir)
     expect(prepared.rendererEnv.MDSITE_CONFIG_PATH).toBe(path.join(contentDir, 'mdsite.yml'))
-    expect(generateMenuMock).toHaveBeenCalledWith(contentDir)
-    expect(writeFileMock).toHaveBeenCalledWith(path.join(contentDir, '_menu.yml'), '- generated/page\n', 'utf8')
     expect(writeFileMock).toHaveBeenCalledWith(
       path.join(rendererDir, 'content.config.yml'),
       expect.stringContaining('siteName: Docs'),
@@ -110,8 +101,6 @@ describe('mdsite-nuxt renderer helpers', () => {
     expect(prepared.rendererEnv.NUXT_CONTENT_PATH).toBe(contentDir)
     expect(prepared.rendererEnv.CONTENT_DIR).toBe(contentDir)
     expect(prepared.rendererEnv.MDSITE_CONFIG_PATH).toBe(configPath)
-    expect(generateMenuMock).toHaveBeenCalledWith(contentDir)
-    expect(writeFileMock).toHaveBeenCalledWith(path.join(contentDir, '_menu.yml'), '- generated/page\n', 'utf8')
   })
 
   it('falls back to the checked-in renderer when the configured renderer dir is absent', async () => {
@@ -128,7 +117,6 @@ describe('mdsite-nuxt renderer helpers', () => {
     const prepared = await prepareRenderer(contentDir, { ...baseConfig, menu: ['docs/getting-started'] })
 
     expect(prepared.rendererDir).toBe(checkedInRendererDir)
-    expect(writeFileMock).toHaveBeenCalledWith(path.join(contentDir, '_menu.yml'), '- docs/getting-started\n', 'utf8')
   })
 
   it('prepareConfiguredRenderer resolves the configured renderer dir without checking the repo fallback', async () => {
