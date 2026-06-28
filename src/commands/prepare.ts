@@ -53,6 +53,8 @@ function buildGithubWorkflow(config: Awaited<ReturnType<typeof loadMdsiteConfig>
     '    steps:',
     '      - name: Checkout',
     '        uses: actions/checkout@v7',
+    '        with:',
+    '          submodules: true',
     '',
     '      - name: Use checked-in mdsite renderer',
     `        run: test -f ${rendererPath}/package.json`,

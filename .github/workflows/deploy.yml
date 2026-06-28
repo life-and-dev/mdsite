@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Use checked-in mdsite renderer
         run: test -f mdsite-nuxt/package.json
