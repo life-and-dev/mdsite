@@ -2,22 +2,29 @@
 
 # MDsite
 
-## Current workflow
+MDsite is a local-first CLI that turns a directory of Markdown files into a static site using the bundled Nuxt renderer.
 
-Use the CLI from the root package, then operate on your markdown project directory:
+The full documentation lives at [https://life-and-dev.github.io/mdsite/](https://life-and-dev.github.io/mdsite/). This README is a quick reference for end users; contributors should jump to [Developing MDsite](https://life-and-dev.github.io/mdsite/develop).
 
-1. Build the local CLI in this repository.
-2. Change into the markdown/content directory you want to serve.
-3. Invoke the built CLI from this repository path, or use a local alias/link that points to it.
-4. Run `init` once to create `mdsite.yml`.
-5. Run `start` for foreground local development, or `start -d` for a tracked background process that opens the browser after the server is ready.
-6. Run `generate` to build static output.
-7. Run `preview` after `generate` for a foreground local preview, or `preview -d` for a tracked background preview.
-8. Run `stop` to stop tracked detached `start` and `preview` processes.
+## Install
 
-## Documentation location
+Install the CLI globally from the npm registry on any machine with Node.js (>= 24.0.0) and npm:
 
-[Primary project documentation](docs/index.md) and demo content belong in this repository root, such as this `README.md` and `docs/`. Keep `mdsite-nuxt/` documentation limited to renderer internals.
+```bash
+npm install -g @life-and-dev/mdsite
+```
+
+After install, the `mdsite` command is available from any content directory.
+
+## Quick start
+
+From the directory containing your Markdown files:
+
+1. Run `mdsite init` once to create `mdsite.yml`.
+2. Run `mdsite start` for foreground local development, or `mdsite start -d` for a tracked background process that opens the browser after the server is ready.
+3. Run `mdsite generate` to build static output.
+4. Run `mdsite preview` after `generate` for a foreground local preview, or `mdsite preview -d` for a tracked background preview.
+5. Run `mdsite stop` to stop tracked detached `start` and `preview` processes.
 
 ## Implemented commands
 
@@ -32,63 +39,7 @@ mdsite stop
 mdsite prepare github
 ```
 
-All commands operate on the **current working directory** as the content/project directory.
-`version` prints the CLI version from the root `package.json`; run it as `mdsite version` or `node /path/to/md-site/dist/index.js version`.
-`prepare github` also requires `mdsite.yml` and writes a GitHub Pages workflow for that content directory.
-
-## Local Development Setup
-
-This repository currently documents a **local-only** workflow:
-
-```bash
-# in this repository
-npm install
-npm run build
-npm run install-alias
-```
-
-Restart CLI terminal session.
-
-Then run the `mdsite-dev` alias from any directory containing `mdsite.yml`:
-
-```bash
-mdsite-dev start
-```
-
-Open http://localhost:3000/. The command runs in the foreground and writes renderer output to the terminal; closing the terminal or interrupting the command stops the process.
-
-To run the demo as a tracked background process instead, use `mdsite-dev start -d` or `mdsite-dev start --detached`. Detached start logs to `.mdsite-runtime/start.log` in the content directory and opens the browser automatically after the server is ready.
-
-To stop a detached local preview:
-
-```bash
-mdsite-dev stop
-```
-
-> [!NOTE] When using `mdsite-dev` locally (e.g. `npm run install-alias`), the CLI utility is called `mdsite-dev`. When installed globally via npm registry, the CLI utility is called `mdsite` instead.
-
-## Release version and npm publish
-
-The npm package is `@life-and-dev/mdsite`. To bump the package version and create a release tag, run:
-
-```bash
-npm run release:version -- patch
-npm run release:version -- minor
-npm run release:version -- major
-npm run release:version -- x.y.z
-```
-
-The script updates `package.json` and `package-lock.json` with `npm version`, runs typecheck, build, and package verification, commits `chore: release v<version>`, and creates a local annotated tag named `v<version>`.
-
-The script does not push changes or publish to npm. Push the release commit and tag manually:
-
-```bash
-git push origin main
-git push origin v<version>
-```
-
-> [!WARNING]
-> Pushing the `v<version>` tag triggers the GitHub Actions npm publish workflow with provenance. The `npm-publish.yml` workflow requires npm Trusted Publisher configuration for `@life-and-dev/mdsite`.
+All commands operate on the **current working directory** as the content/project directory. `version` prints the CLI version from the root `package.json`. `prepare github` requires `mdsite.yml` and writes a GitHub Pages workflow for that content directory.
 
 ## Supported CLI flow
 
@@ -132,8 +83,7 @@ mdsite generate
 mdsite preview
 ```
 
-`preview` is a **post-generate** local preview step. It requires `mdsite.yml` and an existing generated renderer build.
-By default, it runs in the foreground with terminal output. Closing the terminal or interrupting the command stops the foreground preview.
+`preview` is a **post-generate** local preview step. It requires `mdsite.yml` and an existing generated renderer build. By default, it runs in the foreground with terminal output. Closing the terminal or interrupting the command stops the foreground preview.
 
 Use `mdsite preview -d` or `mdsite preview --detached` to run a tracked background preview instead. Detached preview logs to `mdsite.log` in the content directory and writes runtime state under `.mdsite-runtime/`.
 
@@ -153,16 +103,16 @@ mdsite prepare github
 
 `prepare github` requires `mdsite.yml`, prepares the configured local renderer, and writes `.github/workflows/deploy.yml` in the current content directory. The generated workflow uses the configured local `server.path` during GitHub Actions; it does not add a renderer clone or pull workflow.
 
+For production deployments, see the [Deployment guide](https://life-and-dev.github.io/mdsite/deploy).
+
 ## Renderer resolution
 
-Renderer resolution is currently **local-only**:
+Renderer resolution is **local-only**:
 
 - If `mdsite.yml` sets `server.path`, the CLI first looks for that path **relative to the content directory**.
-- If that directory is not present, the CLI falls back to the checked-in repository renderer at `mdsite-nuxt/`.
+- If that directory is not present, the CLI falls back to the bundled renderer shipped with the package.
 - If the renderer's `node_modules` directory is missing, the CLI runs `npm install` in the renderer directory.
-- `prepare github` requires the configured `server.path` renderer directory to exist; unlike `start`, `generate`, and `preview`, it does not fall back to the checked-in renderer when that configured path is absent.
-
-Current documentation does **not** describe clone/pull behavior as active usage.
+- `prepare github` requires the configured `server.path` renderer directory to exist; unlike `start`, `generate`, and `preview`, it does not fall back to the bundled renderer when that configured path is absent.
 
 ## Expected content project layout
 
@@ -186,18 +136,7 @@ your-content/
 └── other-pages.md
 ```
 
-The CLI also writes renderer compatibility files such as `_menu.yml`, `mdsite-nuxt/.env`, and `mdsite-nuxt/content.config.yml` as part of orchestration. Tracked background commands write runtime files under `.mdsite-runtime/`.
-
-## Migration notes for existing users
-
-If you previously used the legacy root workflow:
-
-- Replace `npm start` with `node /path/to/md-site/dist/index.js start`.
-- Replace `npm run generate` with `node /path/to/md-site/dist/index.js generate`.
-- Replace `npm run preview` with `node /path/to/md-site/dist/index.js preview` after `node /path/to/md-site/dist/index.js generate`.
-- Replace legacy root/domain config assumptions with a single `mdsite.yml` in the content directory.
-- Treat `content.config.yml` and domain-specific `*.config.yml` files as legacy reference, not current setup.
-- Keep custom markdown content, menus, and theme values, but move current configuration intent into `mdsite.yml`.
+The CLI also writes renderer compatibility files such as `_menu.yml` and the renderer's `.env` / `content.config.yml` as part of orchestration. Tracked background commands write runtime files under `.mdsite-runtime/`.
 
 ## Troubleshooting
 
@@ -212,7 +151,7 @@ mdsite init
 ### Renderer directory issues
 
 - If `server.path` is set, confirm it points to a renderer directory relative to the content directory.
-- If that path does not exist, the CLI falls back to the checked-in `mdsite-nuxt` directory in this repository.
+- If that path does not exist, the CLI falls back to the bundled renderer shipped with the package.
 - If neither renderer location exists, the CLI cannot run.
 - For `prepare github`, the configured `server.path` must exist because workflow generation uses the configured renderer path directly.
 
@@ -231,6 +170,8 @@ Run `mdsite generate` first. `preview` requires an existing generated renderer b
 - `server.path` is resolved relative to the content directory.
 - If `favicon` is configured, the referenced file must exist.
 
+For more, see the user guides on [Markdown](https://life-and-dev.github.io/mdsite/markdown), [Menu](https://life-and-dev.github.io/mdsite/menu), [Favicon](https://life-and-dev.github.io/mdsite/favicon), [Theme](https://life-and-dev.github.io/mdsite/theme), and [Features](https://life-and-dev.github.io/mdsite/features).
+
 ## Configuration reference
 
 `mdsite.yml` is the only active content-directory configuration file. `mdsite init` creates it and fills defaults from local markdown files where possible.
@@ -242,9 +183,20 @@ Run `mdsite generate` first. `preview` requires an existing generated renderer b
 | `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                     |
 | `menu`                   | derived from markdown files              | Menu structure used to generate `_menu.yml`.                                                                                                              |
 | `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                           |
-| `server.path`            | `.mdsite`                                | Renderer path relative to the content directory. Local commands fall back to checked-in `mdsite-nuxt/` when this path is absent, except `prepare github`. |
+| `server.path`            | `.mdsite`                                | Renderer path relative to the content directory. Local commands fall back to the bundled renderer when this path is absent, except `prepare github`.      |
 | `server.repo`            | `https://github.com/life-and-dev/mdsite` | Stored for compatibility and generated renderer config. It is not used for active clone/pull behaviour.                                                   |
 | `site.canonical`         | empty string                             | Canonical site URL passed to the renderer.                                                                                                                |
 | `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                         |
 | `themes.light.colors`    | built-in palette                         | Light theme colour overrides.                                                                                                                             |
 | `themes.dark.colors`     | built-in palette                         | Dark theme colour overrides.                                                                                                                              |
+
+For full descriptions of each section, see the corresponding guides under [Documentation](https://life-and-dev.github.io/mdsite/).
+
+## For Developers
+
+MDsite is a thin TypeScript CLI that orchestrates a Nuxt renderer shipped as a git submodule. If you want to contribute, customize the renderer, run the test suites, or cut a release, the developer documentation lives at:
+
+- [Developing MDsite](https://life-and-dev.github.io/mdsite/develop) — repository layout, CLI architecture, and CLI ↔ Nuxt integration.
+- [Renderer (mdsite-nuxt submodule)](https://life-and-dev.github.io/mdsite/develop/nuxt) — what the submodule is, how to customize it, how to extend Nuxt with custom components.
+- [Testing](https://life-and-dev.github.io/mdsite/develop/tests) — how to run the CLI and renderer test suites.
+- [Release](https://life-and-dev.github.io/mdsite/develop/release) — how to cut and publish a new version of `@life-and-dev/mdsite`.

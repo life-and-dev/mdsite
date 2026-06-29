@@ -11,14 +11,13 @@ menu:
       - source-edit
   - markdown
   - menu
-  - theme
   - favicon
+  - theme
   - deploy
-  - ===
-  - architecture
-  - nuxt
-  - tests
-  - release
+  - develop:
+      - nuxt
+      - tests
+      - release
 server:
   output: .output
   path: .mdsite

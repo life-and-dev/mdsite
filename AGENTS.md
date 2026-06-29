@@ -30,16 +30,19 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 
 - `src/index.ts`: CLI entrypoint and command dispatch.
 - `src/commands/`: Command handlers.
+- `src/config/`: `mdsite.yml` schema, defaults, and menu parsing.
+- `src/process/`: Foreground/background child-process and runtime-state helpers.
 - `src/renderer/mdsite-nuxt.ts`: Renderer prep and run helpers.
-- `mdsite-nuxt/`: Checked-in renderer used by the CLI.
+- `mdsite-nuxt/`: Nuxt renderer, pulled in as a git submodule pinned in `.gitmodules` (source: https://github.com/life-and-dev/mdsite-nuxt).
 - `package.json`: Root CLI package config.
-- `.agent/plan.md`: Phase 1 spec source.
+- `docs/develop.md`: Contributor-facing architecture overview. Read this before changing CLI/renderer integration.
 
 ## Rules
 
-- Keep docs truthful to current local CLI behavior.
-- Do not document clone/pull workflow as active behavior.
-- Do not move rendering logic into the CLI.
+- Keep docs truthful to current CLI behavior.
+- Do not move rendering logic into the CLI; rendering belongs in `mdsite-nuxt/`.
 - Prefer TypeScript for new code.
-- Breaking changes are acceptable during Phase 1 stabilization.
-- Treat npm release hardening and true git submodule conversion as deferred.
+- `mdsite-nuxt/` is a git submodule: edit it inside its own repository, then bump the submodule pointer in the parent repo. Never vendor renderer source into the CLI.
+- npm releases are tag-driven via `.github/workflows/npm-publish.yml` with provenance and Trusted Publisher. Cut releases with `npm run release:version -- <bump>`, then push the tag.
+- User-facing docs go in `README.md` and `docs/` (top-level + user tutorials). Contributor docs go in `docs/develop.md` and `docs/develop/`.
+- In `README.md`, link to documentation with absolute URLs prefixed `https://life-and-dev.github.io/mdsite/` so links resolve from the npm registry. In other markdown files, use relative links.
