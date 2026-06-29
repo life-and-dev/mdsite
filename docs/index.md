@@ -30,7 +30,7 @@ This exposes the `mdsite` command system-wide. Verify it is available:
 mdsite version
 ```
 
-To set up a content directory, change into it and run `init` once to create `mdsite.yml`, then `start` to launch the local renderer:
+To set up a content directory, change into it and run `init` once to create `mdsite.yml` (and a `.nvmrc` pinning Node 24), then `start` to launch the local renderer:
 
 ```bash
 cd /path/to/your/content

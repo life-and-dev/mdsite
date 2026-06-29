@@ -6,7 +6,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 ## Primary features
 
 - **`mdsite help`**: Show CLI help.
-- **`mdsite init`**: Create `mdsite.yml` from local markdown files.
+- **`mdsite init`**: Create `mdsite.yml` from local markdown files. Also writes a `.nvmrc` pinning Node 24 so Cloudflare, Netlify, and other hosts use the right Node version.
 - **`mdsite start`**: Start local renderer in the foreground for current content directory.
 - **`mdsite start -d` / `mdsite start --detached`**: Start tracked background renderer and log to `.mdsite-runtime/start.log`.
 - **`mdsite generate`**: Build static output into `server.output`.

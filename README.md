@@ -20,7 +20,7 @@ After install, the `mdsite` command is available from any content directory.
 
 From the directory containing your Markdown files:
 
-1. Run `mdsite init` once to create `mdsite.yml`.
+1. Run `mdsite init` once to create `mdsite.yml` and a `.nvmrc` pinning Node 24.
 2. Run `mdsite start` for foreground local development, or `mdsite start -d` for a tracked background process that opens the browser after the server is ready.
 3. Run `mdsite generate` to build static output.
 4. Run `mdsite preview` after `generate` for a foreground local preview, or `mdsite preview -d` for a tracked background preview.

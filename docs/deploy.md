@@ -73,7 +73,7 @@ In Cloudflare Pages, connect the repository that contains your mdsite content an
 
 ### 🔒 Pin Node.js to version 24
 
-`mdsite` requires Node.js 24. The Cloudflare Pages v3 build image defaults to Node 22, so commit a `.nvmrc` file containing `24` at the root of your content repository:
+`mdsite` requires Node.js 24. The Cloudflare Pages v3 build image defaults to Node 22. `mdsite init` writes a `.nvmrc` containing `24` — just commit it:
 
 ```text
 24

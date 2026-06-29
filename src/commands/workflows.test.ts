@@ -95,16 +95,20 @@ describe('CLI workflow coverage', () => {
     waitForTcpPortMocked.mockResolvedValue(true)
   })
 
-  it('runInitCommand creates a valid mdsite.yml for the current markdown directory', async () => {
+  it('runInitCommand creates a valid mdsite.yml and pins Node 24 via .nvmrc', async () => {
     const contentDir = await createContentDir()
 
-    await expect(runInitCommand(contentDir)).resolves.toBeUndefined()
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml and .nvmrc in ${contentDir}`)
 
     const configPath = path.join(contentDir, 'mdsite.yml')
     const configText = await readFile(configPath, 'utf8')
     expect(configText).toContain('name: Workspace Docs')
     expect(configText).toContain('output: .output')
     expect(configText).toContain('- docs/guide')
+
+    const nvmrcPath = path.join(contentDir, '.nvmrc')
+    const nvmrcText = await readFile(nvmrcPath, 'utf8')
+    expect(nvmrcText).toBe('24\n')
   })
 
   it('runStartCommand in detached mode prepares the renderer against the current markdown directory and tracks the background process', async () => {

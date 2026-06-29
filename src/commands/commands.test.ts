@@ -134,15 +134,28 @@ describe('command helpers', () => {
 
   it('runInitCommand creates mdsite.yml only when it does not already exist', async () => {
     accessMock.mockRejectedValueOnce(new Error('missing'))
+    accessMock.mockRejectedValueOnce(new Error('missing'))
     buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
     serializeConfigMock.mockReturnValue('serialized-config')
 
-    await expect(runInitCommand('/content')).resolves.toBeUndefined()
+    await expect(runInitCommand('/content')).resolves.toBe('Created mdsite.yml and .nvmrc in /content')
     expect(buildDefaultConfigMock).toHaveBeenCalledWith('/content')
     expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
+    expect(writeFileMock).toHaveBeenCalledWith('/content/.nvmrc', '24\n', 'utf8')
 
     accessMock.mockResolvedValueOnce(undefined)
     await expect(runInitCommand('/content')).rejects.toThrow('mdsite.yml already exists at /content/mdsite.yml.')
+  })
+
+  it('runInitCommand leaves an existing .nvmrc untouched', async () => {
+    accessMock.mockRejectedValueOnce(new Error('missing'))
+    accessMock.mockResolvedValueOnce(undefined)
+    buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
+    serializeConfigMock.mockReturnValue('serialized-config')
+
+    await expect(runInitCommand('/content')).resolves.toBe('Created mdsite.yml in /content (.nvmrc was already present)')
+    expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
+    expect(writeFileMock).not.toHaveBeenCalledWith('/content/.nvmrc', expect.anything(), expect.anything())
   })
 
   it('runStartCommand starts the renderer in the foreground by default without runtime metadata', async () => {
