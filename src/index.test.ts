@@ -61,6 +61,7 @@ describe('root CLI entrypoint', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('prepare github'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite preview [-d|--detached]'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('-d, --detached'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('--host [addr]'))
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
@@ -122,6 +123,60 @@ describe('root CLI entrypoint', () => {
     expect(runPreviewCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: true })
     expect(logSpy).toHaveBeenCalledWith('detached preview')
     expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite start with --host exposing the network by default', async () => {
+    process.argv = ['node', 'mdsite', 'start', '--host']
+    runStartCommandMock.mockResolvedValue(undefined)
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: false, host: '0.0.0.0' })
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite start with --host addr using the provided address', async () => {
+    process.argv = ['node', 'mdsite', 'start', '--host', '192.168.1.10']
+    runStartCommandMock.mockResolvedValue(undefined)
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: false, host: '192.168.1.10' })
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite start with -d and --host combined in any order', async () => {
+    process.argv = ['node', 'mdsite', 'start', '--host', '-d']
+    runStartCommandMock.mockResolvedValueOnce('detached')
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: true, host: '0.0.0.0' })
+    expect(logSpy).toHaveBeenCalledWith('detached')
+  })
+
+  it('dispatches mdsite preview with --host exposing the network', async () => {
+    process.argv = ['node', 'mdsite', 'preview', '--host']
+    runPreviewCommandMock.mockResolvedValue(undefined)
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runPreviewCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: false, host: '0.0.0.0' })
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('rejects unknown options for mdsite start as errors', async () => {
+    process.argv = ['node', 'mdsite', 'start', '--bogus']
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(errorSpy).toHaveBeenCalledWith('Error: Unsupported option: --bogus. Run `mdsite help` for supported options.')
+    expect(process.exitCode).toBe(1)
   })
 
   it.each(['help', '-h', '--help'])('prints help output when %s is requested', async (helpCommand) => {

@@ -15,9 +15,9 @@ const helpText = `mdsite - local-first CLI for mdsite-nuxt
 Usage:
   mdsite help [-h|--help]
   mdsite init
-  mdsite start [-d|--detached]
+  mdsite start [-d|--detached] [--host [addr]]
   mdsite generate
-  mdsite preview [-d|--detached]
+  mdsite preview [-d|--detached] [--host [addr]]
   mdsite stop
   mdsite version
   mdsite prepare github
@@ -32,9 +32,52 @@ Commands:
   prepare   Generate the GitHub Pages workflow for this content directory
 
 Options:
-  -h, --help      Show this help output
-  -d, --detached  Run mdsite start or preview in the background and write runtime state
+  -h, --help       Show this help output
+  -d, --detached   Run mdsite start or preview in the background and write runtime state
+  --host [addr]    Expose start/preview on the network (binds 0.0.0.0 by default, or a given addr)
 `
+
+const DEFAULT_NETWORK_HOST = '0.0.0.0'
+
+interface ServerCommandFlags {
+  detached: boolean
+  host?: string
+}
+
+function parseServerCommandFlags(args: string[]): ServerCommandFlags {
+  const flags: ServerCommandFlags = { detached: false }
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+
+    if (arg === '-d' || arg === '--detached') {
+      flags.detached = true
+      continue
+    }
+
+    if (arg === '--host') {
+      const next = args[index + 1]
+      if (next !== undefined && !next.startsWith('-')) {
+        flags.host = next
+        index += 1
+      } else {
+        flags.host = DEFAULT_NETWORK_HOST
+      }
+      continue
+    }
+
+    throw new Error(`Unsupported option: ${arg}. Run \`mdsite help\` for supported options.`)
+  }
+
+  return flags
+}
+
+function buildServerCommandOptions(flags: ServerCommandFlags): { detached: boolean, host?: string } {
+  if (flags.host === undefined) {
+    return { detached: flags.detached }
+  }
+  return { detached: flags.detached, host: flags.host }
+}
 
 type PackageMetadata = {
   version?: unknown
@@ -52,7 +95,9 @@ async function readPackageVersion(): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  const [command, subcommand] = process.argv.slice(2)
+  const argv = process.argv.slice(2)
+  const command = argv[0]
+  const subcommand = argv[1]
   const currentDirectory = process.cwd()
 
   switch (command) {
@@ -67,7 +112,8 @@ async function main(): Promise<void> {
       return
     case 'start':
       {
-        const message = await runStartCommand(currentDirectory, { detached: subcommand === '-d' || subcommand === '--detached' })
+        const flags = parseServerCommandFlags(argv.slice(1))
+        const message = await runStartCommand(currentDirectory, buildServerCommandOptions(flags))
         if (message) {
           console.log(message)
         }
@@ -78,7 +124,8 @@ async function main(): Promise<void> {
       return
     case 'preview':
       {
-        const message = await runPreviewCommand(currentDirectory, { detached: subcommand === '-d' || subcommand === '--detached' })
+        const flags = parseServerCommandFlags(argv.slice(1))
+        const message = await runPreviewCommand(currentDirectory, buildServerCommandOptions(flags))
         if (message) {
           console.log(message)
         }
