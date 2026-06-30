@@ -8,10 +8,11 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 - **`mdsite help`**: Show CLI help.
 - **`mdsite init`**: Create `mdsite.yml` from local markdown files. Also writes a `.nvmrc` pinning Node 24 so Cloudflare, Netlify, and other hosts use the right Node version.
 - **`mdsite start`**: Start local renderer in the foreground for current content directory.
-- **`mdsite start -d` / `mdsite start --detached`**: Start tracked background renderer and log to `.mdsite-runtime/start.log`.
+- **`mdsite start -d` / `mdsite start --detached`**: Start tracked background renderer and log to `<server.path>/start.log`.
+- **`mdsite start --host [addr]`** / **`mdsite preview --host [addr]`**: Expose the `start`/`preview` server on the network by binding `0.0.0.0` (or a given addr) via `NUXT_HOST`/`HOST`/`NITRO_HOST`. Combinable with `-d`/`--detached`.
 - **`mdsite generate`**: Build static output into `server.output`.
 - **`mdsite preview`**: Preview generated output after `generate` in the foreground.
-- **`mdsite preview -d` / `mdsite preview --detached`**: Start tracked background preview and log to `mdsite.log`.
+- **`mdsite preview -d` / `mdsite preview --detached`**: Start tracked background preview and log to `<server.path>/preview.log`.
 - **`mdsite stop`**: Stop tracked detached `start` and `preview` processes.
 - **`mdsite prepare github`**: Generate `.github/workflows/deploy.yml` for this content dir.
 
@@ -31,11 +32,19 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 - `src/index.ts`: CLI entrypoint and command dispatch.
 - `src/commands/`: Command handlers.
 - `src/config/`: `mdsite.yml` schema, defaults, and menu parsing.
-- `src/process/`: Foreground/background child-process and runtime-state helpers.
+- `src/process/`: Foreground/background child-process helpers and runtime-state (writes tracked-detached PIDs/logs into the renderer working dir, not `.mdsite-runtime`).
 - `src/renderer/mdsite-nuxt.ts`: Renderer prep and run helpers.
+- `mdsite init`: writes `mdsite.yml`, `.nvmrc`, a managed `.gitignore`, and copies the bundled renderer's `package.json` + `package-lock.json` into `.mdsite/`.
 - `mdsite-nuxt/`: Nuxt renderer, pulled in as a git submodule pinned in `.gitmodules` (source: https://github.com/life-and-dev/mdsite-nuxt).
 - `package.json`: Root CLI package config.
 - `docs/develop.md`: Contributor-facing architecture overview. Read this before changing CLI/renderer integration.
+
+## Directory model
+
+- **Content dir**: holds only user-authored files (`*.md`, `mdsite.yml`, `.nvmrc`, `.gitignore`, the user's favicon source). The CLI writes no generated non-config files to the content root.
+- **`.mdsite/`** (`<server.path>`): the single renderer working dir — materialized renderer source (gitignored), `node_modules`, `.env`, `content.config.yml`, generated favicons, and detached-process runtime state (`start.json`/`preview.json`/`start.log`/`preview.log`). Only `package.json` + `package-lock.json` are committed.
+- **`.output/`** (`<server.output>`): the deployable static site at the content root, synced by `mdsite generate`.
+- `.mdsite-runtime/` and content-root `mdsite.log` no longer exist.
 
 ## Rules
 

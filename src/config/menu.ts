@@ -6,7 +6,6 @@ import type { MenuItem } from './mdsite-config.js'
 const ignoredDirectories = new Set([
   '.git',
   '.mdsite',
-  '.mdsite-runtime',
   '.output',
   'dist',
   'mdsite-nuxt',

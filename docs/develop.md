@@ -87,8 +87,8 @@ The CLI is a thin orchestrator. It does not contain any rendering logic — all 
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/index.ts`  | CLI entrypoint. Parses `process.argv`, dispatches to a command handler.                                                                                                             |
 | `src/commands/` | One file per command. Each handler takes a content directory (and options) and returns a status string.                                                                             |
-| `src/config/`   | Defines the `MdsiteConfig` schema, default values produced by `init`, and the `menu` parser that turns `mdsite.yml`'s `menu:` section into `_menu.yml`.                             |
-| `src/process/`  | `child-process.ts` wraps foreground and background spawning. `runtime-state.ts` reads and writes `.mdsite-runtime/` for tracked detached processes.                                 |
+| `src/config/`   | Defines the `MdsiteConfig` schema, default values produced by `init`, and the `menu` parser for `mdsite.yml`'s `menu:` section.                             |
+| `src/process/`  | `child-process.ts` wraps foreground and background spawning. `runtime-state.ts` writes tracked-detached runtime state (PIDs/logs) into the renderer working dir (`<server.path>`).                                 |
 | `src/renderer/` | `mdsite-nuxt.ts` is the bridge: it resolves the renderer directory, installs its dependencies if missing, writes `.env` and `content.config.yml`, and invokes the right npm script. |
 
 Each module ships next to a `*.test.ts` file (for example `src/index.test.ts`, `src/commands/prepare.test.ts`). See [Testing](develop/tests) for the full picture.
@@ -113,12 +113,13 @@ graph TB
 
 ### Step 2: Resolve the renderer directory
 
-`src/renderer/mdsite-nuxt.ts` resolves the renderer directory in this order:
+Renderer resolution is **dev-aware**:
 
-1. `<content-dir>/<server.path>` if it exists (default `server.path` is `.mdsite`).
-2. Otherwise, the checked-in `mdsite-nuxt/` submodule at the repo root.
+- **Dev repo / submodule in place** — when the bundled renderer is the local `mdsite-nuxt/` submodule and is NOT inside `node_modules` (the normal case in this repo), the CLI runs it **in place**, so live-editing of `mdsite-nuxt/` keeps working.
+- **End users (`node_modules`)** — when the bundled renderer lives inside `node_modules` (an `npm install` / `npx` / CI run), the CLI **materializes** a copy into `<content-dir>/<server.path>` (default `.mdsite`) and runs there. The materialize copy preserves an existing committed `<server.path>/package.json` and `<server.path>/package-lock.json` so the lockfile pair can be version-controlled.
+- If the resolved renderer directory has no `node_modules`, the CLI runs `npm install` in it.
 
-`prepare github` is stricter: it requires `<content-dir>/<server.path>` to already exist, because the generated workflow references that path directly.
+`mdsite prepare github` never clones or pulls the renderer itself; the generated workflow is self-adapting and still expects `<server.path>` to be materializable in CI.
 
 ### Step 3: Write compatibility artifacts
 
@@ -127,7 +128,7 @@ The CLI writes two files into the resolved renderer directory so the renderer ca
 - `content.config.yml` — serialized site name, canonical URL, content path, git repo, features, and themes.
 - `.env` — `NUXT_CONTENT_PATH`, `CONTENT_DIR`, and `MDSITE_CONFIG_PATH` so the renderer reads directly from the user's content directory without copying files.
 
-The menu section of `mdsite.yml` is also flattened into `_menu.yml` for the renderer to consume.
+The renderer reads the `menu:` section directly from `mdsite.yml` (via `MDSITE_CONFIG_PATH`).
 
 ### Step 4: Ensure dependencies
 
@@ -143,7 +144,7 @@ Finally, the CLI spawns `npm run <script>` inside the renderer directory, where 
 | `mdsite generate` | `generate`      | yes        | —          |
 | `mdsite preview`  | `preview`       | yes        | with `-d`  |
 
-Background runs are tracked via `.mdsite-runtime/` state files so `mdsite stop` can find and terminate them.
+Background runs are tracked via state files in the renderer working dir (`<server.path>`, e.g. `.mdsite/`) so `mdsite stop` can find and terminate them.
 
 ## 5. Configuration model
 
@@ -158,13 +159,13 @@ Background runs are tracked via `.mdsite-runtime/` state files so `mdsite stop` 
 | Path                             | Written by                       | Purpose                                              |
 | -------------------------------- | -------------------------------- | ---------------------------------------------------- |
 | `dist/`                          | `npm run build` (tsc)            | Compiled CLI loaded by `bin/mdsite.js`.              |
-| `.mdsite-runtime/`               | `start -d` / `preview -d`        | Tracks PIDs, log paths, and ports for `mdsite stop`. |
+| `.<server.path>/` (e.g. `.mdsite/`)              | `start -d` / `preview -d`        | Tracked-detached runtime state: `start.json`/`preview.json` (PIDs, ports) + `start.log`/`preview.log`. |
+| `.<server.path>/public/` (e.g. `.mdsite/public/`) | renderer favicon pipeline        | Generated `favicon.svg`/`favicon.ico`/`apple-touch-icon.png`/`icon-192.png`/`icon-512.png` + `site.webmanifest`. |
 | `.output/public/`                | `mdsite generate` (via renderer) | The static site, ready to deploy.                    |
 | `mdsite-nuxt/.env`               | every CLI run                    | Points the renderer at the active content directory. |
 | `mdsite-nuxt/content.config.yml` | every CLI run                    | Serialized site config consumed by the renderer.     |
-| `_menu.yml` (content dir)        | every CLI run                    | Flattened menu for the renderer.                     |
 
-All of these are gitignored and should never be committed.
+Most of these are gitignored. The exception is the committed lockfile pair `.<server.path>/package.json` + `.<server.path>/package-lock.json` (written by `mdsite init`); everything else under `.<server.path>/` and `.output/` is gitignored and should not be committed.
 
 ## 7. Technology stack
 

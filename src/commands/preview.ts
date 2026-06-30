@@ -5,11 +5,12 @@ import { ensurePreviewArtifacts, ensureRendererDependencies, prepareRenderer, pr
 
 interface PreviewCommandOptions {
   detached?: boolean
+  host?: string
 }
 
 export async function runPreviewCommand(contentDir: string, options: PreviewCommandOptions = {}): Promise<string | undefined> {
   if (options.detached) {
-    return runDetachedPreviewCommand(contentDir)
+    return runDetachedPreviewCommand(contentDir, options)
   }
 
   const loaded = await loadMdsiteConfig(contentDir)
@@ -17,29 +18,31 @@ export async function runPreviewCommand(contentDir: string, options: PreviewComm
 
   await ensureRendererDependencies(rendererDir)
   await ensurePreviewArtifacts(rendererDir)
-  await previewRendererForeground(rendererDir, getPreviewEnv(rendererEnv))
+  await previewRendererForeground(rendererDir, getPreviewEnv(rendererEnv, options.host))
 
   return undefined
 }
 
-async function runDetachedPreviewCommand(contentDir: string): Promise<string> {
-  const existingState = await readRuntimeState(contentDir, 'preview')
+async function runDetachedPreviewCommand(contentDir: string, options: PreviewCommandOptions): Promise<string> {
+  const loaded = await loadMdsiteConfig(contentDir)
+  const { config, configDir } = loaded
+
+  const existingState = await readRuntimeState(configDir, config, 'preview')
   if (existingState && isProcessRunning(existingState.pid)) {
     throw new Error(`mdsite preview is already running with PID ${existingState.pid}.`)
   }
 
-  const loaded = await loadMdsiteConfig(contentDir)
   const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
   await ensurePreviewArtifacts(rendererDir)
 
-  const previewEnv = getPreviewEnv(rendererEnv)
-  const logPath = getRuntimeLogPath(contentDir, 'preview')
+  const previewEnv = getPreviewEnv(rendererEnv, options.host)
+  const logPath = getRuntimeLogPath(configDir, config, 'preview')
   const pid = await previewRendererInBackground(rendererDir, previewEnv, logPath)
   const previewUrl = getPreviewUrl(previewEnv)
 
-  await writeRuntimeState(contentDir, {
+  await writeRuntimeState(configDir, config, {
     kind: 'preview',
     pid,
     logPath,
@@ -64,8 +67,8 @@ function getPreviewUrl(env: NodeJS.ProcessEnv): string {
   return `http://${host}:${port}`
 }
 
-function getPreviewEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const host = env.NUXT_HOST ?? env.HOST ?? 'localhost'
+function getPreviewEnv(env: NodeJS.ProcessEnv, overrideHost?: string): NodeJS.ProcessEnv {
+  const host = overrideHost ?? env.NUXT_HOST ?? env.HOST ?? 'localhost'
   const port = env.NUXT_PORT ?? env.PORT ?? '3000'
 
   return {

@@ -137,6 +137,6 @@ describe('mdsite config helpers', () => {
       server: { output: 'public/site', path: '.mdsite', repo: 'repo' },
       site: { canonical: '', name: 'Docs' },
       themes: { light: { colors: {} }, dark: { colors: {} } }
-    })).toBe(path.resolve(contentDir, 'public/site'))
+    })).toBe(path.resolve(contentDir, 'public', 'site', 'public'))
   })
 })

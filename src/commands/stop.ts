@@ -1,10 +1,14 @@
+import { loadMdsiteConfig } from '../config/mdsite-config.js'
 import { clearRuntimeState, readRuntimeState } from '../process/runtime-state.js'
 import { stopProcess } from '../process/child-process.js'
 
 export async function runStopCommand(contentDir: string): Promise<string> {
+  const loaded = await loadMdsiteConfig(contentDir)
+  const { configDir, config } = loaded
+
   const states = await Promise.all([
-    readRuntimeState(contentDir, 'start'),
-    readRuntimeState(contentDir, 'preview')
+    readRuntimeState(configDir, config, 'start'),
+    readRuntimeState(configDir, config, 'preview')
   ])
 
   const messages: string[] = []
@@ -15,7 +19,7 @@ export async function runStopCommand(contentDir: string): Promise<string> {
     }
 
     const stopped = await stopProcess(state.pid)
-    await clearRuntimeState(contentDir, state.kind)
+    await clearRuntimeState(configDir, config, state.kind)
 
     if (stopped) {
       messages.push(`Stopped ${state.kind} process ${state.pid}.`)

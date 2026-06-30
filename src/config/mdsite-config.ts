@@ -115,7 +115,7 @@ async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir:
 }
 
 export function resolveContentOutputPath(contentDir: string, config: MdsiteConfig): string {
-  return path.resolve(contentDir, config.server.output)
+  return path.resolve(contentDir, config.server.output, 'public')
 }
 
 export function resolveConfiguredContentDir(configDir: string, rawConfig: Record<string, any>): string {

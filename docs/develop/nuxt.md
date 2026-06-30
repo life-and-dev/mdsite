@@ -73,7 +73,7 @@ The renderer reads `mdsite.yml` directly via `utils/mdsite-config.ts` for some l
 - **Themes** — Vuetify color tokens for light/dark mode (see [Theme Configuration](https://life-and-dev.github.io/mdsite/theme)).
 - **Features** — Bible tooltips, source-edit links (see [Features](https://life-and-dev.github.io/mdsite/features)).
 - **Site name and canonical URL** — used in metadata.
-- **Favicon** — the renderer resolves and aliases it during orchestration.
+- **Favicon** — set `favicon` to a source image path relative to the content dir; the renderer generates all derived icons and the web manifest directly into its own `public/` dir (the renderer working dir, e.g. `.mdsite/public/`). No files are written into the content dir.
 
 ### What requires editing the submodule
 

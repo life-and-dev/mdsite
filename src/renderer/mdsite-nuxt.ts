@@ -1,4 +1,4 @@
-import { access, copyFile, cp, mkdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import { access, cp, mkdir, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -10,6 +10,14 @@ import { runForeground, runBackground } from '../process/child-process.js'
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const checkedInRendererDir = path.join(repoRoot, 'mdsite-nuxt')
 const rendererCopyIgnoredNames = new Set(['node_modules', '.nuxt', '.output', 'dist', '.cache'])
+
+export function getBundledRendererDir(): string {
+  return checkedInRendererDir
+}
+
+export function isInsideNodeModules(targetDir: string): boolean {
+  return targetDir.split(path.sep).includes('node_modules')
+}
 
 interface PreparedRenderer {
   rendererDir: string
@@ -23,7 +31,7 @@ interface PrepareRendererOptions {
 
 export async function prepareRenderer(contentDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<PreparedRenderer> {
   const rendererBaseDir = options.configDir ?? contentDir
-  const rendererDir = await resolveRendererDir(rendererBaseDir, config)
+  const rendererDir = await resolveRendererDir(rendererBaseDir, config, options)
 
   return prepareRendererEnvironment(contentDir, config, rendererDir, options.configPath)
 }
@@ -41,11 +49,18 @@ export async function ensureConfiguredRendererInstalled(contentDir: string, conf
 
   await ensureDirectoryIsAvailable(rendererDir)
 
+  const preserveFiles = new Set<string>()
+  for (const name of ['package.json', 'package-lock.json']) {
+    if (await pathExists(path.join(rendererDir, name))) {
+      preserveFiles.add(name)
+    }
+  }
+
   if (rendererDir !== checkedInRendererDir) {
     await cp(checkedInRendererDir, rendererDir, {
       recursive: true,
       force: true,
-      filter: shouldCopyRendererPath
+      filter: (sourcePath) => shouldCopyRendererPath(sourcePath, preserveFiles)
     })
   }
 
@@ -53,7 +68,6 @@ export async function ensureConfiguredRendererInstalled(contentDir: string, conf
 }
 
 async function prepareRendererEnvironment(contentDir: string, config: MdsiteConfig, rendererDir: string, configPath?: string): Promise<PreparedRenderer> {
-  await ensureRendererFaviconAlias(contentDir, config)
   await writeCompatibilityConfigFile(rendererDir, contentDir, config)
 
   const rendererEnv = {
@@ -123,17 +137,16 @@ export function getRendererGeneratedOutputPath(rendererDir: string): string {
   return path.join(rendererDir, '.output', 'public')
 }
 
-async function resolveRendererDir(contentDir: string, config: MdsiteConfig): Promise<string> {
-  const configuredRendererDir = path.resolve(contentDir, config.server.path)
-
-  // Phase 1 uses the checked-in renderer when a configured renderer checkout is not present yet.
-  const rendererDir = await pathExists(configuredRendererDir) ? configuredRendererDir : checkedInRendererDir
-
-  if (!await pathExists(rendererDir)) {
-    throw new Error(`Renderer directory not found at ${rendererDir}. Expected checked-in mdsite-nuxt renderer.`)
+async function resolveRendererDir(rendererBaseDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<string> {
+  if (isInsideNodeModules(checkedInRendererDir)) {
+    return ensureConfiguredRendererInstalled(rendererBaseDir, config, options)
   }
 
-  return rendererDir
+  if (!await pathExists(checkedInRendererDir)) {
+    throw new Error(`Renderer directory not found at ${checkedInRendererDir}. Expected checked-in mdsite-nuxt renderer.`)
+  }
+
+  return checkedInRendererDir
 }
 
 async function resolveConfiguredRendererDir(contentDir: string, config: MdsiteConfig): Promise<string> {
@@ -168,34 +181,15 @@ async function ensureDirectoryIsAvailable(directoryPath: string): Promise<void> 
   }
 }
 
-function shouldCopyRendererPath(sourcePath: string): boolean {
-  return !rendererCopyIgnoredNames.has(path.basename(sourcePath))
-}
-
-async function ensureRendererFaviconAlias(contentDir: string, config: MdsiteConfig): Promise<void> {
-  if (!config.favicon.trim()) {
-    return
+function shouldCopyRendererPath(sourcePath: string, preserveFiles: Set<string>): boolean {
+  const baseName = path.basename(sourcePath)
+  if (rendererCopyIgnoredNames.has(baseName)) {
+    return false
   }
-
-  const sourcePath = path.resolve(contentDir, config.favicon)
-  if (!await pathExists(sourcePath)) {
-    throw new Error(`Configured favicon file not found: ${sourcePath}`)
+  if ((baseName === 'package.json' || baseName === 'package-lock.json') && preserveFiles.has(baseName)) {
+    return false
   }
-
-  const targetPath = path.join(contentDir, 'logo.svg')
-
-  if (sourcePath === targetPath) {
-    return
-  }
-
-  await rm(targetPath, { force: true })
-
-  try {
-    const relativeTarget = path.relative(contentDir, sourcePath)
-    await symlink(relativeTarget, targetPath)
-  } catch {
-    await copyFile(sourcePath, targetPath)
-  }
+  return true
 }
 
 async function writeEnvFile(rendererDir: string, env: NodeJS.ProcessEnv): Promise<void> {

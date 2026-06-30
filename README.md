@@ -39,7 +39,7 @@ mdsite stop
 mdsite prepare github
 ```
 
-All commands operate on the **current working directory** as the content/project directory. `version` prints the CLI version from the root `package.json`. `prepare github` requires `mdsite.yml` and writes a GitHub Pages workflow for that content directory.
+All commands operate on the **current working directory** as the content/project directory. `version` prints the CLI version from the root `package.json`. `prepare github` requires `mdsite.yml` and writes a GitHub Pages workflow for that content directory. `start` and `preview` also accept `-d`/`--detached` to run a tracked background server, and `--host` (or `--host <addr>`) to expose the server on the network — see the start and preview sections below.
 
 ## Supported CLI flow
 
@@ -67,7 +67,9 @@ mdsite start
 
 `start` requires `mdsite.yml`, prepares renderer compatibility files, installs renderer dependencies when `node_modules` is missing, and runs the renderer in the foreground with terminal output. Closing the terminal or interrupting the command stops the foreground process.
 
-Use `mdsite start -d` or `mdsite start --detached` to run a tracked background renderer instead. Detached start logs to `.mdsite-runtime/start.log` in the content directory and opens the browser automatically after the server is ready.
+Use `mdsite start -d` or `mdsite start --detached` to run a tracked background renderer instead. Detached start logs to `<server.path>/start.log` (e.g. `.mdsite/start.log`) in the content directory and opens the browser automatically after the server is ready.
+
+Add `--host` (or `--host <addr>`) to expose the dev server on the network, e.g. `mdsite start --host` binds `0.0.0.0` so other devices on your LAN can reach it; `mdsite start --host 192.168.1.10` binds a specific address. Combine with detached mode as in `mdsite start -d --host`.
 
 ### 3. Generate static output
 
@@ -85,7 +87,9 @@ mdsite preview
 
 `preview` is a **post-generate** local preview step. It requires `mdsite.yml` and an existing generated renderer build. By default, it runs in the foreground with terminal output. Closing the terminal or interrupting the command stops the foreground preview.
 
-Use `mdsite preview -d` or `mdsite preview --detached` to run a tracked background preview instead. Detached preview logs to `mdsite.log` in the content directory and writes runtime state under `.mdsite-runtime/`.
+Use `mdsite preview -d` or `mdsite preview --detached` to run a tracked background preview instead. Detached preview logs to `<server.path>/preview.log` (e.g. `.mdsite/preview.log`) in the content directory and writes runtime state under `<server.path>/` (e.g. `.mdsite/`).
+
+Add `--host` (or `--host <addr>`) to expose the preview server on the network, the same way as `mdsite start`, e.g. `mdsite preview --host` binds `0.0.0.0`.
 
 ### 5. Stop background processes
 
@@ -101,18 +105,23 @@ mdsite stop
 mdsite prepare github
 ```
 
-`prepare github` requires `mdsite.yml`, prepares the configured local renderer, and writes `.github/workflows/deploy.yml` in the current content directory. The generated workflow uses the configured local `server.path` during GitHub Actions; it does not add a renderer clone or pull workflow.
+`prepare github` requires `mdsite.yml` and writes a **self-adapting** `.github/workflows/deploy.yml` in the current content directory. The workflow checks out with `submodules: true`, then detects `bin/mdsite.js` to choose how to build:
+
+- **Source build** (when `bin/mdsite.js` is present — the source repo): `npm install && npm run build && node bin/mdsite.js generate`.
+- **End-user build** (otherwise): `npx -y @life-and-dev/mdsite generate`.
+
+Either way it uploads the root `.output/public/`, runs on Node 24 (pinned via `.nvmrc`), and caches dependencies keyed on `.mdsite/package-lock.json`. No committed renderer tree is required for end users.
 
 For production deployments, see the [Deployment guide](https://life-and-dev.github.io/mdsite/deploy).
 
 ## Renderer resolution
 
-Renderer resolution is **local-only**:
+The CLI is **dev-aware** about where it runs the renderer:
 
-- If `mdsite.yml` sets `server.path`, the CLI first looks for that path **relative to the content directory**.
-- If that directory is not present, the CLI falls back to the bundled renderer shipped with the package.
-- If the renderer's `node_modules` directory is missing, the CLI runs `npm install` in the renderer directory.
-- `prepare github` requires the configured `server.path` renderer directory to exist; unlike `start`, `generate`, and `preview`, it does not fall back to the bundled renderer when that configured path is absent.
+- **Bundled renderer as the local submodule (this repo / contributors)** — when the bundled renderer is the checked-out `mdsite-nuxt/` submodule and is NOT inside `node_modules`, the CLI runs it **in place**, so live-editing of `mdsite-nuxt/` keeps working.
+- **Bundled renderer inside `node_modules` (end users / `npm install` / `npx` / CI)** — the CLI copies the bundled renderer into `<server.path>` (default `.mdsite`) under your content directory and runs it there. The copy preserves any committed `<server.path>/package.json` and `<server.path>/package-lock.json` so the lockfile pair can be version-controlled.
+- If the resolved renderer directory has no `node_modules`, the CLI runs `npm install` in it.
+- `mdsite prepare github` generates a **self-adapting** workflow (see below) and never clones or pulls the renderer itself.
 
 ## Expected content project layout
 
@@ -128,15 +137,24 @@ After `mdsite init`, `mdsite generate`, and optional tracked background commands
 
 ```text
 your-content/
-├── mdsite.yml
-├── _menu.yml                # orchestration/compatibility artifact
-├── .mdsite-runtime/         # created when tracked background processes are started
-├── .output/                 # created by mdsite generate, or server.output
+├── mdsite.yml                # your site config (written by init)
+├── .nvmrc                    # Node 24 (written by init)
+├── .gitignore                # managed by init (ignores .mdsite/* and .output/)
+├── .mdsite/                  # renderer working dir (<server.path>)
+│   ├── package.json          # committed lockfile pair (written by init)
+│   ├── package-lock.json     # committed lockfile pair (written by init)
+│   ├── start.json            # tracked-detached runtime state (when used)
+│   ├── preview.json          # tracked-detached runtime state (when used)
+│   ├── start.log             # detached start log (when used)
+│   ├── preview.log           # detached preview log (when used)
+│   └── public/               # generated favicons + site.webmanifest
+├── .output/                  # deployable static site (server.output)
+│   └── public/
 ├── index.md
 └── other-pages.md
 ```
 
-The CLI also writes renderer compatibility files such as `_menu.yml` and the renderer's `.env` / `content.config.yml` as part of orchestration. Tracked background commands write runtime files under `.mdsite-runtime/`.
+The content directory holds only your own files (`*.md`, `mdsite.yml`, `.nvmrc`, `.gitignore`, your favicon source). Everything the renderer needs at runtime — materialized source, `node_modules`, compatibility files (`.env`, `content.config.yml`), generated favicons, and detached-process state — lives inside the `.mdsite/` renderer working dir. Only `.mdsite/package.json` and `.mdsite/package-lock.json` are meant to be committed; everything else under `.mdsite/` and `.output/` is gitignored.
 
 ## Troubleshooting
 
@@ -150,10 +168,10 @@ mdsite init
 
 ### Renderer directory issues
 
-- If `server.path` is set, confirm it points to a renderer directory relative to the content directory.
-- If that path does not exist, the CLI falls back to the bundled renderer shipped with the package.
-- If neither renderer location exists, the CLI cannot run.
-- For `prepare github`, the configured `server.path` must exist because workflow generation uses the configured renderer path directly.
+- In this repo (dev), the bundled `mdsite-nuxt/` submodule runs in place; make sure it is checked out (`git submodule update --init --recursive`).
+- For end users (`npm install` / `npx`), the CLI materializes the bundled renderer into `<server.path>` (default `.mdsite`) under your content directory; no manual renderer checkout is needed.
+- If the resolved renderer directory has no `node_modules`, the CLI runs `npm install` in it automatically.
+- `mdsite prepare github` generates a self-adapting workflow and never clones or pulls the renderer itself.
 
 ### Renderer dependencies missing
 
@@ -178,12 +196,12 @@ For more, see the user guides on [Markdown](https://life-and-dev.github.io/mdsit
 
 | Key                      | Default                                  | Description                                                                                                                                               |
 | ------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `favicon`                | empty string                             | Optional favicon path relative to the content directory.                                                                                                  |
+| `favicon`                | empty string                             | Source image path relative to the content directory (any format `sharp` supports). The renderer generates derived favicons into the renderer's `public/` dir.                                                                                                  |
 | `features.bibleTooltips` | `true`                                   | Enables renderer Bible tooltip support.                                                                                                                   |
 | `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                     |
-| `menu`                   | derived from markdown files              | Menu structure used to generate `_menu.yml`.                                                                                                              |
+| `menu`                   | derived from markdown files              | Menu structure for the sidebar navigation.                                                                                                              |
 | `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                           |
-| `server.path`            | `.mdsite`                                | Renderer path relative to the content directory. Local commands fall back to the bundled renderer when this path is absent, except `prepare github`.      |
+| `server.path`            | `.mdsite`                                | The renderer working directory, relative to the content directory. End-user runs materialize the bundled renderer here; in the dev repo the bundled submodule runs in place.      |
 | `server.repo`            | `https://github.com/life-and-dev/mdsite` | Stored for compatibility and generated renderer config. It is not used for active clone/pull behaviour.                                                   |
 | `site.canonical`         | empty string                             | Canonical site URL passed to the renderer.                                                                                                                |
 | `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                         |

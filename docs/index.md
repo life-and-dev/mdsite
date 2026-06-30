@@ -59,6 +59,16 @@ mdsite prepare github
 > [!NOTE]
 > The `/docs` directory in this repository contains this documentation as sample content. To preview it with the npm-installed CLI, run `mdsite init && mdsite start` from the `docs/` directory. You can also create your own content at any other location and configure it independently.
 
+### Local server options
+
+`mdsite start` and `mdsite preview` share the following options:
+
+- `-d`, `--detached` — run the server as a tracked background process instead of in the foreground.
+- `--host` — expose the server on the network by binding `0.0.0.0`, so other devices on your LAN can reach the site (for example `mdsite start --host`).
+- `--host <addr>` — bind a specific network address instead of the default (for example `mdsite preview --host 192.168.1.10`).
+
+Options can be combined, for example `mdsite start -d --host` runs a background server reachable from the network. Without `--host`, the server only listens on `localhost`.
+
 ## Tutorials
 
 We have prepared a series of tutorials to guide you through every aspect of working with this project.
@@ -67,7 +77,7 @@ We have prepared a series of tutorials to guide you through every aspect of work
   Learn about the supported GFM alerts, Bible references, and custom markdown rendering.
 
 - **[Menu Configuration](menu)**  
-  Learn the syntax of the `menu` section in `mdsite.yml`. The generated `_menu.yml` file is a renderer compatibility artifact.
+  Learn the syntax of the `menu` section in `mdsite.yml`.
 
 - **[Generating Favicons](favicon)**  
   Learn how to configure a favicon path in `mdsite.yml`.

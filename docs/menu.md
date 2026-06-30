@@ -4,7 +4,7 @@
 This is a reference for the `menu` section in `mdsite.yml`. You will learn common ways to define items in your navigation sidebar.
 
 > [!IMPORTANT]
-> Edit the `menu` section in `mdsite.yml` when changing your site's navigation. The CLI generates `_menu.yml` as a renderer compatibility artifact.
+> Edit the `menu` section in `mdsite.yml` when changing your site's navigation. The renderer reads it directly from `mdsite.yml`.
 
 ## 1. Basic Structure
 

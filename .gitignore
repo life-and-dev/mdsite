@@ -5,8 +5,8 @@
 .nitro
 .cache
 dist
-.mdsite-runtime
-/docs/favicon/
+# mdsite renderer working dir (runtime state + materialized renderer; lockfile pair not used in dev repo)
+.mdsite/*
 
 # Node dependencies
 node_modules
