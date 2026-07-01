@@ -79,6 +79,7 @@ export function serializeMdsiteConfig(config: MdsiteConfig): string {
 
 async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir: string): Promise<MdsiteConfig> {
   const fallbackConfig = await buildDefaultMdsiteConfig(contentDir)
+  const contentPath = resolveContentConfigPath(rawConfig.content)
 
   return {
     favicon: typeof rawConfig.favicon === 'string' ? rawConfig.favicon : fallbackConfig.favicon,
@@ -86,7 +87,7 @@ async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir:
       bibleTooltips: rawConfig.features?.bibleTooltips ?? fallbackConfig.features.bibleTooltips,
       sourceEdit: rawConfig.features?.sourceEdit ?? fallbackConfig.features.sourceEdit
     },
-    content: typeof rawConfig.content?.path === 'string' ? { path: rawConfig.content.path } : fallbackConfig.content,
+    content: contentPath ? { path: contentPath } : fallbackConfig.content,
     menu: Array.isArray(rawConfig.menu) ? rawConfig.menu : fallbackConfig.menu,
     server: {
       output: typeof rawConfig.server?.output === 'string' ? rawConfig.server.output : fallbackConfig.server.output,
@@ -118,6 +119,25 @@ export function resolveContentOutputPath(contentDir: string, config: MdsiteConfi
   return path.resolve(contentDir, config.server.output, 'public')
 }
 
+/**
+ * Extract the content path from either the shorthand string form
+ * (`content: docs`) or the explicit object form (`content:\n  path: docs`).
+ * Returns undefined when no usable path is configured.
+ */
+function resolveContentConfigPath(rawContent: unknown): string | undefined {
+  if (typeof rawContent === 'string') {
+    const trimmed = rawContent.trim()
+    return trimmed.length > 0 ? trimmed : undefined
+  }
+
+  if (rawContent && typeof rawContent === 'object' && typeof (rawContent as { path?: unknown }).path === 'string') {
+    return (rawContent as { path: string }).path
+  }
+
+  return undefined
+}
+
 export function resolveConfiguredContentDir(configDir: string, rawConfig: Record<string, any>): string {
-  return typeof rawConfig.content?.path === 'string' ? path.resolve(configDir, rawConfig.content.path) : configDir
+  const contentPath = resolveContentConfigPath(rawConfig.content)
+  return contentPath ? path.resolve(configDir, contentPath) : configDir
 }

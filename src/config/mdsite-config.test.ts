@@ -127,6 +127,24 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.content).toEqual({ path: 'docs' })
   })
 
+  it('loadMdsiteConfig resolves the content string shorthand relative to the config directory', async () => {
+    const configDir = await makeTempDir()
+    const contentDir = path.join(configDir, 'content')
+    await writeFile(path.join(configDir, 'mdsite.yml'), [
+      'content: content',
+      'site:',
+      '  name: Shorthand Content',
+      ''
+    ].join('\n'), 'utf8')
+    await mkdir(contentDir, { recursive: true })
+    await writeFile(path.join(contentDir, 'index.md'), '# Shorthand Index', 'utf8')
+
+    const loaded = await loadMdsiteConfig(configDir)
+
+    expect(loaded.contentDir).toBe(contentDir)
+    expect(loaded.config.content).toEqual({ path: 'content' })
+  })
+
   it('resolveContentOutputPath resolves the configured output relative to the content directory', () => {
     const contentDir = '/tmp/example'
 
