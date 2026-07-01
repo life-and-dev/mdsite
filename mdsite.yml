@@ -6,10 +6,11 @@ features:
   sourceEdit: true
 menu:
   - index
+  - content
+  - markdown
   - features:
       - bible-tooltips
       - source-edit
-  - markdown
   - menu
   - favicon
   - theme

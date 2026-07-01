@@ -73,8 +73,14 @@ Options can be combined, for example `mdsite start -d --host` runs a background 
 
 We have prepared a series of tutorials to guide you through every aspect of working with this project.
 
+- **[Content Directory](content)**  
+  Learn how the `content` field in `mdsite.yml` tells MD-Site where your Markdown files live (and how `index.md` becomes the homepage).
+  
 - **[Markdown Reference](markdown)**  
   Learn about the supported GFM alerts, Bible references, and custom markdown rendering.
+
+- **[Features](features)**  
+  Learn how to toggle and configure site features like Bible tooltips and source editing.
 
 - **[Menu Configuration](menu)**  
   Learn the syntax of the `menu` section in `mdsite.yml`.
@@ -84,9 +90,6 @@ We have prepared a series of tutorials to guide you through every aspect of work
 
 - **[Theme Configuration](theme)**  
   Learn how to customize the look and feel of your site with custom color tokens and automatic dark mode support.
-
-- **[Features](features)**  
-  Learn how to toggle and configure site features like Bible tooltips and source editing.
 
 - **[Deployment](deploy)**  
   Ready to go live? This guide explains how to deploy your content to production using Cloudflare Pages.
