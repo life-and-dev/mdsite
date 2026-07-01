@@ -140,14 +140,20 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockResolvedValue(true)
   })
 
-  it('runInitCommand creates mdsite.yml only when it does not already exist', async () => {
-    accessMock.mockRejectedValueOnce(new Error('missing'))
-    accessMock.mockRejectedValueOnce(new Error('missing'))
+  it('runInitCommand creates every mdsite file when the content dir is empty', async () => {
+    const existing = new Set<string>()
+    accessMock.mockImplementation(async (p) => {
+      if (typeof p === 'string' && existing.has(p)) return
+      throw new Error('missing')
+    })
     buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
     serializeConfigMock.mockReturnValue('serialized-config')
 
-    await expect(runInitCommand('/content')).resolves.toBe('Created mdsite.yml and .nvmrc in /content')
+    await expect(runInitCommand('/content')).resolves.toBe(
+      'Created mdsite.yml, .nvmrc, .renderer/package.json, .renderer/package-lock.json in /content.'
+    )
     expect(buildDefaultConfigMock).toHaveBeenCalledWith('/content')
+    expect(loadConfigMock).not.toHaveBeenCalled()
     expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
     expect(writeFileMock).toHaveBeenCalledWith('/content/.nvmrc', '24\n', 'utf8')
     expect(mkdirMock).toHaveBeenCalledWith(path.join('/content', '.renderer'), { recursive: true })
@@ -157,22 +163,61 @@ describe('command helpers', () => {
     expect(writeFileMock).toHaveBeenCalledWith('/content/.gitignore', expect.stringContaining('!.renderer/package.json'), 'utf8')
     expect(writeFileMock).toHaveBeenCalledWith('/content/.gitignore', expect.stringContaining('!.renderer/package-lock.json'), 'utf8')
     expect(writeFileMock).toHaveBeenCalledWith('/content/.gitignore', expect.stringContaining('.output/'), 'utf8')
-
-    accessMock.mockResolvedValueOnce(undefined)
-    await expect(runInitCommand('/content')).rejects.toThrow('mdsite.yml already exists at /content/mdsite.yml.')
   })
 
-  it('runInitCommand leaves an existing .nvmrc untouched', async () => {
-    accessMock.mockRejectedValueOnce(new Error('missing'))
-    accessMock.mockResolvedValueOnce(undefined)
+  it('runInitCommand preserves an existing .nvmrc and only creates the rest', async () => {
+    const existing = new Set<string>(['/content/.nvmrc'])
+    accessMock.mockImplementation(async (p) => {
+      if (typeof p === 'string' && existing.has(p)) return
+      throw new Error('missing')
+    })
     buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
     serializeConfigMock.mockReturnValue('serialized-config')
 
-    await expect(runInitCommand('/content')).resolves.toBe('Created mdsite.yml in /content (.nvmrc was already present)')
-    expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
+    await expect(runInitCommand('/content')).resolves.toBe(
+      'Created mdsite.yml, .renderer/package.json, .renderer/package-lock.json in /content.'
+    )
     expect(writeFileMock).not.toHaveBeenCalledWith('/content/.nvmrc', expect.anything(), expect.anything())
-    expect(mkdirMock).toHaveBeenCalledWith(path.join('/content', '.renderer'), { recursive: true })
-    expect(copyFileMock).toHaveBeenCalledWith(expect.stringContaining('mdsite-nuxt/package.json'), path.join('/content', '.renderer', 'package.json'))
+  })
+
+  it('runInitCommand loads an existing mdsite.yml to repair missing files without overwriting it', async () => {
+    const existing = new Set<string>([
+      '/content/mdsite.yml',
+      '/content/.nvmrc',
+      path.join('/content', '.renderer', 'package.json')
+    ])
+    accessMock.mockImplementation(async (p) => {
+      if (typeof p === 'string' && existing.has(p)) return
+      throw new Error('missing')
+    })
+
+    await expect(runInitCommand('/content')).resolves.toBe('Created .renderer/package-lock.json in /content.')
+    expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(buildDefaultConfigMock).not.toHaveBeenCalled()
+    expect(writeFileMock).not.toHaveBeenCalledWith('/content/mdsite.yml', expect.anything(), expect.anything())
+    const copyFileCallsForPkg = copyFileMock.mock.calls.filter(([src]) => typeof src === 'string' && src.includes('mdsite-nuxt/package.json'))
+    expect(copyFileCallsForPkg).toHaveLength(0)
+  })
+
+  it('runInitCommand reports nothing to create when every file already exists', async () => {
+    const existing = new Set<string>([
+      '/content/mdsite.yml',
+      '/content/.nvmrc',
+      path.join('/content', '.renderer', 'package.json'),
+      path.join('/content', '.renderer', 'package-lock.json')
+    ])
+    accessMock.mockImplementation(async (p) => {
+      if (typeof p === 'string' && existing.has(p)) return
+      throw new Error('missing')
+    })
+    readFileMock.mockResolvedValueOnce('user-line\n')
+
+    await expect(runInitCommand('/content')).resolves.toBe(
+      'All mdsite files already present in /content; nothing to create.'
+    )
+    expect(writeFileMock).not.toHaveBeenCalledWith('/content/mdsite.yml', expect.anything(), expect.anything())
+    expect(writeFileMock).not.toHaveBeenCalledWith('/content/.nvmrc', expect.anything(), expect.anything())
+    expect(copyFileMock).not.toHaveBeenCalled()
     expect(writeFileMock).toHaveBeenCalledWith('/content/.gitignore', expect.any(String), 'utf8')
   })
 

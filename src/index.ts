@@ -23,7 +23,7 @@ Usage:
   mdsite prepare github
 
 Commands:
-  init      Create mdsite.yml and a .nvmrc pinning Node 24 in the current directory
+  init      Ensure mdsite files exist in the current directory (idempotent; creates missing files, never overwrites)
   start     Start the checked-in mdsite-nuxt renderer for local content
   generate  Build static output through mdsite-nuxt
   preview   Preview the generated site through mdsite-nuxt

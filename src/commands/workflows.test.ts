@@ -116,7 +116,7 @@ describe('CLI workflow coverage', () => {
   it('runInitCommand creates a valid mdsite.yml and pins Node 24 via .nvmrc', async () => {
     const contentDir = await createContentDir()
 
-    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml and .nvmrc in ${contentDir}`)
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
 
     const configPath = path.join(contentDir, 'mdsite.yml')
     const configText = await readFile(configPath, 'utf8')
@@ -157,7 +157,7 @@ describe('CLI workflow coverage', () => {
     ].join('\n') + '\n'
     await writeFile(path.join(contentDir, '.gitignore'), seededGitignore, 'utf8')
 
-    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml and .nvmrc in ${contentDir}`)
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
 
     const gitignoreText = await readFile(path.join(contentDir, '.gitignore'), 'utf8')
     // User entries preserved verbatim
@@ -170,6 +170,83 @@ describe('CLI workflow coverage', () => {
     expect(gitignoreText).toContain('.output/')
     expect(gitignoreText).toContain('# end mdsite')
     // Idempotent: exactly ONE managed header, ONE end marker, ONE of each required pattern (no duplication from the seeded prior block)
+    expect(gitignoreText.split('# mdsite:').length - 1).toBe(1)
+    expect(gitignoreText.split('# end mdsite').length - 1).toBe(1)
+    expect(gitignoreText.split('.mdsite/*').length - 1).toBe(1)
+    expect(gitignoreText.split('.output/').length - 1).toBe(1)
+  })
+
+  it('runInitCommand preserves user-authored lines that coincidentally match managed patterns outside the block', async () => {
+    const contentDir = await createContentDir()
+    // A user-authored line (`.output/`) that coincidentally equals a managed pattern, placed
+    // OUTSIDE a complete prior managed block. The marker-bounded merge keeps it in place
+    // verbatim instead of stripping it globally and re-emitting it only inside the block.
+    const seededGitignore = [
+      '.output/',
+      '# mdsite: generated state (renderer working dir; lockfile pair committed for reproducible CI)',
+      '.mdsite/*',
+      '!.mdsite/package.json',
+      '!.mdsite/package-lock.json',
+      '.output/',
+      '# end mdsite'
+    ].join('\n') + '\n'
+    await writeFile(path.join(contentDir, '.gitignore'), seededGitignore, 'utf8')
+
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
+
+    const gitignoreText = await readFile(path.join(contentDir, '.gitignore'), 'utf8')
+    // The user's coincidental `.output/` line is preserved outside the block AND re-emitted inside it,
+    // so the pattern now appears exactly twice.
+    expect(gitignoreText.split('.output/').length - 1).toBe(2)
+    // The managed block is still emitted exactly once.
+    expect(gitignoreText.split('# mdsite:').length - 1).toBe(1)
+    expect(gitignoreText.split('# end mdsite').length - 1).toBe(1)
+    expect(gitignoreText.split('.mdsite/*').length - 1).toBe(1)
+  })
+
+  it('runInitCommand recovers from an unterminated managed block (start marker, no end marker)', async () => {
+    const contentDir = await createContentDir()
+    // Corrupted .gitignore: a managed block missing its end marker (e.g. a truncated prior init).
+    const seededGitignore = [
+      'secret.env',
+      '# mdsite: generated state (renderer working dir; lockfile pair committed for reproducible CI)',
+      '.mdsite/*',
+      '!.mdsite/package.json',
+      '!.mdsite/package-lock.json',
+      '.output/',
+      'build/'
+    ].join('\n') + '\n'
+    await writeFile(path.join(contentDir, '.gitignore'), seededGitignore, 'utf8')
+
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
+
+    const gitignoreText = await readFile(path.join(contentDir, '.gitignore'), 'utf8')
+    expect(gitignoreText).toContain('secret.env')
+    expect(gitignoreText).toContain('build/')
+    expect(gitignoreText.split('# mdsite:').length - 1).toBe(1)
+    expect(gitignoreText.split('# end mdsite').length - 1).toBe(1)
+    expect(gitignoreText.split('.mdsite/*').length - 1).toBe(1)
+    expect(gitignoreText.split('.output/').length - 1).toBe(1)
+  })
+
+  it('runInitCommand recovers from a dangling end marker (end marker, no start marker)', async () => {
+    const contentDir = await createContentDir()
+    const seededGitignore = [
+      'secret.env',
+      '.mdsite/*',
+      '!.mdsite/package.json',
+      '!.mdsite/package-lock.json',
+      '.output/',
+      '# end mdsite',
+      'build/'
+    ].join('\n') + '\n'
+    await writeFile(path.join(contentDir, '.gitignore'), seededGitignore, 'utf8')
+
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
+
+    const gitignoreText = await readFile(path.join(contentDir, '.gitignore'), 'utf8')
+    expect(gitignoreText).toContain('secret.env')
+    expect(gitignoreText).toContain('build/')
     expect(gitignoreText.split('# mdsite:').length - 1).toBe(1)
     expect(gitignoreText.split('# end mdsite').length - 1).toBe(1)
     expect(gitignoreText.split('.mdsite/*').length - 1).toBe(1)
