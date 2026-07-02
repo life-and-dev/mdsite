@@ -1,23 +1,23 @@
 # Deployment Guide
 
-## 1. Prerequisites
+## Prerequisites
 
 You need:
 
-1. A content directory with `mdsite.yml`.
-2. The `mdsite` CLI installed via `npm install -g @life-and-dev/mdsite` (or otherwise available where you run deployment commands).
+1. The `mdsite` CLI installed via `npm install -g @life-and-dev/mdsite` (or from [local development project](develop.md)).
+2. A content directory with `mdsite.yml`.
 3. A GitHub repository for GitHub Pages or Cloudflare Pages.
 4. A Cloudflare account if you deploy with Cloudflare Pages.
 
 Run all `mdsite` commands from the content directory that contains `mdsite.yml`.
 
-## 2. Preview Locally
+> [!NOTE] 
+> Pay attention to `server.output` in `mdsite.yml` which indicates where generated static pages will be written to. The default value is `.output`, so the static site is generated in `.output/public` by default.
 
-### 🧭 Configure your Markdown Site
+> [!NOTE] 
+> `mdsite` requires Node.js 24. Some builders defaults to different Node versions. `mdsite init` writes a `.nvmrc` containing `24` that should also be Git committed.
 
-Confirm `mdsite.yml` exists and has correct configuration in the content directory.
-
-Pay attention to `server.output` which indicates where generated static pages will be written to. The default value is `.output`, so the static site is generated in `.output/public` by default.
+## Preview Locally
 
 ### 🏗️ Generate the static site
 
@@ -35,7 +35,7 @@ mdsite preview
 
 Use `mdsite preview` after `mdsite generate` to check the generated static site locally before deploying. The foreground preview stops when you interrupt the command or close the terminal. Use `mdsite preview -d` for a tracked background preview, and `mdsite stop` to stop tracked detached previews.
 
-## 3. GitHub Pages
+## GitHub Pages
 
 ### ⚙️ Generate the workflow
 
@@ -65,19 +65,11 @@ After the workflow finishes, preview the site online at:
 https://<github-username>.github.io/<repository-name>/
 ```
 
-## 4. Cloudflare Pages
+## Cloudflare Pages
 
 ### ☁️ Create a Pages project
 
 In Cloudflare Pages, connect the repository that contains your mdsite content and `mdsite.yml`.
-
-### 🔒 Pin Node.js to version 24
-
-`mdsite` requires Node.js 24. The Cloudflare Pages v3 build image defaults to Node 22. `mdsite init` writes a `.nvmrc` containing `24` — just commit it:
-
-```text
-24
-```
 
 ### ⚙️ Configure build settings
 
@@ -89,7 +81,7 @@ In Cloudflare Pages, connect the repository that contains your mdsite content an
 
 If `mdsite.yml` sets a different `server.output`, set the **Build output directory** to `<server.output>/public`.
 
-## 5. Troubleshooting
+## Troubleshooting
 
 ### ⚠️ `mdsite.yml` is missing
 
@@ -108,7 +100,3 @@ Check that the host publishes `<server.output>/public`. With the default config,
 ### ⚠️ GitHub workflow generation fails
 
 `mdsite prepare github` requires a valid `mdsite.yml` and the configured local renderer path to exist when the workflow is generated.
-
-### ⚠️ Renderer clone or pull expected
-
-Current MD-Site commands use local renderer resolution. `start`, `generate`, and `preview` fall back to the checked-in `mdsite-nuxt/` renderer when `server.path` is absent; `prepare github` requires the configured local renderer path to exist. The CLI does not use active clone or pull behavior.

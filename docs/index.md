@@ -1,4 +1,4 @@
-![MD-Site](favicon.svg)
+![MD-Site](logo.svg)
 
 # MD Site Documentation
 
