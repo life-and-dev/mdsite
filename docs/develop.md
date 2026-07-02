@@ -24,7 +24,8 @@ mdsite/
 │   ├── config/         # mdsite.yml schema, defaults, and menu parsing
 │   ├── process/        # Foreground/background child-process and runtime-state helpers
 │   └── renderer/       # Renderer preparation: env, compat files, npm install, run
-├── scripts/            # Repo scripts: dev alias, release versioning, package verification
+├── scripts/            # Repo scripts in TypeScript: dev alias, release versioning, package verification
+├── tsconfig.scripts.json # Type-checks scripts/*.ts (extends tsconfig.json, noEmit)
 ├── mdsite-nuxt/        # git submodule — the Nuxt renderer (see below)
 ├── docs/               # This documentation, served as the demo content
 ├── mdsite.yml          # Config for the docs/ content directory

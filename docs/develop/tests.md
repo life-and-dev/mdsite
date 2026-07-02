@@ -110,7 +110,7 @@ The root `package.json` exposes three related scripts:
 | Script | What it does |
 | --- | --- |
 | `npm test` | Runs the CLI Vitest suite (`vitest run`). |
-| `npm run typecheck` | `tsc --noEmit` — type-checks the CLI without emitting output. |
+| `npm run typecheck` | `tsc --noEmit` against both `tsconfig.json` (CLI) and `tsconfig.scripts.json` (repo scripts). Emits nothing. |
 | `npm run verify:package` | Runs `scripts/verify-package-artifacts.ts` to confirm the published package layout matches `package.json`'s `files` field. |
 | `npm run build` | `tsc -p tsconfig.json` — emits `dist/`. |
 

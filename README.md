@@ -10,26 +10,32 @@ You write Markdown. For example, your content directory with a few pages and a l
 
 ```text
 my-docs/
-├── index.md
-├── about.md
-├── blog/
-│   ├── 2026-01-hello.md
-│   └── 2026-03-release.md
-└── logo.png
+└── content
+    ├── index.md
+    ├── about.md
+    ├── blog/
+    │   ├── 2026-01-hello.md
+    │   └── 2026-03-release.md
+    └── logo.png
 ```
+
+Your source tree is only Markdown files and images — no `node_modules`, no HTML, no build config.
 
 1. After you run `mdsite init` it creates `mdsite.yml` and required project files.
 2. Configure `mdsite.yml` as needed.
 3. Then run `mdsite generate` builds a static website under `.output/public/`:
 
+For example:
+
 ```text
 my-docs/
-├── index.md
-├── about.md
-├── blog/
-│   ├── 2026-01-hello.md
-│   └── 2026-03-release.md
-├── logo.png
+├── content
+│   ├── index.md
+│   ├── about.md
+│   ├── blog/
+│   │   ├── 2026-01-hello.md
+│   │   └── 2026-03-release.md
+│   └── logo.png
 ├── mdsite.yml                  # site configuration (created by "mdsite init")
 ├── package.json                # package configuration (created by "mdsite init")
 ├── package-lock.json           # package lock (created by "mdsite init")
@@ -50,7 +56,8 @@ my-docs/
         └── ...
 ```
 
-**The benefit:** your source tree is only Markdown files and images — no `node_modules`, no HTML, no build config. `mdsite init` scaffolds nodejs. `mdsite generate` materializes the Nuxt renderer into `.mdsite/`, pre-renders each `.md` to an HTML page, bundles JS/CSS, generates favicons, and writes the whole site ready to upload to any static host (GitHub Pages, Netlify, Cloudflare Pages, S3, etc.).
+> [!NOTE]
+> You can technically mix your content and project files in the same directory, but it's easier to maintain content and generated files separately.
 
 ## Install
 

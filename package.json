@@ -23,12 +23,12 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "install-alias": "node scripts/mdsite-dev-alias.js install",
-    "release:version": "node scripts/release-version.mjs",
-    "uninstall-alias": "node scripts/mdsite-dev-alias.js uninstall",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "install-alias": "node scripts/mdsite-dev-alias.ts install",
+    "release:version": "node scripts/release-version.ts",
+    "uninstall-alias": "node scripts/mdsite-dev-alias.ts uninstall",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.scripts.json",
     "test": "vitest run",
-    "verify:package": "node --experimental-strip-types scripts/verify-package-artifacts.ts",
+    "verify:package": "node scripts/verify-package-artifacts.ts",
     "prepublishOnly": "npm test && npm run typecheck && npm run build && npm run verify:package"
   },
   "dependencies": {

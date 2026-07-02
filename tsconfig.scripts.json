@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "scripts",
+    "outDir": "scripts/.tsbuild",
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "scripts/**/*.ts"
+  ],
+  "exclude": [
+    "scripts/.tsbuild"
+  ]
+}

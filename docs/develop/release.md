@@ -25,7 +25,7 @@ npm run release:version -- major    # x.0.0 breaking
 npm run release:version -- 1.2.3    # exact version
 ```
 
-[The `release:version` script](https://github.com/life-and-dev/mdsite/blob/main/scripts/release-version.mjs) automates the boring parts:
+[The `release:version` script](https://github.com/life-and-dev/mdsite/blob/main/scripts/release-version.ts) automates the boring parts:
 
 1. **Bumps the version** in `package.json` and `package-lock.json` via `npm version --no-git-tag-version`.
 2. **Type-checks** the CLI (`npm run typecheck`).
