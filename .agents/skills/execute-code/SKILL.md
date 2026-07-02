@@ -20,9 +20,9 @@ Local-first `mdsite` CLI drives checked-in `mdsite-nuxt` renderer from current c
 ## Key API Endpoints
 - `mdsite help` (`src/index.ts`): show supported commands.
 - `mdsite init` (`src/index.ts`): create `mdsite.yml`.
-- `mdsite start` (`src/index.ts`): start renderer dev server.
+- `mdsite live` (`src/index.ts`): start renderer dev server.
 - `mdsite generate` (`src/index.ts`): build static output.
-- `mdsite preview` (`src/index.ts`): preview generated output.
+- `mdsite static` (`src/index.ts`): preview generated output.
 - `mdsite stop` (`src/index.ts`): stop tracked processes.
 - `mdsite prepare github` (`src/index.ts`): generate GitHub Pages workflow.
 

@@ -1,4 +1,4 @@
-import { access, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import {
@@ -10,9 +10,29 @@ import {
 import { getBundledRendererDir } from '../renderer/mdsite-nuxt.js'
 
 const NVMRC_VERSION = '24'
+const FALLBACK_RENDERER_NAME = 'mdsite-renderer'
 
 function buildNvmrcContent(): string {
   return `${NVMRC_VERSION}\n`
+}
+
+/**
+ * Derive a valid npm package name from an arbitrary directory name.
+ * npm names must be lowercase, URL-safe (a-z 0-9 . _ ~ -), cannot start with
+ * `.` or `_`, and must be <= 214 chars. Invalid chars become `-`; runs of `-`
+ * collapse; leading `._-` and trailing `-` are trimmed; empty result falls back.
+ */
+function sanitizeNpmName(rawName: string): string {
+  const sanitized = rawName
+    .toLowerCase()
+    .replace(/[^a-z0-9._~-]/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^[._-]+/, '')
+    .replace(/-+$/, '')
+    .slice(0, 214)
+    .replace(/^[._]+/, '')
+    .replace(/-+$/, '')
+  return sanitized.length > 0 ? sanitized : FALLBACK_RENDERER_NAME
 }
 
 async function pathExists(targetPath: string): Promise<boolean> {
@@ -59,6 +79,17 @@ export async function runInitCommand(contentDir: string): Promise<string> {
   return `Created ${created.join(', ')} in ${contentDir}.`
 }
 
+export async function ensureInitialized(contentDir: string): Promise<boolean> {
+  const configPath = path.join(contentDir, 'mdsite.yml')
+  if (await pathExists(configPath)) {
+    return false
+  }
+
+  console.log(`No mdsite.yml found in ${contentDir}. Running \`mdsite init\` automatically...`)
+  console.log(await runInitCommand(contentDir))
+  return true
+}
+
 async function ensureCommittedRendererLockfiles(
   contentDir: string,
   config: MdsiteConfig
@@ -67,18 +98,29 @@ async function ensureCommittedRendererLockfiles(
   await mkdir(serverDir, { recursive: true })
 
   const bundledRendererDir = getBundledRendererDir()
+  const rendererName = sanitizeNpmName(path.basename(contentDir))
   const created: string[] = []
 
   const targetPkg = path.join(serverDir, 'package.json')
   if (!(await pathExists(targetPkg))) {
-    await copyFile(path.join(bundledRendererDir, 'package.json'), targetPkg)
+    const bundledPkgRaw = await readFile(path.join(bundledRendererDir, 'package.json'), 'utf8')
+    const pkg = JSON.parse(bundledPkgRaw) as Record<string, unknown>
+    pkg.name = rendererName
+    pkg.description = config.site.name
+    await writeFile(targetPkg, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8')
     created.push(`${config.server.path}/package.json`)
   }
 
   const targetLock = path.join(serverDir, 'package-lock.json')
   if (!(await pathExists(targetLock))) {
     try {
-      await copyFile(path.join(bundledRendererDir, 'package-lock.json'), targetLock)
+      const bundledLockRaw = await readFile(path.join(bundledRendererDir, 'package-lock.json'), 'utf8')
+      const lock = JSON.parse(bundledLockRaw) as { name?: unknown; packages?: Record<string, unknown> }
+      lock.name = rendererName
+      if (lock.packages && typeof lock.packages === 'object' && lock.packages['']) {
+        ;(lock.packages[''] as { name?: unknown }).name = rendererName
+      }
+      await writeFile(targetLock, `${JSON.stringify(lock, null, 2)}\n`, 'utf8')
       created.push(`${config.server.path}/package-lock.json`)
     } catch {
       // Bundled renderer has no lockfile; leave the target without one (npm install will generate it).

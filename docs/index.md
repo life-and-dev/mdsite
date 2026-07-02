@@ -1,74 +1,109 @@
-![MD-Site](logo.svg)
+![mdsite](logo.svg)
 
-# MD Site Documentation
+# Markdown Site Documentation
 
-Welcome to MD-Site! This project is a local CLI for Markdown sites where content files are separated from the Nuxt renderer.
+## Quick Start
 
-Install the published CLI from npm, run it from a content directory, and configure that content directory with `mdsite.yml`.
+From the directory containing your Markdown files run:
 
-A preview of MD Site's output is available at [https://life-and-dev.github.io/mdsite/](https://life-and-dev.github.io/mdsite/).
+```bash
+mdsite static -d
+```
 
-## Getting Started
+This command:
 
-### 0. Prerequisites
+1. Convert your markdown pages to a static html files.
+2. Start a webserver as a detached process.
+3. Open your browser to the hosted by the webserver.
 
-- Node.js (>= 24.0.0)
-- NPM (>= 10.0.0)
-- Git
+## How it works
 
-### 1. Install
+You write Markdown. For example, your content directory with a few pages and a logo:
 
-Install the CLI globally from the npm registry on any machine that meets the prerequisites above:
+```yaml
+my-docs/
+└── content
+    ├── index.md
+    ├── about.md
+    ├── blog/
+    │   ├── 2026-01-hello.md
+    │   └── 2026-03-release.md
+    └── logo.png
+```
+
+Run the `mdsite static` in your repo to generate the static pages:
+
+```yaml
+my-docs/
+├── content
+│   ├── index.md
+│   ├── about.md
+│   ├── blog/
+│   │   ├── 2026-01-hello.md
+│   │   └── 2026-03-release.md
+│   └── logo.png
+├── mdsite.yml                  # site configuration
+├── package.json                # package configuration
+├── package-lock.json           # package lock
+├── .mdsite/                    # renderer working dir (gitignored)
+│   ├── mdsite.log              # detached webserver logs
+│   └── ...                     # Other Nuxt render files
+└── .output/                    # deployable static site
+    └── public/
+        ├── index.html          
+        ├── about/
+        │   └── index.html      
+        ├── blog/
+        │   ├── 2026-01-hello/
+        │   │   └── index.html
+        │   └── 2026-03-release/
+        │       └── index.html
+        ├── logo.png
+        ├── favicon.ico         
+        └── ...
+```
+
+> [!NOTE]
+> You can technically mix your content and project files in the same directory, but it's easier to maintain content and generated files separately.
+
+## Install
+
+Install the CLI globally from the npm registry on any machine with Node.js (>= 24.0.0) and npm:
 
 ```bash
 npm install -g @life-and-dev/mdsite
 ```
 
-This exposes the `mdsite` command system-wide. Verify it is available:
+The following commands will be available after installation:
 
-```bash
-mdsite version
-```
+1. `mdsite init` : Create `mdsite.yml` and project files without staring any services.
+2. `mdsite live` : Start the live website - editing content changes immediately on hosted website without restart.
+3. `mdsite generate` : Build static output.
+4. `mdsite static` : Start the static website - preview how it would behave on static webserver like Cloudflare Pages.
+5. `mdsite stop` : Stop tracked detached `mdsite live -d` or `mdsite static -d` processes.
+6. `mdsite prepare github` : Generate a Github Pages deployment workflow.
 
-To set up a content directory, change into it and run `init` once to create `mdsite.yml` (and a `.nvmrc` pinning Node 24), then `start` to launch the local renderer:
+After install, the `mdsite` command is available from any content directory.
 
-```bash
-cd /path/to/your/content
-mdsite init
-mdsite start
-```
+All commands operate on the **current working directory** as the content/project directory. `-d`/`--detached` to runs a tracked background webserver, and `--host` (or `--host <addr>`) to expose the server on the network — see the start and preview sections below. Run `mdsite help` for more details.
 
-> [!NOTE]
-> If you prefer to contribute to MDsite itself or need an unreleased change, see [Developing MDsite](develop) for the clone-and-build workflow, renderer internals, testing, and releases.
+## Configuration Reference
 
-### 2. Implemented commands
+`mdsite.yml` is the only active content-directory configuration file. `mdsite init` creates it and fills defaults from local markdown files where possible.
 
-```bash
-mdsite help
-mdsite version
-mdsite init
-mdsite start
-mdsite generate
-mdsite preview
-mdsite stop
-mdsite prepare github
-```
-
-`version` prints the CLI version from the root `package.json`.
-
-> [!NOTE]
-> The `/docs` directory in this repository contains this documentation as sample content. To preview it with the npm-installed CLI, run `mdsite init && mdsite start` from the `docs/` directory. You can also create your own content at any other location and configure it independently.
-
-### Local server options
-
-`mdsite start` and `mdsite preview` share the following options:
-
-- `-d`, `--detached` — run the server as a tracked background process instead of in the foreground.
-- `--host` — expose the server on the network by binding `0.0.0.0`, so other devices on your LAN can reach the site (for example `mdsite start --host`).
-- `--host <addr>` — bind a specific network address instead of the default (for example `mdsite preview --host 192.168.1.10`).
-
-Options can be combined, for example `mdsite start -d --host` runs a background server reachable from the network. Without `--host`, the server only listens on `localhost`.
-
+| Key                      | Default                                  | Description                                                                                                                                                                  |
+| ------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `favicon`                | empty string                             | Source image path relative to the content directory (any format `sharp` supports). The renderer generates derived favicons into the renderer's `public/` dir.                |
+| `features.bibleTooltips` | `true`                                   | Enables renderer Bible tooltip support.                                                                                                                                      |
+| `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                                        |
+| `menu`                   | derived from markdown files              | Menu structure for the sidebar navigation.                                                                                                                                   |
+| `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                                              |
+| `server.path`            | `.mdsite`                                | The renderer working directory, relative to the content directory. End-user runs materialize the bundled renderer here; in the dev repo the bundled submodule runs in place. |
+| `server.repo`            | `https://github.com/life-and-dev/mdsite` | Stored for compatibility and generated renderer config. It is not used for active clone/pull behaviour.                                                                      |
+| `site.canonical`         | empty string                             | Canonical site URL passed to the renderer.                                                                                                                                   |
+| `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                                            |
+| `themes.light.colors`    | built-in palette                         | Light theme colour overrides.                                                                                                                                                |
+| `themes.dark.colors`     | built-in palette                         | Dark theme colour overrides.                                                                                                                                                 |
 ## Tutorials
 
 We have prepared a series of tutorials to guide you through every aspect of working with this project.
@@ -94,13 +129,33 @@ We have prepared a series of tutorials to guide you through every aspect of work
 - **[Deployment](deploy)**  
   Ready to go live? This guide explains how to deploy your content to production using Cloudflare Pages.
 
-- **[Developing MDsite](develop)**  
-  Working on MDsite itself? The developer docs cover repository layout, the mdsite-nuxt submodule, testing, and releases.
+- **[Developing mdsite](develop)**  
+  Working on mdsite itself? The developer docs cover repository layout, the mdsite-nuxt submodule, testing, and releases.
 
-## Local Development
+## Configuration Reference
 
-The contributor workflow (clone, build, run the demo) is documented in [Developing MDsite](develop). Start there if you want to hack on the CLI or the renderer.
+`mdsite.yml` is the only active content-directory configuration file. `mdsite init` creates it and fills defaults from local markdown files where possible.
 
-## Contribute
+| Key                      | Default                                  | Description                                                                                                                                                                  |
+| ------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `favicon`                | empty string                             | Source image path relative to the content directory (any format `sharp` supports). The renderer generates derived favicons into the renderer's `public/` dir.                |
+| `features.bibleTooltips` | `true`                                   | Enables renderer Bible tooltip support.                                                                                                                                      |
+| `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                                        |
+| `menu`                   | derived from markdown files              | Menu structure for the sidebar navigation.                                                                                                                                   |
+| `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                                              |
+| `server.path`            | `.mdsite`                                | The renderer working directory, relative to the content directory. End-user runs materialize the bundled renderer here; in the dev repo the bundled submodule runs in place. |
+| `server.repo`            | `https://github.com/life-and-dev/mdsite` | Stored for compatibility and generated renderer config. It is not used for active clone/pull behaviour.                                                                      |
+| `site.canonical`         | empty string                             | Canonical site URL passed to the renderer.                                                                                                                                   |
+| `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                                            |
+| `themes.light.colors`    | built-in palette                         | Light theme colour overrides.                                                                                                                                                |
+| `themes.dark.colors`     | built-in palette                         | Dark theme colour overrides.                                                                                                                                                 |
 
-Contribute to the source code at [https://github.com/life-and-dev/mdsite](https://github.com/life-and-dev/mdsite).
+## For Developers
+
+`mdsite` is a thin TypeScript CLI that orchestrates a Nuxt renderer shipped as a git submodule. If you want to contribute, customize the renderer, run the test suites, or cut a release, the developer documentation lives at:
+
+- [GitHub repo](https://github.com/life-and-dev/mdsite) - the `mdsite` source code repo.
+- [Developing mdsite](develop.md) — repository layout, CLI architecture, and CLI ↔ Nuxt integration.
+- [Renderer (mdsite-nuxt submodule)](develop/nuxt.md) — what the submodule is, how to customize it, how to extend Nuxt with custom components.
+- [Testing](develop/tests.md) — how to run the CLI and renderer test suites.
+- [Release](develop/release.md) — how to cut and publish a new version of `@life-and-dev/mdsite`.

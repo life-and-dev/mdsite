@@ -1,14 +1,26 @@
-![MDsite](docs/logo.svg)
+![mdsite](docs/logo.svg)
 
-# MDsite
+`mdsite` is a local-first CLI that turns a directory of Markdown files into a static site using the bundled Nuxt renderer.
 
-MDsite is a local-first CLI that turns a directory of Markdown files into a static site using the bundled Nuxt renderer.
+## Quick Start
+
+From the directory containing your Markdown files run:
+
+```bash
+mdsite static -d
+```
+
+This command:
+
+1. Convert your markdown pages to a static html files.
+2. Start a webserver as a detached process.
+3. Open your browser to the hosted by the webserver.
 
 ## How it works
 
 You write Markdown. For example, your content directory with a few pages and a logo:
 
-```text
+```yaml
 my-docs/
 └── content
     ├── index.md
@@ -19,15 +31,9 @@ my-docs/
     └── logo.png
 ```
 
-Your source tree is only Markdown files and images — no `node_modules`, no HTML, no build config.
+Run the `mdsite static` in your repo to generate the static pages:
 
-1. After you run `mdsite init` it creates `mdsite.yml` and required project files.
-2. Configure `mdsite.yml` as needed.
-3. Then run `mdsite generate` builds a static website under `.output/public/`:
-
-For example:
-
-```text
+```yaml
 my-docs/
 ├── content
 │   ├── index.md
@@ -36,12 +42,13 @@ my-docs/
 │   │   ├── 2026-01-hello.md
 │   │   └── 2026-03-release.md
 │   └── logo.png
-├── mdsite.yml                  # site configuration (created by "mdsite init")
-├── package.json                # package configuration (created by "mdsite init")
-├── package-lock.json           # package lock (created by "mdsite init")
+├── mdsite.yml                  # site configuration
+├── package.json                # package configuration
+├── package-lock.json           # package lock
 ├── .mdsite/                    # renderer working dir (gitignored)
-│   └── ...                     # Nuxt render files (created by "mdsite init")
-└── .output/                    # deployable static site (created by "mdsite generate")
+│   ├── mdsite.log              # detached webserver logs
+│   └── ...                     # Other Nuxt render files
+└── .output/                    # deployable static site
     └── public/
         ├── index.html          
         ├── about/
@@ -67,24 +74,20 @@ Install the CLI globally from the npm registry on any machine with Node.js (>= 2
 npm install -g @life-and-dev/mdsite
 ```
 
+The following commands will be available after installation:
+
+1. `mdsite init` : Create `mdsite.yml` and project files without staring any services.
+2. `mdsite live` : Start the live website - editing content changes immediately on hosted website without restart.
+3. `mdsite generate` : Build static output.
+4. `mdsite static` : Start the static website - preview how it would behave on static webserver like Cloudflare Pages.
+5. `mdsite stop` : Stop tracked detached `mdsite live -d` or `mdsite static -d` processes.
+6. `mdsite prepare github` : Generate a Github Pages deployment workflow.
+
 After install, the `mdsite` command is available from any content directory.
 
-## Quick start
+All commands operate on the **current working directory** as the content/project directory. `-d`/`--detached` to runs a tracked background webserver, and `--host` (or `--host <addr>`) to expose the server on the network — see the start and preview sections below. Run `mdsite help` for more details.
 
-From the directory containing your Markdown files:
-
-1. Run `mdsite init` once to create `mdsite.yml` and project files.
-2. Run `mdsite start` for foreground local development.
-3. Run `mdsite generate` to build static output.
-4. Run `mdsite preview` after `generate` for a foreground local preview.
-5. Run `mdsite stop` to stop tracked detached `start` and `preview` processes.
-6. Run `mdsite prepare github` to generate a Github Pages deployment workflow.
-
-All commands operate on the **current working directory** as the content/project directory. `start` and `preview` also accept `-d`/`--detached` to run a tracked background server, and `--host` (or `--host <addr>`) to expose the server on the network — see the start and preview sections below.
-
-For production deployments, see the [Deployment guide](https://life-and-dev.github.io/mdsite/deploy).
-
-## Configuration reference
+## Configuration Reference
 
 `mdsite.yml` is the only active content-directory configuration file. `mdsite init` creates it and fills defaults from local markdown files where possible.
 
@@ -104,11 +107,36 @@ For production deployments, see the [Deployment guide](https://life-and-dev.gith
 
 The full documentation lives at [https://life-and-dev.github.io/mdsite/](https://life-and-dev.github.io/mdsite/).
 
+## Tutorials
+
+We have prepared a series of tutorials to guide you through every aspect of working with this project.
+
+- **[Content Directory](https://life-and-dev.github.io/mdsite/content)**  
+  Learn how the `content` field in `mdsite.yml` tells MD-Site where your Markdown files live (and how `index.md` becomes the homepage).
+  
+- **[Markdown Reference](https://life-and-dev.github.io/mdsite/markdown)**  
+  Learn about the supported GFM alerts, Bible references, and custom markdown rendering.
+
+- **[Features](https://life-and-dev.github.io/mdsite/features)**  
+  Learn how to toggle and configure site features like Bible tooltips and source editing.
+
+- **[Menu Configuration](https://life-and-dev.github.io/mdsite/menu)**  
+  Learn the syntax of the `menu` section in `mdsite.yml`.
+
+- **[Generating Favicons](https://life-and-dev.github.io/mdsite/favicon)**  
+  Learn how to configure a favicon path in `mdsite.yml`.
+
+- **[Theme Configuration](https://life-and-dev.github.io/mdsite/theme)**  
+  Learn how to customize the look and feel of your site with custom color tokens and automatic dark mode support.
+
+- **[Deployment](https://life-and-dev.github.io/mdsite/deploy)**  
+  Ready to go live? This guide explains how to deploy your content to production using Cloudflare Pages.
+
 ## For Developers
 
-MDsite is a thin TypeScript CLI that orchestrates a Nuxt renderer shipped as a git submodule. If you want to contribute, customize the renderer, run the test suites, or cut a release, the developer documentation lives at:
+`mdsite` is a thin TypeScript CLI that orchestrates a Nuxt renderer shipped as a git submodule. If you want to contribute, customize the renderer, run the test suites, or cut a release, the developer documentation lives at:
 
-- [Developing MDsite](https://life-and-dev.github.io/mdsite/develop) — repository layout, CLI architecture, and CLI ↔ Nuxt integration.
+- [Developing mdsite](https://life-and-dev.github.io/mdsite/develop) — repository layout, CLI architecture, and CLI ↔ Nuxt integration.
 - [Renderer (mdsite-nuxt submodule)](https://life-and-dev.github.io/mdsite/develop/nuxt) — what the submodule is, how to customize it, how to extend Nuxt with custom components.
 - [Testing](https://life-and-dev.github.io/mdsite/develop/tests) — how to run the CLI and renderer test suites.
 - [Release](https://life-and-dev.github.io/mdsite/develop/release) — how to cut and publish a new version of `@life-and-dev/mdsite`.

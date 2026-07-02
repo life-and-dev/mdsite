@@ -30,10 +30,10 @@ mdsite generate
 ### 🔎 Preview the generated site
 
 ```bash
-mdsite preview
+mdsite static
 ```
 
-Use `mdsite preview` after `mdsite generate` to check the generated static site locally before deploying. The foreground preview stops when you interrupt the command or close the terminal. Use `mdsite preview -d` for a tracked background preview, and `mdsite stop` to stop tracked detached previews.
+Use `mdsite static` after `mdsite generate` to check the generated static site locally before deploying. The foreground preview stops when you interrupt the command or close the terminal. Use `mdsite static -d` for a tracked background preview, and `mdsite stop` to stop tracked detached previews.
 
 ## GitHub Pages
 
@@ -71,10 +71,11 @@ https://<github-username>.github.io/<repository-name>/
 
 In Cloudflare Pages, connect the repository that contains your mdsite content and `mdsite.yml`.
 
-### ⚙️ Configure build settings
+### ⚙️ Build Configuration
 
 | Setting | Value |
 | :--- | :--- |
+| Framework preset | None |
 | Build command | `npx @life-and-dev/mdsite generate` |
 | Build output directory | `.output/public` |
 | Root directory | Your content directory, or `/` if the repository root is the content directory |

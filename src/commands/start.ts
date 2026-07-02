@@ -2,6 +2,7 @@ import { loadMdsiteConfig } from '../config/mdsite-config.js'
 import { openUrlInBrowser, waitForTcpPort } from '../process/child-process.js'
 import { getRuntimeLogPath, isProcessRunning, readRuntimeState, writeRuntimeState } from '../process/runtime-state.js'
 import { ensureRendererDependencies, prepareRenderer, startRendererForeground, startRendererInBackground } from '../renderer/mdsite-nuxt.js'
+import { ensureInitialized } from './init.js'
 
 interface StartCommandOptions {
   detached?: boolean
@@ -9,6 +10,7 @@ interface StartCommandOptions {
 }
 
 export async function runStartCommand(contentDir: string, options: StartCommandOptions = {}): Promise<string | undefined> {
+  await ensureInitialized(contentDir)
   if (options.detached) {
     return runDetachedStartCommand(contentDir, options)
   }
@@ -28,7 +30,7 @@ async function runDetachedStartCommand(contentDir: string, options: StartCommand
 
   const existingState = await readRuntimeState(configDir, config, 'start')
   if (existingState && isProcessRunning(existingState.pid)) {
-    throw new Error(`mdsite start is already running with PID ${existingState.pid}.`)
+    throw new Error(`mdsite live is already running with PID ${existingState.pid}.`)
   }
 
   const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
@@ -55,7 +57,7 @@ async function runDetachedStartCommand(contentDir: string, options: StartCommand
     await openUrlInBrowser(startUrl)
   }
 
-  return `mdsite start running in background (PID ${pid}). Log: ${logPath}`
+  return `mdsite live running in background (PID ${pid}). Log: ${logPath}`
 }
 
 function withHostEnv(env: NodeJS.ProcessEnv, host: string | undefined): NodeJS.ProcessEnv {

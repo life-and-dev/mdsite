@@ -23,4 +23,4 @@ To change the status of a feature:
 1.  Open `mdsite.yml` in your content directory.
 2.  Locate the `features` section.
 3.  Set the desired feature to `true` or `false`.
-4.  Restart `mdsite start` or rerun `mdsite generate` to see the changes.
+4.  Restart `mdsite live` or rerun `mdsite generate` to see the changes.

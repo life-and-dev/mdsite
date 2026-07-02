@@ -1,6 +1,6 @@
 # Theme Configuration
 
-MD-Site allows you to define custom themes in `mdsite.yml`. Themes leverage Vuetify's theme system under the hood.
+`mdsite` allows you to define custom themes in `mdsite.yml`. Themes leverage Vuetify's theme system under the hood.
 
 ## Structure
 

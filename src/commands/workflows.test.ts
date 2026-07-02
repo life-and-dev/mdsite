@@ -137,7 +137,11 @@ describe('CLI workflow coverage', () => {
     expect(gitignoreText).toContain('# end mdsite')
 
     const rendererPkgText = await readFile(path.join(contentDir, '.mdsite', 'package.json'), 'utf8')
-    expect(rendererPkgText).toContain('mdsite-nuxt-renderer')
+    const rendererPkg = JSON.parse(rendererPkgText) as { name: string; description: string }
+    // The renderer package identity reflects the project: name = sanitized content-dir basename,
+    // description = the website name from mdsite.yml (not the bundled renderer's generic identity).
+    expect(rendererPkg.name).toBe(path.basename(contentDir).toLowerCase())
+    expect(rendererPkg.description).toBe('Workspace Docs')
 
     await expect(access(path.join(contentDir, '.mdsite', 'package-lock.json'))).resolves.toBeUndefined()
   })
@@ -260,7 +264,7 @@ describe('CLI workflow coverage', () => {
     runBackgroundMock.mockResolvedValueOnce(4321)
 
     await expect(runStartCommand(contentDir, { detached: true })).resolves.toBe(
-      `mdsite start running in background (PID 4321). Log: ${path.join(contentDir, '.renderer', 'start.log')}`
+      `mdsite live running in background (PID 4321). Log: ${path.join(contentDir, '.renderer', 'start.log')}`
     )
 
     expect(runBackgroundMock).toHaveBeenCalledWith(
@@ -328,19 +332,23 @@ describe('CLI workflow coverage', () => {
     stopProcessMock.mockResolvedValueOnce(true)
 
     await expect(runPreviewCommand(contentDir, { detached: true })).resolves.toBe(
-      `mdsite preview running in background (PID 2468). URL: http://localhost:3000 Log: ${path.join(contentDir, '.renderer', 'preview.log')}`
+      `mdsite static running in background (PID 2468). URL: http://localhost:3000 Log: ${path.join(contentDir, '.renderer', 'preview.log')}`
     )
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
     await expect(runStopCommand(contentDir)).resolves.toBe('Stopped preview process 2468.')
     await expect(readRuntimeState(contentDir, config, 'preview')).resolves.toBeNull()
   })
 
-  it('rejects start when mdsite.yml is missing', async () => {
+  it('auto-runs mdsite init when mdsite.yml is missing before starting', async () => {
     const contentDir = await createContentDir()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
-    await expect(runStartCommand(contentDir)).rejects.toThrow(
-      `Missing mdsite.yml in ${contentDir}. Run \`mdsite init\` first.`
-    )
+    await expect(runStartCommand(contentDir)).resolves.toBeUndefined()
+
+    // The embedded init step created mdsite.yml automatically instead of erroring.
+    await expect(access(path.join(contentDir, 'mdsite.yml'))).resolves.toBeUndefined()
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    consoleSpy.mockRestore()
   })
 
   it('rejects invalid config files before starting the renderer', async () => {

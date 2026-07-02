@@ -1,6 +1,6 @@
 # Release
 
-This page explains how to cut a new release of `@life-and-dev/mdsite`. For the contributor overview, start at [Developing MDsite](../develop).
+This page explains how to cut a new release of `@life-and-dev/mdsite`. For the contributor overview, start at [Developing mdsite](../develop.md).
 
 Releases are **tag-driven**: a local script bumps the version, builds, verifies, commits, and tags. Pushing the tag triggers a GitHub Actions workflow that publishes to npm with provenance and creates the GitHub Release. You never run `npm publish` manually.
 

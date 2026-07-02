@@ -1,6 +1,6 @@
 # Markdown Reference
 
-MD-Site supports standard GitHub Flavored Markdown (GFM) along with several specialized extensions for a premium reading experience.
+`mdsite` supports standard GitHub Flavored Markdown (GFM) along with several specialized extensions for a premium reading experience.
 
 ## 1. GFM Alerts
 

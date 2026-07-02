@@ -59,13 +59,13 @@ describe('root CLI entrypoint', () => {
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite - local-first CLI for mdsite-nuxt'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('prepare github'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite preview [-d|--detached]'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite static|static [-d|--detached]'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('-d, --detached'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('--host [addr]'))
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('dispatches mdsite start in foreground mode by default', async () => {
+  it('dispatches mdsite live in foreground mode by default', async () => {
     process.argv = ['node', 'mdsite', 'start']
     runStartCommandMock.mockResolvedValue(undefined)
 
@@ -77,7 +77,7 @@ describe('root CLI entrypoint', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('dispatches mdsite start detached mode for -d', async () => {
+  it('dispatches mdsite live detached mode for -d', async () => {
     process.argv = ['node', 'mdsite', 'start', '-d']
     runStartCommandMock.mockResolvedValueOnce('detached')
 
@@ -89,7 +89,7 @@ describe('root CLI entrypoint', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('dispatches mdsite start detached mode for --detached', async () => {
+  it('dispatches mdsite live detached mode for --detached', async () => {
     process.argv = ['node', 'mdsite', 'start', '--detached']
     runStartCommandMock.mockResolvedValueOnce('detached')
 
@@ -101,7 +101,7 @@ describe('root CLI entrypoint', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('dispatches mdsite preview in foreground mode by default', async () => {
+  it('dispatches mdsite static in foreground mode by default', async () => {
     process.argv = ['node', 'mdsite', 'preview']
     runPreviewCommandMock.mockResolvedValue(undefined)
 
@@ -113,7 +113,7 @@ describe('root CLI entrypoint', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it.each(['-d', '--detached'])('dispatches mdsite preview detached mode for %s', async (flag) => {
+  it.each(['-d', '--detached'])('dispatches mdsite static detached mode for %s', async (flag) => {
     process.argv = ['node', 'mdsite', 'preview', flag]
     runPreviewCommandMock.mockResolvedValueOnce('detached preview')
 
@@ -125,7 +125,7 @@ describe('root CLI entrypoint', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('dispatches mdsite start with --host exposing the network by default', async () => {
+  it('dispatches mdsite live with --host exposing the network by default', async () => {
     process.argv = ['node', 'mdsite', 'start', '--host']
     runStartCommandMock.mockResolvedValue(undefined)
 
@@ -136,7 +136,7 @@ describe('root CLI entrypoint', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('dispatches mdsite start with --host addr using the provided address', async () => {
+  it('dispatches mdsite live with --host addr using the provided address', async () => {
     process.argv = ['node', 'mdsite', 'start', '--host', '192.168.1.10']
     runStartCommandMock.mockResolvedValue(undefined)
 
@@ -147,7 +147,7 @@ describe('root CLI entrypoint', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('dispatches mdsite start with -d and --host combined in any order', async () => {
+  it('dispatches mdsite live with -d and --host combined in any order', async () => {
     process.argv = ['node', 'mdsite', 'start', '--host', '-d']
     runStartCommandMock.mockResolvedValueOnce('detached')
 
@@ -158,7 +158,7 @@ describe('root CLI entrypoint', () => {
     expect(logSpy).toHaveBeenCalledWith('detached')
   })
 
-  it('dispatches mdsite preview with --host exposing the network', async () => {
+  it('dispatches mdsite static with --host exposing the network', async () => {
     process.argv = ['node', 'mdsite', 'preview', '--host']
     runPreviewCommandMock.mockResolvedValue(undefined)
 
@@ -169,7 +169,55 @@ describe('root CLI entrypoint', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('rejects unknown options for mdsite start as errors', async () => {
+  it('dispatches mdsite live as an alias of mdsite live in foreground mode by default', async () => {
+    process.argv = ['node', 'mdsite', 'live']
+    runStartCommandMock.mockResolvedValue(undefined)
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: false })
+    expect(logSpy).not.toHaveBeenCalled()
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite live detached mode for -d', async () => {
+    process.argv = ['node', 'mdsite', 'live', '-d']
+    runStartCommandMock.mockResolvedValueOnce('detached')
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runStartCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: true })
+    expect(logSpy).toHaveBeenCalledWith('detached')
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite static as an alias of mdsite static in foreground mode by default', async () => {
+    process.argv = ['node', 'mdsite', 'static']
+    runPreviewCommandMock.mockResolvedValue(undefined)
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runPreviewCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: false })
+    expect(logSpy).not.toHaveBeenCalled()
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite static detached mode for -d', async () => {
+    process.argv = ['node', 'mdsite', 'static', '-d']
+    runPreviewCommandMock.mockResolvedValueOnce('detached preview')
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runPreviewCommandMock).toHaveBeenCalledWith(process.cwd(), { detached: true })
+    expect(logSpy).toHaveBeenCalledWith('detached preview')
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('rejects unknown options for mdsite live as errors', async () => {
     process.argv = ['node', 'mdsite', 'start', '--bogus']
 
     await import('./index.js')

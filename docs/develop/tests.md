@@ -1,6 +1,6 @@
 # Testing
 
-This page covers how to run the MDsite test suites, how they are configured, and what to add when you change code. For the broader contributor picture, start at [Developing MDsite](../develop).
+This page covers how to run the MDsite test suites, how they are configured, and what to add when you change code. For the broader contributor picture, start at [Developing mdsite](../develop.md).
 
 ## 1. Two test suites
 
@@ -35,7 +35,7 @@ This re-runs affected tests on every file change.
 
 - `npx vitest run --reporter=verbose` — full per-test output.
 - `npx vitest run src/config` — restrict to tests under `src/config/`.
-- `npx vitest run -t "dispatches mdsite start"` — run only tests matching a name pattern.
+- `npx vitest run -t "dispatches mdsite live"` — run only tests matching a name pattern.
 
 ## 3. CLI test configuration
 

@@ -260,7 +260,7 @@ describe('mdsite-nuxt renderer helpers', () => {
     })
 
     await expect(ensurePreviewArtifacts(rendererDir)).rejects.toThrow(
-      'Preview is unavailable. Run `mdsite generate` before `mdsite preview`.'
+      'Preview is unavailable. Run `mdsite generate` before `mdsite static`.'
     )
   })
 

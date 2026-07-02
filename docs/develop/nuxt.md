@@ -1,6 +1,6 @@
 # Renderer: mdsite-nuxt Submodule
 
-This page covers the renderer half of MDsite: what `mdsite-nuxt/` is, how to customize it, and how to extend Nuxt with your own components. For the high-level CLI/submodule integration, start at [Developing MDsite](../develop) instead.
+This page covers the renderer half of MDsite: what `mdsite-nuxt/` is, how to customize it, and how to extend Nuxt with your own components. For the high-level CLI/submodule integration, start at [Developing mdsite](../develop.md) instead.
 
 ## 1. What the submodule is
 
@@ -147,14 +147,14 @@ If you add new pre-parse transforms, follow the same `content:file:beforeParse` 
 
 ## 7. Low-level renderer commands
 
-For normal content work, use the CLI (`mdsite start`, `mdsite generate`, `mdsite preview`). The renderer exposes its own npm scripts for direct development inside `mdsite-nuxt/`:
+For normal content work, use the CLI (`mdsite live`, `mdsite generate`, `mdsite static`). The renderer exposes its own npm scripts for direct development inside `mdsite-nuxt/`:
 
 | Script | Purpose |
 | --- | --- |
-| `npm run dev` | Start the Nuxt dev server (used by `mdsite start`). |
+| `npm run dev` | Start the Nuxt dev server (used by `mdsite live`). |
 | `npm run build` | Production build via `scripts/start.ts --build`. |
 | `npm run generate` | Static build via `scripts/start.ts --generate` (used by `mdsite generate`). |
-| `npm run preview` | Preview a generated build (used by `mdsite preview`). |
+| `npm run preview` | Preview a generated build (used by `mdsite static`). |
 | `npm run prepare:nuxt` | `nuxt prepare` — regenerates `.nuxt/` types. Runs automatically on `npm install` via `postinstall`. |
 | `npm run favicon` | Regenerate favicons from a source SVG. |
 | `npm test` | Run the renderer's Vitest suite. |

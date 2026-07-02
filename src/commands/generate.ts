@@ -2,8 +2,10 @@ import { cp, rm } from 'node:fs/promises'
 
 import { loadMdsiteConfig, resolveContentOutputPath } from '../config/mdsite-config.js'
 import { ensureRendererDependencies, generateRenderer, getRendererGeneratedOutputPath, prepareRenderer } from '../renderer/mdsite-nuxt.js'
+import { ensureInitialized } from './init.js'
 
 export async function runGenerateCommand(contentDir: string): Promise<string> {
+  await ensureInitialized(contentDir)
   const loaded = await loadMdsiteConfig(contentDir)
   const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 

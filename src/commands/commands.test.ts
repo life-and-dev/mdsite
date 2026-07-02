@@ -37,6 +37,7 @@ vi.mock('../renderer/mdsite-nuxt.js', () => ({
   generateRenderer: vi.fn(),
   getBundledRendererDir: vi.fn(),
   getRendererGeneratedOutputPath: vi.fn(),
+  hasPreviewArtifacts: vi.fn(),
   prepareRenderer: vi.fn(),
   previewRendererForeground: vi.fn(),
   previewRendererInBackground: vi.fn(),
@@ -68,6 +69,7 @@ import {
   generateRenderer,
   getBundledRendererDir,
   getRendererGeneratedOutputPath,
+  hasPreviewArtifacts,
   prepareRenderer,
   previewRendererForeground,
   previewRendererInBackground,
@@ -98,6 +100,7 @@ const isProcessRunningMock = vi.mocked(isProcessRunning)
 const readRuntimeStateMock = vi.mocked(readRuntimeState)
 const writeRuntimeStateMock = vi.mocked(writeRuntimeState)
 const ensurePreviewArtifactsMock = vi.mocked(ensurePreviewArtifacts)
+const hasPreviewArtifactsMock = vi.mocked(hasPreviewArtifacts)
 const ensureRendererDependenciesMock = vi.mocked(ensureRendererDependencies)
 const generateRendererMock = vi.mocked(generateRenderer)
 const getRendererGeneratedOutputPathMock = vi.mocked(getRendererGeneratedOutputPath)
@@ -126,9 +129,10 @@ const loadedConfig = {
 
 describe('command helpers', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     vi.useRealTimers()
     loadConfigMock.mockResolvedValue(loadedConfig)
+    hasPreviewArtifactsMock.mockResolvedValue(true)
     prepareRendererMock.mockResolvedValue({ rendererDir: '/renderer', rendererEnv: { TEST: '1' } })
     getRuntimeLogPathMock.mockImplementation((configDir, config, kind) => {
       return `${configDir}/${config.server.path}/${kind}.log`
@@ -148,6 +152,8 @@ describe('command helpers', () => {
     })
     buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
     serializeConfigMock.mockReturnValue('serialized-config')
+    readFileMock.mockResolvedValueOnce(JSON.stringify({ name: 'mdsite-nuxt-renderer', version: '0.1.0', description: 'old', scripts: { dev: 'x' } }))
+    readFileMock.mockResolvedValueOnce(JSON.stringify({ name: 'mdsite-nuxt-renderer', version: '0.1.0', lockfileVersion: 3, packages: { '': { name: 'mdsite-nuxt-renderer', version: '0.1.0' } } }))
 
     await expect(runInitCommand('/content')).resolves.toBe(
       'Created mdsite.yml, .nvmrc, .renderer/package.json, .renderer/package-lock.json in /content.'
@@ -157,8 +163,15 @@ describe('command helpers', () => {
     expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
     expect(writeFileMock).toHaveBeenCalledWith('/content/.nvmrc', '24\n', 'utf8')
     expect(mkdirMock).toHaveBeenCalledWith(path.join('/content', '.renderer'), { recursive: true })
-    expect(copyFileMock).toHaveBeenCalledWith(expect.stringContaining('mdsite-nuxt/package.json'), path.join('/content', '.renderer', 'package.json'))
-    expect(copyFileMock).toHaveBeenCalledWith(expect.stringContaining('mdsite-nuxt/package-lock.json'), path.join('/content', '.renderer', 'package-lock.json'))
+    expect(readFileMock).toHaveBeenCalledWith(path.join('/home/gizbar/git/mdsite/mdsite-nuxt', 'package.json'), 'utf8')
+    expect(readFileMock).toHaveBeenCalledWith(path.join('/home/gizbar/git/mdsite/mdsite-nuxt', 'package-lock.json'), 'utf8')
+    const writtenPkg = writeFileMock.mock.calls.find(([p]) => p === path.join('/content', '.renderer', 'package.json'))
+    expect(writtenPkg).toBeDefined()
+    expect(writtenPkg![1]).toBe(`${JSON.stringify({ name: 'content', version: '0.1.0', description: 'Docs', scripts: { dev: 'x' } }, null, 2)}\n`)
+    const writtenLock = writeFileMock.mock.calls.find(([p]) => p === path.join('/content', '.renderer', 'package-lock.json'))
+    expect(writtenLock).toBeDefined()
+    expect(writtenLock![1]).toBe(`${JSON.stringify({ name: 'content', version: '0.1.0', lockfileVersion: 3, packages: { '': { name: 'content', version: '0.1.0' } } }, null, 2)}\n`)
+    expect(copyFileMock).not.toHaveBeenCalled()
     expect(writeFileMock).toHaveBeenCalledWith('/content/.gitignore', expect.stringContaining('.renderer/*'), 'utf8')
     expect(writeFileMock).toHaveBeenCalledWith('/content/.gitignore', expect.stringContaining('!.renderer/package.json'), 'utf8')
     expect(writeFileMock).toHaveBeenCalledWith('/content/.gitignore', expect.stringContaining('!.renderer/package-lock.json'), 'utf8')
@@ -173,11 +186,14 @@ describe('command helpers', () => {
     })
     buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
     serializeConfigMock.mockReturnValue('serialized-config')
+    readFileMock.mockResolvedValueOnce(JSON.stringify({ name: 'mdsite-nuxt-renderer', version: '0.1.0', description: 'old', scripts: { dev: 'x' } }))
+    readFileMock.mockResolvedValueOnce(JSON.stringify({ name: 'mdsite-nuxt-renderer', version: '0.1.0', lockfileVersion: 3, packages: { '': { name: 'mdsite-nuxt-renderer', version: '0.1.0' } } }))
 
     await expect(runInitCommand('/content')).resolves.toBe(
       'Created mdsite.yml, .renderer/package.json, .renderer/package-lock.json in /content.'
     )
     expect(writeFileMock).not.toHaveBeenCalledWith('/content/.nvmrc', expect.anything(), expect.anything())
+    expect(copyFileMock).not.toHaveBeenCalled()
   })
 
   it('runInitCommand loads an existing mdsite.yml to repair missing files without overwriting it', async () => {
@@ -190,13 +206,18 @@ describe('command helpers', () => {
       if (typeof p === 'string' && existing.has(p)) return
       throw new Error('missing')
     })
+    readFileMock.mockResolvedValueOnce(JSON.stringify({ name: 'mdsite-nuxt-renderer', version: '0.1.0', lockfileVersion: 3, packages: { '': { name: 'mdsite-nuxt-renderer', version: '0.1.0' } } }))
 
     await expect(runInitCommand('/content')).resolves.toBe('Created .renderer/package-lock.json in /content.')
     expect(loadConfigMock).toHaveBeenCalledWith('/content')
     expect(buildDefaultConfigMock).not.toHaveBeenCalled()
     expect(writeFileMock).not.toHaveBeenCalledWith('/content/mdsite.yml', expect.anything(), expect.anything())
-    const copyFileCallsForPkg = copyFileMock.mock.calls.filter(([src]) => typeof src === 'string' && src.includes('mdsite-nuxt/package.json'))
-    expect(copyFileCallsForPkg).toHaveLength(0)
+    const writeFileCallsForPkg = writeFileMock.mock.calls.filter(([p]) => typeof p === 'string' && p === path.join('/content', '.renderer', 'package.json'))
+    expect(writeFileCallsForPkg).toHaveLength(0)
+    const writtenLock = writeFileMock.mock.calls.find(([p]) => p === path.join('/content', '.renderer', 'package-lock.json'))
+    expect(writtenLock).toBeDefined()
+    expect(writtenLock![1]).toBe(`${JSON.stringify({ name: 'content', version: '0.1.0', lockfileVersion: 3, packages: { '': { name: 'content', version: '0.1.0' } } }, null, 2)}\n`)
+    expect(copyFileMock).not.toHaveBeenCalled()
   })
 
   it('runInitCommand reports nothing to create when every file already exists', async () => {
@@ -236,7 +257,7 @@ describe('command helpers', () => {
     readRuntimeStateMock.mockResolvedValueOnce({ kind: 'start', pid: 44 } as never)
     isProcessRunningMock.mockReturnValueOnce(true)
 
-    await expect(runStartCommand('/content', { detached: true })).rejects.toThrow('mdsite start is already running with PID 44.')
+    await expect(runStartCommand('/content', { detached: true })).rejects.toThrow('mdsite live is already running with PID 44.')
   })
 
   it('runStartCommand starts detached renderer for stale state and persists fresh runtime metadata', async () => {
@@ -247,7 +268,7 @@ describe('command helpers', () => {
     startRendererInBackgroundMock.mockResolvedValueOnce(777)
 
     await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite start running in background (PID 777). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 777). Log: /content/.renderer/start.log'
     )
     expect(ensureRendererDependenciesMock).toHaveBeenCalledWith('/renderer')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
@@ -272,7 +293,7 @@ describe('command helpers', () => {
     startRendererInBackgroundMock.mockResolvedValueOnce(778)
 
     await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite start running in background (PID 778). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 778). Log: /content/.renderer/start.log'
     )
     expect(waitForTcpPortMock).toHaveBeenCalledWith('start.local', 4321)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://start.local:4321')
@@ -284,7 +305,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockResolvedValueOnce(false)
 
     await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite start running in background (PID 779). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 779). Log: /content/.renderer/start.log'
     )
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
@@ -296,7 +317,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockRejectedValueOnce(new Error('connect failed'))
 
     await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite start running in background (PID 780). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 780). Log: /content/.renderer/start.log'
     )
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
   })
@@ -317,7 +338,7 @@ describe('command helpers', () => {
     startRendererInBackgroundMock.mockResolvedValueOnce(781)
 
     await expect(runStartCommand('/content', { detached: true, host: '0.0.0.0' })).resolves.toBe(
-      'mdsite start running in background (PID 781). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 781). Log: /content/.renderer/start.log'
     )
     expect(startRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       NUXT_HOST: '0.0.0.0',
@@ -354,7 +375,7 @@ describe('command helpers', () => {
     readRuntimeStateMock.mockResolvedValueOnce({ kind: 'preview', pid: 55 } as never)
     isProcessRunningMock.mockReturnValueOnce(true)
 
-    await expect(runPreviewCommand('/content', { detached: true })).rejects.toThrow('mdsite preview is already running with PID 55.')
+    await expect(runPreviewCommand('/content', { detached: true })).rejects.toThrow('mdsite static is already running with PID 55.')
   })
 
   it('runPreviewCommand enforces preview artifacts and persists preview runtime state in detached mode', async () => {
@@ -364,7 +385,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(888)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 888). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 888). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
     )
     expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
     expect(ensurePreviewArtifactsMock.mock.invocationCallOrder[0]).toBeGreaterThan(ensureRendererDependenciesMock.mock.invocationCallOrder[0] ?? 0)
@@ -398,7 +419,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(999)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 999). URL: http://preview.local:4321 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 999). URL: http://preview.local:4321 Log: /content/.renderer/preview.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       HOST: 'preview.local',
@@ -421,7 +442,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(1000)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 1000). URL: http://127.0.0.1:4173 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1000). URL: http://127.0.0.1:4173 Log: /content/.renderer/preview.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       HOST: '127.0.0.1',
@@ -454,7 +475,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(1003)
 
     await expect(runPreviewCommand('/content', { detached: true, host: '0.0.0.0' })).resolves.toBe(
-      'mdsite preview running in background (PID 1003). URL: http://0.0.0.0:4321 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1003). URL: http://0.0.0.0:4321 Log: /content/.renderer/preview.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       NUXT_HOST: '0.0.0.0',
@@ -472,7 +493,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockResolvedValueOnce(false)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 1001). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1001). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
     )
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
@@ -484,9 +505,114 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockRejectedValueOnce(new Error('connect failed'))
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite preview running in background (PID 1002). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1002). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
     )
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
+  })
+
+  it('runStartCommand auto-runs mdsite init when mdsite.yml is missing', async () => {
+    accessMock.mockImplementation(async () => {
+      throw new Error('missing')
+    })
+    buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
+    serializeConfigMock.mockReturnValue('serialized-config')
+    readFileMock.mockResolvedValueOnce('{}').mockResolvedValueOnce('{}')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await expect(runStartCommand('/content')).resolves.toBeUndefined()
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
+    expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(startRendererForegroundMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
+    consoleSpy.mockRestore()
+  })
+
+  it('runPreviewCommand auto-runs mdsite init when mdsite.yml is missing', async () => {
+    accessMock.mockImplementation(async () => {
+      throw new Error('missing')
+    })
+    buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
+    serializeConfigMock.mockReturnValue('serialized-config')
+    readFileMock.mockResolvedValueOnce('{}').mockResolvedValueOnce('{}')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await expect(runPreviewCommand('/content')).resolves.toBeUndefined()
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
+    expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(previewRendererForegroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }))
+    consoleSpy.mockRestore()
+  })
+
+  it('runPreviewCommand auto-runs mdsite init when mdsite.yml is missing in detached mode', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    accessMock.mockImplementation(async () => {
+      throw new Error('missing')
+    })
+    buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
+    serializeConfigMock.mockReturnValue('serialized-config')
+    readFileMock.mockResolvedValueOnce('{}').mockResolvedValueOnce('{}')
+    previewRendererInBackgroundMock.mockResolvedValueOnce(5555)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
+      'mdsite static running in background (PID 5555). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+    )
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
+    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }), '/content/.renderer/preview.log')
+    consoleSpy.mockRestore()
+  })
+
+  it('runGenerateCommand auto-runs mdsite init when mdsite.yml is missing', async () => {
+    accessMock.mockImplementation(async () => {
+      throw new Error('missing')
+    })
+    buildDefaultConfigMock.mockResolvedValue(loadedConfig.config)
+    serializeConfigMock.mockReturnValue('serialized-config')
+    readFileMock.mockResolvedValueOnce('{}').mockResolvedValueOnce('{}')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await expect(runGenerateCommand('/content')).resolves.toBe('Generated site synced to /content/.output/public')
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
+    expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
+    consoleSpy.mockRestore()
+  })
+
+  it('runPreviewCommand auto-runs mdsite generate when generated output is missing', async () => {
+    hasPreviewArtifactsMock.mockResolvedValueOnce(false)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await expect(runPreviewCommand('/content')).resolves.toBeUndefined()
+
+    expect(hasPreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
+    expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(previewRendererForegroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No generated output found'))
+    consoleSpy.mockRestore()
+  })
+
+  it('runPreviewCommand auto-runs mdsite generate in detached mode when generated output is missing', async () => {
+    readRuntimeStateMock.mockResolvedValueOnce(null)
+    hasPreviewArtifactsMock.mockResolvedValueOnce(false)
+    previewRendererInBackgroundMock.mockResolvedValueOnce(1234)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
+      'mdsite static running in background (PID 1234). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+    )
+
+    expect(hasPreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
+    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }), '/content/.renderer/preview.log')
+    consoleSpy.mockRestore()
   })
 
   it('runGenerateCommand syncs renderer output to the configured destination', async () => {

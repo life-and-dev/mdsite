@@ -1,14 +1,26 @@
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
 import { openUrlInBrowser, waitForTcpPort } from '../process/child-process.js'
 import { getRuntimeLogPath, isProcessRunning, readRuntimeState, writeRuntimeState } from '../process/runtime-state.js'
-import { ensurePreviewArtifacts, ensureRendererDependencies, prepareRenderer, previewRendererForeground, previewRendererInBackground } from '../renderer/mdsite-nuxt.js'
+import { ensurePreviewArtifacts, ensureRendererDependencies, hasPreviewArtifacts, prepareRenderer, previewRendererForeground, previewRendererInBackground } from '../renderer/mdsite-nuxt.js'
+import { runGenerateCommand } from './generate.js'
+import { ensureInitialized } from './init.js'
 
 interface PreviewCommandOptions {
   detached?: boolean
   host?: string
 }
 
+async function ensureGeneratedOutput(contentDir: string, rendererDir: string): Promise<void> {
+  if (await hasPreviewArtifacts(rendererDir)) {
+    return
+  }
+
+  console.log('No generated output found. Running `mdsite generate` automatically...')
+  console.log(await runGenerateCommand(contentDir))
+}
+
 export async function runPreviewCommand(contentDir: string, options: PreviewCommandOptions = {}): Promise<string | undefined> {
+  await ensureInitialized(contentDir)
   if (options.detached) {
     return runDetachedPreviewCommand(contentDir, options)
   }
@@ -17,6 +29,7 @@ export async function runPreviewCommand(contentDir: string, options: PreviewComm
   const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
+  await ensureGeneratedOutput(contentDir, rendererDir)
   await ensurePreviewArtifacts(rendererDir)
   await previewRendererForeground(rendererDir, getPreviewEnv(rendererEnv, options.host))
 
@@ -29,12 +42,13 @@ async function runDetachedPreviewCommand(contentDir: string, options: PreviewCom
 
   const existingState = await readRuntimeState(configDir, config, 'preview')
   if (existingState && isProcessRunning(existingState.pid)) {
-    throw new Error(`mdsite preview is already running with PID ${existingState.pid}.`)
+    throw new Error(`mdsite static is already running with PID ${existingState.pid}.`)
   }
 
   const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
+  await ensureGeneratedOutput(contentDir, rendererDir)
   await ensurePreviewArtifacts(rendererDir)
 
   const previewEnv = getPreviewEnv(rendererEnv, options.host)
@@ -57,7 +71,7 @@ async function runDetachedPreviewCommand(contentDir: string, options: PreviewCom
     await openUrlInBrowser(previewUrl)
   }
 
-  return `mdsite preview running in background (PID ${pid}). URL: ${previewUrl} Log: ${logPath}`
+  return `mdsite static running in background (PID ${pid}). URL: ${previewUrl} Log: ${logPath}`
 }
 
 function getPreviewUrl(env: NodeJS.ProcessEnv): string {

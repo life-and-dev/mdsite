@@ -1,8 +1,8 @@
-# Developing MDsite
+# Developing mdsite
 
-This page is for contributors working on MDsite itself. End users do not need to read this; they should follow [Install](https://life-and-dev.github.io/mdsite/) and the user-facing tutorials.
+This page is for contributors working on `mdsite` itself. End users do not need to read this; they should follow [Install](index.md) and the user-facing tutorials.
 
-MDsite is a small monorepo made of two parts:
+`mdsite` is a small repo made of two parts:
 
 1. A **TypeScript CLI** (`src/`) that orchestrates a content directory.
 2. A **Nuxt renderer** (`mdsite-nuxt/`), pulled in as a git submodule, that turns Markdown into a static site.
@@ -96,7 +96,7 @@ Each module ships next to a `*.test.ts` file (for example `src/index.test.ts`, `
 
 ## 4. How the CLI and Nuxt integrate
 
-When a user runs `mdsite start`, `mdsite generate`, or `mdsite preview` from a content directory, the CLI performs the same preparation phase before invoking the renderer:
+When a user runs `mdsite live`, `mdsite generate`, or `mdsite static` from a content directory, the CLI performs the same preparation phase before invoking the renderer:
 
 ```mermaid
 graph TB
@@ -141,9 +141,9 @@ Finally, the CLI spawns `npm run <script>` inside the renderer directory, where 
 
 | CLI command       | Renderer script | Foreground | Background |
 | ----------------- | --------------- | ---------- | ---------- |
-| `mdsite start`    | `dev`           | yes        | with `-d`  |
+| `mdsite live`    | `dev`           | yes        | with `-d`  |
 | `mdsite generate` | `generate`      | yes        | —          |
-| `mdsite preview`  | `preview`       | yes        | with `-d`  |
+| `mdsite static`  | `preview`       | yes        | with `-d`  |
 
 Background runs are tracked via state files in the renderer working dir (`<server.path>`, e.g. `.mdsite/`) so `mdsite stop` can find and terminate them.
 
@@ -166,7 +166,7 @@ Background runs are tracked via state files in the renderer working dir (`<serve
 | `mdsite-nuxt/.env`               | every CLI run                    | Points the renderer at the active content directory. |
 | `mdsite-nuxt/content.config.yml` | every CLI run                    | Serialized site config consumed by the renderer.     |
 
-Most of these are gitignored. The exception is the committed lockfile pair `.<server.path>/package.json` + `.<server.path>/package-lock.json` (written by `mdsite init`); everything else under `.<server.path>/` and `.output/` is gitignored and should not be committed.
+Most of these are gitignored. The exception is the committed lockfile pair `.<server.path>/package.json` + `.<server.path>/package-lock.json` (written by `mdsite init`); everything else under `.<server.path>/` and `.output/` is gitignored and should not be committed. The committed pair does not copy the bundled renderer's generic identity verbatim: `mdsite init` rewrites `package.json` `name` to the sanitized content-directory basename and `description` to `mdsite.yml`'s `site.name`, and syncs the same `name` into both `package-lock.json` name fields so `npm ci` won't rewrite (and dirty) the committed lockfile.
 
 ## 7. Technology stack
 

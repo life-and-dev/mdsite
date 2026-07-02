@@ -119,7 +119,7 @@ export async function prepareRendererBackend(rendererDir: string, env: NodeJS.Pr
   await runRendererScript(rendererDir, env, 'prepare:renderer')
 }
 
-export async function ensurePreviewArtifacts(rendererDir: string): Promise<void> {
+export async function hasPreviewArtifacts(rendererDir: string): Promise<boolean> {
   const previewArtifacts = [
     path.join(rendererDir, '.output', 'public')
   ]
@@ -128,8 +128,16 @@ export async function ensurePreviewArtifacts(rendererDir: string): Promise<void>
     try {
       await access(artifactPath)
     } catch {
-      throw new Error('Preview is unavailable. Run `mdsite generate` before `mdsite preview`.')
+      return false
     }
+  }
+
+  return true
+}
+
+export async function ensurePreviewArtifacts(rendererDir: string): Promise<void> {
+  if (!(await hasPreviewArtifacts(rendererDir))) {
+    throw new Error('Preview is unavailable. Run `mdsite generate` before `mdsite static`.')
   }
 }
 

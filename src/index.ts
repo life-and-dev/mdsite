@@ -15,25 +15,25 @@ const helpText = `mdsite - local-first CLI for mdsite-nuxt
 Usage:
   mdsite help [-h|--help]
   mdsite init
-  mdsite start [-d|--detached] [--host [addr]]
+  mdsite live|live [-d|--detached] [--host [addr]]
   mdsite generate
-  mdsite preview [-d|--detached] [--host [addr]]
+  mdsite static|static [-d|--detached] [--host [addr]]
   mdsite stop
   mdsite version
   mdsite prepare github
 
 Commands:
   init      Ensure mdsite files exist in the current directory (idempotent; creates missing files, never overwrites)
-  start     Start the checked-in mdsite-nuxt renderer for local content
+  start     Start the checked-in mdsite-nuxt renderer for local content (alias: live)
   generate  Build static output through mdsite-nuxt
-  preview   Preview the generated site through mdsite-nuxt
+  preview   Preview the generated site through mdsite-nuxt (alias: static)
   stop      Stop tracked start and preview processes
   version   Print the CLI package version
   prepare   Generate the GitHub Pages workflow for this content directory
 
 Options:
   -h, --help       Show this help output
-  -d, --detached   Run mdsite start or preview in the background and write runtime state
+  -d, --detached   Run mdsite live or preview in the background and write runtime state
   --host [addr]    Expose start/preview on the network (binds 0.0.0.0 by default, or a given addr)
 `
 
@@ -111,6 +111,7 @@ async function main(): Promise<void> {
       console.log(await runInitCommand(currentDirectory))
       return
     case 'start':
+    case 'live':
       {
         const flags = parseServerCommandFlags(argv.slice(1))
         const message = await runStartCommand(currentDirectory, buildServerCommandOptions(flags))
@@ -123,6 +124,7 @@ async function main(): Promise<void> {
       console.log(await runGenerateCommand(currentDirectory))
       return
     case 'preview':
+    case 'static':
       {
         const flags = parseServerCommandFlags(argv.slice(1))
         const message = await runPreviewCommand(currentDirectory, buildServerCommandOptions(flags))

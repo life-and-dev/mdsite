@@ -1,6 +1,6 @@
 # Favicon Configuration
 
-MD-Site uses the `favicon` value in `mdsite.yml` to pass a favicon path to the local renderer.
+mdsite uses the `favicon` value in `mdsite.yml` to pass a favicon path to the local renderer.
 
 ## How it Works
 
@@ -27,7 +27,7 @@ favicon: favicon.svg
 ### 3. Run the CLI
 
 ```bash
-mdsite start
+mdsite live
 ```
 
 Use `mdsite generate` when building static output.
