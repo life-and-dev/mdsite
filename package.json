@@ -1,6 +1,6 @@
 {
   "name": "@life-and-dev/mdsite",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "type": "module",
   "private": false,
   "description": "Local-first CLI that orchestrates mdsite-nuxt",
