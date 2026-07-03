@@ -95,7 +95,8 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.server).toEqual({
       output: 'dist/public',
       path: '.renderer',
-      repo: 'https://github.com/life-and-dev/mdsite'
+      repo: 'https://github.com/life-and-dev/mdsite',
+      gitBranch: 'main'
     })
     expect(loaded.config.site).toEqual({
       canonical: 'https://example.test',
@@ -172,9 +173,37 @@ describe('mdsite config helpers', () => {
       features: { bibleTooltips: true, sourceEdit: true },
       menu: [],
       footer: [],
-      server: { output: 'public/site', path: '.mdsite', repo: 'repo' },
+      server: { output: 'public/site', path: '.mdsite', repo: 'repo', gitBranch: 'main' },
       site: { canonical: '', name: 'Docs' },
       themes: { light: { colors: {} }, dark: { colors: {} } }
     })).toBe(path.resolve(contentDir, 'public', 'site', 'public'))
+  })
+
+  it('loadMdsiteConfig reads server.git-branch and defaults to "main" when missing or blank', async () => {
+    const contentDir = await makeTempDir()
+    await writeFile(path.join(contentDir, 'index.md'), '# Home', 'utf8')
+
+    const writeConfig = (branch?: string) => writeFile(
+      path.join(contentDir, 'mdsite.yml'),
+      branch === undefined
+        ? 'site:\n  name: Home\n'
+        : `site:\n  name: Home\nserver:\n  git-branch: ${branch}\n`,
+      'utf8'
+    )
+
+    // Missing -> default 'main'
+    await writeConfig()
+    const defaulted = await loadMdsiteConfig(contentDir)
+    expect(defaulted.config.server.gitBranch).toBe('main')
+
+    // Explicit value -> preserved
+    await writeConfig('develop')
+    const customized = await loadMdsiteConfig(contentDir)
+    expect(customized.config.server.gitBranch).toBe('develop')
+
+    // Blank string -> default 'main'
+    await writeConfig('   ')
+    const blanked = await loadMdsiteConfig(contentDir)
+    expect(blanked.config.server.gitBranch).toBe('main')
   })
 })
