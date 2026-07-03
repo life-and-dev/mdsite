@@ -68,6 +68,7 @@ async function writeConfig(contentDir: string, overrides: Partial<MdsiteConfig> 
     favicon: '',
     features: { bibleTooltips: true, sourceEdit: true },
     menu: [],
+    footer: [],
     server: {
       output: '.output',
       path: '.renderer',

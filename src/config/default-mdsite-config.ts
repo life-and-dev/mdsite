@@ -64,6 +64,7 @@ export function createDefaultMdsiteConfig(siteName: string, menu: MdsiteConfig['
       sourceEdit: true
     },
     menu,
+    footer: [],
     server: {
       output: '.output',
       path: '.mdsite',

@@ -19,6 +19,7 @@ const config: MdsiteConfig = {
   favicon: '',
   features: { bibleTooltips: true, sourceEdit: true },
   menu: [],
+  footer: [],
   server: { output: '.output', path: '.renderer', repo: 'repo' },
   site: { canonical: '', name: 'Docs' },
   themes: { light: { colors: {} }, dark: { colors: {} } }

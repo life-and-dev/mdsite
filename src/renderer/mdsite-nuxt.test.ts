@@ -46,6 +46,7 @@ const runBackgroundMock = vi.mocked(runBackground)
 const baseConfig = {
   favicon: '',
   features: { bibleTooltips: true, sourceEdit: true },
+  footer: [],
   menu: [],
   server: { output: '.output', path: '.renderer', repo: 'repo' },
   site: { canonical: '', name: 'Docs' },

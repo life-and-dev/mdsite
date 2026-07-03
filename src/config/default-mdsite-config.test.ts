@@ -15,6 +15,7 @@ describe('createDefaultMdsiteConfig', () => {
         sourceEdit: true
       },
       menu,
+      footer: [],
       server: {
         output: '.output',
         path: '.mdsite',

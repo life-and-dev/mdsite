@@ -91,6 +91,7 @@ describe('mdsite config helpers', () => {
       sourceEdit: true
     })
     expect(loaded.config.menu).toEqual(['custom/page'])
+    expect(loaded.config.footer).toEqual([])
     expect(loaded.config.server).toEqual({
       output: 'dist/public',
       path: '.renderer',
@@ -104,6 +105,24 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.themes.light.colors.background).toBe('#f6f8fa')
     expect(loaded.config.themes.dark.colors.outline).toBe('#abcdef')
     expect(loaded.config.themes.dark.colors.primary).toBe('#58a6ff')
+  })
+
+  it('loadMdsiteConfig reads footer: as a flat string array', async () => {
+    const contentDir = await makeTempDir()
+    await writeFile(path.join(contentDir, 'index.md'), '# Home', 'utf8')
+    await writeFile(path.join(contentDir, 'about.md'), '# About', 'utf8')
+    await writeFile(path.join(contentDir, 'contacts.md'), '# Contacts', 'utf8')
+    await writeFile(path.join(contentDir, 'mdsite.yml'), [
+      'footer:',
+      '  - about',
+      '  - contacts',
+      '  - not-a-string: 1',
+      ''
+    ].join('\n'), 'utf8')
+
+    const loaded = await loadMdsiteConfig(contentDir)
+
+    expect(loaded.config.footer).toEqual(['about', 'contacts'])
   })
 
   it('loadMdsiteConfig resolves content.path relative to the config directory', async () => {
@@ -152,6 +171,7 @@ describe('mdsite config helpers', () => {
       favicon: '',
       features: { bibleTooltips: true, sourceEdit: true },
       menu: [],
+      footer: [],
       server: { output: 'public/site', path: '.mdsite', repo: 'repo' },
       site: { canonical: '', name: 'Docs' },
       themes: { light: { colors: {} }, dark: { colors: {} } }
