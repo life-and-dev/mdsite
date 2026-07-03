@@ -72,6 +72,23 @@ Just paste the URL as the value.
 *   **Relative Paths**: `intro.md` looks for the file in the current directory.
 *   **Absolute Paths**: `/folder/file.md` looks for the file starting from the content root.
 
+## 4. Excluding Items from the Menu
+
+Entries listed in `footer:` are removed from the `menu:` output. This lets you move a page from the sidebar to the bottom bar without leaving a duplicate in the sidebar.
+
+```yaml
+menu:
+  - about
+  - contacts
+  - help
+footer:
+  - contacts
+```
+
+In this example, the sidebar shows `about` and `help`; `contacts` is dropped because it appears in the bottom bar.
+
+See [Footer Configuration](footer) for how to move links to the bottom bar.
+
 ---
 
 > [!TIP]

@@ -88,7 +88,7 @@ The CLI is a thin orchestrator. It does not contain any rendering logic — all 
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/index.ts`  | CLI entrypoint. Parses `process.argv`, dispatches to a command handler.                                                                                                             |
 | `src/commands/` | One file per command. Each handler takes a content directory (and options) and returns a status string.                                                                             |
-| `src/config/`   | Defines the `MdsiteConfig` schema, default values produced by `init`, and the `menu` parser for `mdsite.yml`'s `menu:` section.                             |
+| `src/config/`   | Defines the `MdsiteConfig` schema, default values produced by `init`, and the `menu` and `footer` parsers for `mdsite.yml`'s `menu:` and `footer:` sections.          |
 | `src/process/`  | `child-process.ts` wraps foreground and background spawning. `runtime-state.ts` writes tracked-detached runtime state (PIDs/logs) into the renderer working dir (`<server.path>`).                                 |
 | `src/renderer/` | `mdsite-nuxt.ts` is the bridge: it resolves the renderer directory, installs its dependencies if missing, writes `.env` and `content.config.yml`, and invokes the right npm script. |
 
@@ -154,6 +154,7 @@ Background runs are tracked via state files in the renderer working dir (`<serve
 - `src/config/mdsite-config.ts` — the TypeScript schema and parser.
 - `src/config/default-mdsite-config.ts` — defaults applied by `init`, including theme palette and feature flags.
 - `src/config/menu.ts` — the menu parser. Menu items are markdown file references; submenu keys (like `features:` or `develop:`) double as folder prefixes, so `features:` with item `bible-tooltips` resolves to `docs/features/bible-tooltips.md`.
+- `src/config/mdsite-config.ts` `footer:` — the footer parser. The footer is a flat `string[]` of markdown file names (no `.md`, no nesting). Files listed here are also removed from the generated `menu` tree by `mdsite-nuxt/scripts/generate-indices.ts` (see `filterTreeByExcludedPaths`); the two parsers must therefore stay in sync.
 
 ## 6. Build artifacts and runtime state
 

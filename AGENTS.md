@@ -31,14 +31,13 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 
 - `src/index.ts`: CLI entrypoint and command dispatch.
 - `src/commands/`: Command handlers.
-- `src/config/`: `mdsite.yml` schema, defaults, and menu parsing.
+- `src/config/`: `mdsite.yml` schema, defaults, and menu/footer parsing.
 - `src/process/`: Foreground/background child-process helpers and runtime-state (writes tracked-detached PIDs/logs into the renderer working dir, not `.mdsite-runtime`).
 - `src/renderer/mdsite-nuxt.ts`: Renderer prep and run helpers.
 - `mdsite init`: writes `mdsite.yml`, `.nvmrc`, a managed `.gitignore`, and writes the renderer `package.json` + `package-lock.json` into `.mdsite/` from the bundled renderer with the project identity rewritten: `package.json` `name` = sanitized content-dir basename, `description` = `site.name`; both `package-lock.json` `name` fields are synced to match so `npm ci` won't dirty the committed lockfile.
 - `mdsite-nuxt/`: Nuxt renderer, pulled in as a git submodule pinned in `.gitmodules` (source: https://github.com/life-and-dev/mdsite-nuxt).
 - `package.json`: Root CLI package config.
 - `docs/develop.md`: Contributor-facing architecture overview. Read this before changing CLI/renderer integration.
-
 ## Directory model
 
 - **Content dir**: holds only user-authored files (`*.md`, `mdsite.yml`, `.nvmrc`, `.gitignore`, the user's favicon source). The CLI writes no generated non-config files to the content root.

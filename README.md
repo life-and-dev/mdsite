@@ -96,6 +96,7 @@ All commands operate on the **current working directory** as the content/project
 | `favicon`                | empty string                             | Source image path relative to the content directory (any format `sharp` supports). The renderer generates derived favicons into the renderer's `public/` dir.                |
 | `features.bibleTooltips` | `true`                                   | Enables renderer Bible tooltip support.                                                                                                                                      |
 | `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                                        |
+| `footer`                 | empty array                              | Flat list of markdown file names (no `.md`) that appear in the bottom bar. Files listed here are excluded from `menu`.                                                         |
 | `menu`                   | derived from markdown files              | Menu structure for the sidebar navigation.                                                                                                                                   |
 | `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                                              |
 | `server.path`            | `.mdsite`                                | The renderer working directory, relative to the content directory. End-user runs materialize the bundled renderer here; in the dev repo the bundled submodule runs in place. |
@@ -122,6 +123,9 @@ We have prepared a series of tutorials to guide you through every aspect of work
 
 - **[Menu Configuration](https://life-and-dev.github.io/mdsite/menu)**  
   Learn the syntax of the `menu` section in `mdsite.yml`.
+
+- **[Footer Configuration](https://life-and-dev.github.io/mdsite/footer)**  
+  Learn how to populate the bottom bar with the `footer` section in `mdsite.yml`.
 
 - **[Generating Favicons](https://life-and-dev.github.io/mdsite/favicon)**  
   Learn how to configure a favicon path in `mdsite.yml`.

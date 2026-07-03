@@ -137,6 +137,7 @@ When adding or changing CLI code, add or update the matching `*.test.ts` file:
 | New command in `src/commands/` | New `src/commands/<name>.test.ts` plus a dispatch case in `src/index.test.ts`. |
 | New `mdsite.yml` field | `src/config/mdsite-config.test.ts` (parsing) and `src/config/default-mdsite-config.test.ts` (defaults). |
 | New menu shape | `src/config/menu.test.ts`. |
+| New `footer:` config | `src/config/mdsite-config.test.ts` (parsing) and `src/config/default-mdsite-config.test.ts` (defaults). The renderer's `_footer.json` generation and menu dedup are covered by `mdsite-nuxt/scripts/generate-indices.test.ts`. |
 | New runtime-state behaviour | `src/process/runtime-state.test.ts`. |
 | New renderer preparation step | `src/renderer/mdsite-nuxt.test.ts`. |
 | New GitHub workflow template | `src/commands/workflows.test.ts`. |

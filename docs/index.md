@@ -96,6 +96,7 @@ All commands operate on the **current working directory** as the content/project
 | `favicon`                | empty string                             | Source image path relative to the content directory (any format `sharp` supports). The renderer generates derived favicons into the renderer's `public/` dir.                |
 | `features.bibleTooltips` | `true`                                   | Enables renderer Bible tooltip support.                                                                                                                                      |
 | `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                                        |
+| `footer`                 | empty array                              | Flat list of markdown file names (no `.md`) that appear in the bottom bar. Files listed here are excluded from `menu`.                                                         |
 | `menu`                   | derived from markdown files              | Menu structure for the sidebar navigation.                                                                                                                                   |
 | `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                                              |
 | `server.path`            | `.mdsite`                                | The renderer working directory, relative to the content directory. End-user runs materialize the bundled renderer here; in the dev repo the bundled submodule runs in place. |
@@ -104,6 +105,7 @@ All commands operate on the **current working directory** as the content/project
 | `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                                            |
 | `themes.light.colors`    | built-in palette                         | Light theme colour overrides.                                                                                                                                                |
 | `themes.dark.colors`     | built-in palette                         | Dark theme colour overrides.                                                                                                                                                 |
+
 ## Tutorials
 
 We have prepared a series of tutorials to guide you through every aspect of working with this project.
@@ -119,6 +121,9 @@ We have prepared a series of tutorials to guide you through every aspect of work
 
 - **[Menu Configuration](menu)**  
   Learn the syntax of the `menu` section in `mdsite.yml`.
+
+- **[Footer Configuration](footer)**  
+  Learn how to put links in the bottom bar with the `footer` section in `mdsite.yml`.
 
 - **[Generating Favicons](favicon)**  
   Learn how to configure a favicon path in `mdsite.yml`.
@@ -141,6 +146,7 @@ We have prepared a series of tutorials to guide you through every aspect of work
 | `favicon`                | empty string                             | Source image path relative to the content directory (any format `sharp` supports). The renderer generates derived favicons into the renderer's `public/` dir.                |
 | `features.bibleTooltips` | `true`                                   | Enables renderer Bible tooltip support.                                                                                                                                      |
 | `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                                        |
+| `footer`                 | empty array                              | Flat list of markdown file names (no `.md`) that appear in the bottom bar. Files listed here are excluded from `menu`.                                                         |
 | `menu`                   | derived from markdown files              | Menu structure for the sidebar navigation.                                                                                                                                   |
 | `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                                              |
 | `server.path`            | `.mdsite`                                | The renderer working directory, relative to the content directory. End-user runs materialize the bundled renderer here; in the dev repo the bundled submodule runs in place. |
@@ -149,7 +155,6 @@ We have prepared a series of tutorials to guide you through every aspect of work
 | `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                                            |
 | `themes.light.colors`    | built-in palette                         | Light theme colour overrides.                                                                                                                                                |
 | `themes.dark.colors`     | built-in palette                         | Dark theme colour overrides.                                                                                                                                                 |
-
 ## For Developers
 
 `mdsite` is a thin TypeScript CLI that orchestrates a Nuxt renderer shipped as a git submodule. If you want to contribute, customize the renderer, run the test suites, or cut a release, the developer documentation lives at:
