@@ -49,18 +49,11 @@ export async function ensureConfiguredRendererInstalled(contentDir: string, conf
 
   await ensureDirectoryIsAvailable(rendererDir)
 
-  const preserveFiles = new Set<string>()
-  for (const name of ['package.json', 'package-lock.json']) {
-    if (await pathExists(path.join(rendererDir, name))) {
-      preserveFiles.add(name)
-    }
-  }
-
   if (rendererDir !== checkedInRendererDir) {
     await cp(checkedInRendererDir, rendererDir, {
       recursive: true,
       force: true,
-      filter: (sourcePath) => shouldCopyRendererPath(sourcePath, preserveFiles)
+      filter: shouldCopyRendererPath
     })
   }
 
@@ -189,15 +182,9 @@ async function ensureDirectoryIsAvailable(directoryPath: string): Promise<void> 
   }
 }
 
-function shouldCopyRendererPath(sourcePath: string, preserveFiles: Set<string>): boolean {
+function shouldCopyRendererPath(sourcePath: string): boolean {
   const baseName = path.basename(sourcePath)
-  if (rendererCopyIgnoredNames.has(baseName)) {
-    return false
-  }
-  if ((baseName === 'package.json' || baseName === 'package-lock.json') && preserveFiles.has(baseName)) {
-    return false
-  }
-  return true
+  return !rendererCopyIgnoredNames.has(baseName)
 }
 
 async function writeEnvFile(rendererDir: string, env: NodeJS.ProcessEnv): Promise<void> {

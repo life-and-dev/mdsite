@@ -54,7 +54,7 @@ description: Use this skill to understand how to install, setup, run or deploy p
    ```bash
    node /path/to/md-site/dist/index.js start -d
    ```
-   Expect: background renderer log at `.mdsite-runtime/start.log`.
+   Expect: background renderer log at `.mdsite-runtime/live.log`.
 
 2. Generate static output for preview or deploy.
    ```bash

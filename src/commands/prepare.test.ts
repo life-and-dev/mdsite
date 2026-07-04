@@ -58,12 +58,6 @@ describe('runPrepareGithubCommand', () => {
     expect(workflow).toContain('runs-on: ubuntu-latest')
     expect(workflow).toContain('submodules: true')
     expect(workflow).toContain('node-version: "24"')
-    expect(workflow).toContain('cache: npm')
-    expect(workflow).toContain("cache-dependency-path: ${{ steps.detect.outputs.is_source == 'true' && 'mdsite-nuxt/package-lock.json' || '.mdsite/package-lock.json' }}")
-    expect(workflow).toContain('actions/cache@v5')
-    expect(workflow).toContain("hashFiles('.mdsite/package-lock.json', 'mdsite-nuxt/package-lock.json')")
-    expect(workflow).toContain('.mdsite/node_modules')
-    expect(workflow).toContain('mdsite-nuxt/node_modules')
     expect(workflow).toContain('NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/')
     expect(workflow).toContain('NUXT_CONTENT_PATH: "${{ github.workspace }}"')
     expect(workflow).toContain('CONTENT_DIR: "${{ github.workspace }}"')
@@ -75,6 +69,15 @@ describe('runPrepareGithubCommand', () => {
     expect(workflow).toContain('actions/upload-pages-artifact@v5')
     expect(workflow).toContain('actions/deploy-pages@v5')
     expect(workflow).not.toContain('working-directory:')
+    // CI build installs dependencies on every run; no cache (the .mdsite/package-lock.json
+    // committed in pre-refactor mdsite versions no longer exists, and the cache key was
+    // not specific to the CLI version anyway).
+    expect(workflow).not.toContain('cache: npm')
+    expect(workflow).not.toContain('cache-dependency-path:')
+    expect(workflow).not.toContain('actions/cache@')
+    expect(workflow).not.toContain('hashFiles(')
+    expect(workflow).not.toContain('.mdsite/node_modules')
+    expect(workflow).not.toContain('mdsite-nuxt/node_modules')
 
     expect(runForegroundMock).toHaveBeenCalledTimes(1)
     expect(runForegroundMock).toHaveBeenCalledWith(
@@ -121,16 +124,16 @@ describe('runPrepareGithubCommand', () => {
     expect(workflow).toContain('MDSITE_CONFIG_PATH: "${{ github.workspace }}/mdsite.yml"')
     expect(workflow).toContain('submodules: true')
     expect(workflow).toContain('node-version: "24"')
-    expect(workflow).toContain('cache: npm')
-    expect(workflow).toContain("cache-dependency-path: ${{ steps.detect.outputs.is_source == 'true' && 'mdsite-nuxt/package-lock.json' || '.mdsite/package-lock.json' }}")
-    expect(workflow).toContain('actions/cache@v5')
-    expect(workflow).toContain("hashFiles('.mdsite/package-lock.json', 'mdsite-nuxt/package-lock.json')")
     expect(workflow).toContain('NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/')
     expect(workflow).toContain('npx -y @life-and-dev/mdsite generate')
     expect(workflow).toContain('node bin/mdsite.js generate')
     expect(workflow).toContain('npm run build')
     expect(workflow).toContain('path: "./build/site/public"')
     expect(workflow).not.toContain('working-directory:')
+    expect(workflow).not.toContain('cache: npm')
+    expect(workflow).not.toContain('cache-dependency-path:')
+    expect(workflow).not.toContain('actions/cache@')
+    expect(workflow).not.toContain('hashFiles(')
     expect(runForegroundMock).toHaveBeenCalledWith(
       'npm',
       ['run', 'prepare:renderer'],
@@ -168,16 +171,16 @@ describe('runPrepareGithubCommand', () => {
     expect(await readFile(path.join(rendererDir, 'package.json'), 'utf8')).toContain('mdsite-nuxt')
     expect(workflow).toContain('submodules: true')
     expect(workflow).toContain('node-version: "24"')
-    expect(workflow).toContain('cache: npm')
-    expect(workflow).toContain("cache-dependency-path: ${{ steps.detect.outputs.is_source == 'true' && 'mdsite-nuxt/package-lock.json' || '.mdsite/package-lock.json' }}")
-    expect(workflow).toContain('actions/cache@v5')
-    expect(workflow).toContain("hashFiles('.mdsite/package-lock.json', 'mdsite-nuxt/package-lock.json')")
     expect(workflow).toContain('NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/')
     expect(workflow).toContain('npx -y @life-and-dev/mdsite generate')
     expect(workflow).toContain('node bin/mdsite.js generate')
     expect(workflow).toContain('npm run build')
     expect(workflow).toContain('path: "./.output/public"')
     expect(workflow).not.toContain('working-directory:')
+    expect(workflow).not.toContain('cache: npm')
+    expect(workflow).not.toContain('cache-dependency-path:')
+    expect(workflow).not.toContain('actions/cache@')
+    expect(workflow).not.toContain('hashFiles(')
     expect(runForegroundMock).toHaveBeenCalledWith('npm', ['ci'], rendererDir, process.env)
     expect(runForegroundMock).toHaveBeenCalledWith(
       'npm',

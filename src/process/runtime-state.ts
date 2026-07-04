@@ -4,6 +4,11 @@ import type { MdsiteConfig } from '../config/mdsite-config.js'
 
 export type RuntimeProcessKind = 'start' | 'preview'
 
+const RUNTIME_BASENAME: Record<RuntimeProcessKind, string> = {
+  start: 'live',
+  preview: 'static'
+}
+
 export interface RuntimeProcessState {
   kind: RuntimeProcessKind
   pid: number
@@ -19,7 +24,7 @@ export function getRuntimeDir(configDir: string, config: MdsiteConfig): string {
 }
 
 export function getRuntimeLogPath(configDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): string {
-  return path.join(getRuntimeDir(configDir, config), `${kind}.log`)
+  return path.join(getRuntimeDir(configDir, config), `${RUNTIME_BASENAME[kind]}.log`)
 }
 
 export async function readRuntimeState(configDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): Promise<RuntimeProcessState | null> {
@@ -51,5 +56,5 @@ export function isProcessRunning(pid: number): boolean {
 }
 
 function getStatePath(configDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): string {
-  return path.join(getRuntimeDir(configDir, config), `${kind}.json`)
+  return path.join(getRuntimeDir(configDir, config), `${RUNTIME_BASENAME[kind]}.json`)
 }

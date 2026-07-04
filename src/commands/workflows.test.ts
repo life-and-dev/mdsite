@@ -118,7 +118,7 @@ describe('CLI workflow coverage', () => {
   it('runInitCommand creates a valid mdsite.yml and pins Node 24 via .nvmrc', async () => {
     const contentDir = await createContentDir()
 
-    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc in ${contentDir}.`)
 
     const configPath = path.join(contentDir, 'mdsite.yml')
     const configText = await readFile(configPath, 'utf8')
@@ -133,19 +133,10 @@ describe('CLI workflow coverage', () => {
     const gitignorePath = path.join(contentDir, '.gitignore')
     const gitignoreText = await readFile(gitignorePath, 'utf8')
     expect(gitignoreText).toContain('.mdsite/*')
-    expect(gitignoreText).toContain('!.mdsite/package.json')
-    expect(gitignoreText).toContain('!.mdsite/package-lock.json')
     expect(gitignoreText).toContain('.output/')
     expect(gitignoreText).toContain('# end mdsite')
-
-    const rendererPkgText = await readFile(path.join(contentDir, '.mdsite', 'package.json'), 'utf8')
-    const rendererPkg = JSON.parse(rendererPkgText) as { name: string; description: string }
-    // The renderer package identity reflects the project: name = sanitized content-dir basename,
-    // description = the website name from mdsite.yml (not the bundled renderer's generic identity).
-    expect(rendererPkg.name).toBe(path.basename(contentDir).toLowerCase())
-    expect(rendererPkg.description).toBe('Workspace Docs')
-
-    await expect(access(path.join(contentDir, '.mdsite', 'package-lock.json'))).resolves.toBeUndefined()
+    expect(gitignoreText).not.toContain('!.mdsite/package.json')
+    expect(gitignoreText).not.toContain('!.mdsite/package-lock.json')
   })
 
   it('runInitCommand preserves existing user .gitignore entries while adding mdsite managed patterns', async () => {
@@ -154,16 +145,14 @@ describe('CLI workflow coverage', () => {
     const seededGitignore = [
       'secret.env',
       'build/',
-      '# mdsite: generated state (renderer working dir; lockfile pair committed for reproducible CI)',
+      '# mdsite: generated state (renderer working dir; runtime artifacts and materialized renderer)',
       '.mdsite/*',
-      '!.mdsite/package.json',
-      '!.mdsite/package-lock.json',
       '.output/',
       '# end mdsite'
     ].join('\n') + '\n'
     await writeFile(path.join(contentDir, '.gitignore'), seededGitignore, 'utf8')
 
-    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc in ${contentDir}.`)
 
     const gitignoreText = await readFile(path.join(contentDir, '.gitignore'), 'utf8')
     // User entries preserved verbatim
@@ -171,10 +160,10 @@ describe('CLI workflow coverage', () => {
     expect(gitignoreText).toContain('build/')
     // Managed block present
     expect(gitignoreText).toContain('.mdsite/*')
-    expect(gitignoreText).toContain('!.mdsite/package.json')
-    expect(gitignoreText).toContain('!.mdsite/package-lock.json')
     expect(gitignoreText).toContain('.output/')
     expect(gitignoreText).toContain('# end mdsite')
+    expect(gitignoreText).not.toContain('!.mdsite/package.json')
+    expect(gitignoreText).not.toContain('!.mdsite/package-lock.json')
     // Idempotent: exactly ONE managed header, ONE end marker, ONE of each required pattern (no duplication from the seeded prior block)
     expect(gitignoreText.split('# mdsite:').length - 1).toBe(1)
     expect(gitignoreText.split('# end mdsite').length - 1).toBe(1)
@@ -189,16 +178,14 @@ describe('CLI workflow coverage', () => {
     // verbatim instead of stripping it globally and re-emitting it only inside the block.
     const seededGitignore = [
       '.output/',
-      '# mdsite: generated state (renderer working dir; lockfile pair committed for reproducible CI)',
+      '# mdsite: generated state (renderer working dir; runtime artifacts and materialized renderer)',
       '.mdsite/*',
-      '!.mdsite/package.json',
-      '!.mdsite/package-lock.json',
       '.output/',
       '# end mdsite'
     ].join('\n') + '\n'
     await writeFile(path.join(contentDir, '.gitignore'), seededGitignore, 'utf8')
 
-    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc in ${contentDir}.`)
 
     const gitignoreText = await readFile(path.join(contentDir, '.gitignore'), 'utf8')
     // The user's coincidental `.output/` line is preserved outside the block AND re-emitted inside it,
@@ -215,16 +202,14 @@ describe('CLI workflow coverage', () => {
     // Corrupted .gitignore: a managed block missing its end marker (e.g. a truncated prior init).
     const seededGitignore = [
       'secret.env',
-      '# mdsite: generated state (renderer working dir; lockfile pair committed for reproducible CI)',
+      '# mdsite: generated state (renderer working dir; runtime artifacts and materialized renderer)',
       '.mdsite/*',
-      '!.mdsite/package.json',
-      '!.mdsite/package-lock.json',
       '.output/',
       'build/'
     ].join('\n') + '\n'
     await writeFile(path.join(contentDir, '.gitignore'), seededGitignore, 'utf8')
 
-    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc in ${contentDir}.`)
 
     const gitignoreText = await readFile(path.join(contentDir, '.gitignore'), 'utf8')
     expect(gitignoreText).toContain('secret.env')
@@ -240,15 +225,13 @@ describe('CLI workflow coverage', () => {
     const seededGitignore = [
       'secret.env',
       '.mdsite/*',
-      '!.mdsite/package.json',
-      '!.mdsite/package-lock.json',
       '.output/',
       '# end mdsite',
       'build/'
     ].join('\n') + '\n'
     await writeFile(path.join(contentDir, '.gitignore'), seededGitignore, 'utf8')
 
-    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc, .mdsite/package.json, .mdsite/package-lock.json in ${contentDir}.`)
+    await expect(runInitCommand(contentDir)).resolves.toBe(`Created mdsite.yml, .nvmrc in ${contentDir}.`)
 
     const gitignoreText = await readFile(path.join(contentDir, '.gitignore'), 'utf8')
     expect(gitignoreText).toContain('secret.env')

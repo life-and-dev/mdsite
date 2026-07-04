@@ -43,6 +43,8 @@ describe('runtime-state helpers', () => {
     expect(getRuntimeDir('/content', config)).toBe(path.join('/content', '.renderer'))
     expect(getRuntimeLogPath('/content', config, 'preview')).toBe(path.join('/content', '.renderer', 'static.log'))
     expect(getRuntimeLogPath('/content', config, 'start')).toBe(path.join('/content', '.renderer', 'live.log'))
+    expect(getRuntimeLogPath('/content', config, 'preview')).not.toBe(path.join('/content', '.renderer', 'preview.log'))
+    expect(getRuntimeLogPath('/content', config, 'start')).not.toBe(path.join('/content', '.renderer', 'start.log'))
   })
 
   it('writes, reads, and clears runtime state', async () => {
