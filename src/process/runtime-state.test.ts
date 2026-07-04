@@ -20,7 +20,7 @@ const config: MdsiteConfig = {
   features: { bibleTooltips: true, sourceEdit: true },
   menu: [],
   footer: [],
-  server: { output: '.output', path: '.renderer', repo: 'repo' },
+  server: { output: '.output', path: '.renderer', repo: 'repo', gitBranch: 'main' },
   site: { canonical: '', name: 'Docs' },
   themes: { light: { colors: {} }, dark: { colors: {} } }
 }

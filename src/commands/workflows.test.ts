@@ -73,6 +73,7 @@ async function writeConfig(contentDir: string, overrides: Partial<MdsiteConfig> 
       output: '.output',
       path: '.renderer',
       repo: 'https://github.com/life-and-dev/mdsite',
+      gitBranch: 'main',
       ...overrides.server
     },
     site: {
@@ -297,7 +298,8 @@ describe('CLI workflow coverage', () => {
       server: {
         output: 'public/site',
         path: '.renderer',
-        repo: 'https://github.com/life-and-dev/mdsite'
+        repo: 'https://github.com/life-and-dev/mdsite',
+        gitBranch: 'main'
       }
     })
 

@@ -48,7 +48,7 @@ const baseConfig = {
   features: { bibleTooltips: true, sourceEdit: true },
   footer: [],
   menu: [],
-  server: { output: '.output', path: '.renderer', repo: 'repo' },
+  server: { output: '.output', path: '.renderer', repo: 'repo', gitBranch: 'main' },
   site: { canonical: '', name: 'Docs' },
   themes: {
     light: { colors: { primary: '#111111' } },
