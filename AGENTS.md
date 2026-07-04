@@ -14,6 +14,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 - **`mdsite static`**: Preview generated output after `generate` in the foreground.
 - **`mdsite static -d` / `mdsite static --detached`**: Start tracked background preview and log to `<server.path>/static.log`.
 - **`mdsite stop`**: Stop tracked detached `start` and `preview` processes.
+- **`mdsite clean`**: Delete the configured `<server.path>` (e.g. `.mdsite/`) and `<server.output>` (e.g. `.output/`) under the content directory. Requires `mdsite.yml`; refuses to run while a tracked start/preview process is alive (run `mdsite stop` first). Reports `Nothing to clean in <dir>.` if neither path exists.
 - **`mdsite prepare github`**: Generate `.github/workflows/deploy.yml` for this content dir.
 
 ## Core flow or states
@@ -24,7 +25,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 - `start` and `preview` run in the foreground with terminal output; closing the terminal or interrupting the command stops them.
 - `start -d` / `start --detached` and `preview -d` / `preview --detached` are tracked background processes.
 - `preview` expects a prior `generate` run.
-- Missing renderer `node_modules` triggers `npm install` in renderer dir.
+- Missing renderer `node_modules` triggers `npm ci` (when a lockfile is present) or `npm install` in renderer dir. The lockfile is the one materialized from the bundled `mdsite-nuxt/` source, so the installed version is always pinned to the CLI release.
 - CLI writes compatibility artifacts during orchestration and runtime artifacts for tracked background processes.
 
 ## Architecture map
@@ -34,7 +35,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 - `src/config/`: `mdsite.yml` schema, defaults, and menu/footer parsing.
 - `src/process/`: Foreground/background child-process helpers and runtime-state (writes tracked-detached PIDs/logs into the renderer working dir, not `.mdsite-runtime`).
 - `src/renderer/mdsite-nuxt.ts`: Renderer prep and run helpers.
-- `mdsite init`: writes `mdsite.yml`, `.nvmrc`, a managed `.gitignore`, and writes the renderer `package.json` + `package-lock.json` into `.mdsite/` from the bundled renderer with the project identity rewritten: `package.json` `name` = sanitized content-dir basename, `description` = `site.name`; both `package-lock.json` `name` fields are synced to match so `npm ci` won't dirty the committed lockfile.
+- `mdsite init`: writes `mdsite.yml`, `.nvmrc`, and a managed `.gitignore`.
 - `mdsite-nuxt/`: Nuxt renderer, pulled in as a git submodule pinned in `.gitmodules` (source: https://github.com/life-and-dev/mdsite-nuxt).
 - `package.json`: Root CLI package config.
 - `docs/develop.md`: Contributor-facing architecture overview. Read this before changing CLI/renderer integration.

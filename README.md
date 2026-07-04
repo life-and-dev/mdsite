@@ -22,32 +22,28 @@ You write Markdown. For example, your content directory with a few pages and a l
 
 ```yaml
 my-docs/
-└── content
-    ├── index.md
-    ├── about.md
-    ├── blog/
-    │   ├── 2026-01-hello.md
-    │   └── 2026-03-release.md
-    └── logo.png
+├── index.md
+├── about.md
+├── blog/
+│   ├── 2026-01-hello.md
+│   └── 2026-03-release.md
+└── logo.png
 ```
 
 Run the `mdsite static` in your repo to generate the static pages:
 
 ```yaml
 my-docs/
-├── content
-│   ├── index.md
-│   ├── about.md
-│   ├── blog/
-│   │   ├── 2026-01-hello.md
-│   │   └── 2026-03-release.md
-│   └── logo.png
+├── index.md
+├── about.md
+├── blog/
+│   ├── 2026-01-hello.md
+│   └── 2026-03-release.md
+├── logo.png
 ├── mdsite.yml                  # site configuration
-├── package.json                # package configuration
-├── package-lock.json           # package lock
 ├── .mdsite/                    # renderer working dir (gitignored)
 │   ├── mdsite.log              # detached webserver logs
-│   └── ...                     # Other Nuxt render files
+│   └── ...                     # Other Node and Nuxt render files
 └── .output/                    # deployable static site
     └── public/
         ├── index.html          
@@ -62,9 +58,6 @@ my-docs/
         ├── favicon.ico         
         └── ...
 ```
-
-> [!NOTE]
-> You can technically mix your content and project files in the same directory, but it's easier to maintain content and generated files separately.
 
 ## Install
 

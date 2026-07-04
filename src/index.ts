@@ -3,6 +3,7 @@
 import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 
+import { runCleanCommand } from './commands/clean.js'
 import { runGenerateCommand } from './commands/generate.js'
 import { runInitCommand } from './commands/init.js'
 import { runPrepareGithubCommand } from './commands/prepare.js'
@@ -19,17 +20,19 @@ Usage:
   mdsite generate
   mdsite static|static [-d|--detached] [--host [addr]]
   mdsite stop
+  mdsite clean
   mdsite version
   mdsite prepare github
 
 Commands:
   init      Ensure mdsite files exist in the current directory (idempotent; creates missing files, never overwrites)
-  start     Start the checked-in mdsite-nuxt renderer for local content (alias: live)
+  live      Start the checked-in mdsite-nuxt renderer for local content (alias: live)
   generate  Build static output through mdsite-nuxt
-  preview   Preview the generated site through mdsite-nuxt (alias: static)
+  static    Preview the generated site through mdsite-nuxt (alias: static)
   stop      Stop tracked start and preview processes
   version   Print the CLI package version
   prepare   Generate the GitHub Pages workflow for this content directory
+  clean     Delete the renderer working dir and the generated output (refuses while a tracked process is running)
 
 Options:
   -h, --help       Show this help output
@@ -135,6 +138,9 @@ async function main(): Promise<void> {
       return
     case 'stop':
       console.log(await runStopCommand(currentDirectory))
+      return
+    case 'clean':
+      console.log(await runCleanCommand(currentDirectory))
       return
     case 'version':
     case '--version':

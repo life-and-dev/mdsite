@@ -22,32 +22,28 @@ You write Markdown. For example, your content directory with a few pages and a l
 
 ```yaml
 my-docs/
-└── content
-    ├── index.md
-    ├── about.md
-    ├── blog/
-    │   ├── 2026-01-hello.md
-    │   └── 2026-03-release.md
-    └── logo.png
+├── index.md
+├── about.md
+├── blog/
+│   ├── 2026-01-hello.md
+│   └── 2026-03-release.md
+└── logo.png
 ```
 
 Run the `mdsite static` in your repo to generate the static pages:
 
 ```yaml
 my-docs/
-├── content
-│   ├── index.md
-│   ├── about.md
-│   ├── blog/
-│   │   ├── 2026-01-hello.md
-│   │   └── 2026-03-release.md
-│   └── logo.png
+├── index.md
+├── about.md
+├── blog/
+│   ├── 2026-01-hello.md
+│   └── 2026-03-release.md
+├── logo.png
 ├── mdsite.yml                  # site configuration
-├── package.json                # package configuration
-├── package-lock.json           # package lock
 ├── .mdsite/                    # renderer working dir (gitignored)
 │   ├── mdsite.log              # detached webserver logs
-│   └── ...                     # Other Nuxt render files
+│   └── ...                     # Other Node and Nuxt render files
 └── .output/                    # deployable static site
     └── public/
         ├── index.html          
@@ -81,7 +77,8 @@ The following commands will be available after installation:
 3. `mdsite generate` : Build static output.
 4. `mdsite static` : Start the static website - preview how it would behave on static webserver like Cloudflare Pages.
 5. `mdsite stop` : Stop tracked detached `mdsite live -d` or `mdsite static -d` processes.
-6. `mdsite prepare github` : Generate a Github Pages deployment workflow.
+6. `mdsite clean` : Delete the renderer working dir and the generated output (refuses while a tracked process is running).
+7. `mdsite prepare github` : Generate a Github Pages deployment workflow.
 
 After install, the `mdsite` command is available from any content directory.
 

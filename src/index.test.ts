@@ -8,12 +8,15 @@ vi.mock('./commands/start.js', () => ({ runStartCommand: vi.fn() }))
 vi.mock('./commands/generate.js', () => ({ runGenerateCommand: vi.fn() }))
 vi.mock('./commands/preview.js', () => ({ runPreviewCommand: vi.fn() }))
 vi.mock('./commands/stop.js', () => ({ runStopCommand: vi.fn() }))
+vi.mock('./commands/clean.js', () => ({ runCleanCommand: vi.fn() }))
 vi.mock('./commands/prepare.js', () => ({ runPrepareGithubCommand: vi.fn() }))
 
+import { runCleanCommand } from './commands/clean.js'
 import { runPrepareGithubCommand } from './commands/prepare.js'
 import { runPreviewCommand } from './commands/preview.js'
 import { runStartCommand } from './commands/start.js'
 
+const runCleanCommandMock = vi.mocked(runCleanCommand)
 const runPrepareGithubCommandMock = vi.mocked(runPrepareGithubCommand)
 const runPreviewCommandMock = vi.mocked(runPreviewCommand)
 const runStartCommandMock = vi.mocked(runStartCommand)
@@ -60,6 +63,7 @@ describe('root CLI entrypoint', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite - local-first CLI for mdsite-nuxt'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('prepare github'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite static|static [-d|--detached]'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('mdsite clean'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('-d, --detached'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('--host [addr]'))
     expect(errorSpy).not.toHaveBeenCalled()
@@ -245,6 +249,18 @@ describe('root CLI entrypoint', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(logSpy).toHaveBeenCalledWith(await readRootPackageVersion())
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('dispatches mdsite clean to the clean command handler', async () => {
+    process.argv = ['node', 'mdsite', 'clean']
+    runCleanCommandMock.mockResolvedValueOnce('Removed .mdsite and .output from /content.')
+
+    await import('./index.js')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(runCleanCommandMock).toHaveBeenCalledWith(process.cwd())
+    expect(logSpy).toHaveBeenCalledWith('Removed .mdsite and .output from /content.')
     expect(errorSpy).not.toHaveBeenCalled()
   })
 

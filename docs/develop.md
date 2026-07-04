@@ -117,7 +117,7 @@ graph TB
 Renderer resolution is **dev-aware**:
 
 - **Dev repo / submodule in place** — when the bundled renderer is the local `mdsite-nuxt/` submodule and is NOT inside `node_modules` (the normal case in this repo), the CLI runs it **in place**, so live-editing of `mdsite-nuxt/` keeps working.
-- **End users (`node_modules`)** — when the bundled renderer lives inside `node_modules` (an `npm install` / `npx` / CI run), the CLI **materializes** a copy into `<content-dir>/<server.path>` (default `.mdsite`) and runs there. The materialize copy preserves an existing committed `<server.path>/package.json` and `<server.path>/package-lock.json` so the lockfile pair can be version-controlled.
+- **End users (`node_modules`)** — when the bundled renderer lives inside `node_modules` (an `npm install` / `npx` / CI run), the CLI **materializes** a copy into `<content-dir>/<server.path>` (default `.mdsite`) and runs there.
 - If the resolved renderer directory has no `node_modules`, the CLI runs `npm install` in it.
 
 `mdsite prepare github` never clones or pulls the renderer itself; the generated workflow is self-adapting and still expects `<server.path>` to be materializable in CI.
@@ -167,7 +167,17 @@ Background runs are tracked via state files in the renderer working dir (`<serve
 | `mdsite-nuxt/.env`               | every CLI run                    | Points the renderer at the active content directory. |
 | `mdsite-nuxt/content.config.yml` | every CLI run                    | Serialized site config consumed by the renderer.     |
 
-Most of these are gitignored. The exception is the committed lockfile pair `.<server.path>/package.json` + `.<server.path>/package-lock.json` (written by `mdsite init`); everything else under `.<server.path>/` and `.output/` is gitignored and should not be committed. The committed pair does not copy the bundled renderer's generic identity verbatim: `mdsite init` rewrites `package.json` `name` to the sanitized content-directory basename and `description` to `mdsite.yml`'s `site.name`, and syncs the same `name` into both `package-lock.json` name fields so `npm ci` won't rewrite (and dirty) the committed lockfile.
+Most of these are gitignored. `.mdsite/` is fully gitignored and the renderer source is materialized here from the bundled `mdsite-nuxt/` on every CLI run; nothing under `.<server.path>/` or `.output/` should be committed. `mdsite clean` is the user-facing way to delete `.<server.path>/` and `./<server.output>/` (default `.mdsite/` and `.output/`). It refuses to run while a tracked start/preview process is alive, so the usual pre-cleanup is `mdsite stop` (or the foreground `Ctrl+C`).
+
+### Generated CI workflow (`mdsite prepare github`)
+
+`mdsite prepare github` writes `.github/workflows/deploy.yml`. The generated workflow is **deliberately cache-free**:
+
+- No `actions/setup-node` `cache: npm` and no `actions/cache@v5` step.
+- Every CI run does a clean `npm install` via `mdsite generate`'s built-in `ensureRendererDependencies` step.
+- `mdsite generate` materializes the renderer from the bundled `mdsite-nuxt/` (creating `.mdsite/package-lock.json` from the CLI's own lockfile), then runs `npm ci` against it.
+
+**Why no cache:** The `mdsite` CLI bundles the renderer, so the dependency tree is determined by the CLI release, not by anything the user commits. A cache keyed on a non-existent user-controlled lockfile would either fail (Setup Node throws when the file is missing) or be shared across unrelated repos on the same CLI version (serving stale dependencies after a CLI upgrade). The CLI does not optimize CI install performance — that's the user's CI tuning concern. The default workflow is simple, correct, and version-agnostic.
 
 ## 7. Technology stack
 
