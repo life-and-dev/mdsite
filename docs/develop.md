@@ -161,7 +161,7 @@ Background runs are tracked via state files in the renderer working dir (`<serve
 | Path                             | Written by                       | Purpose                                              |
 | -------------------------------- | -------------------------------- | ---------------------------------------------------- |
 | `dist/`                          | `npm run build` (tsc)            | Compiled CLI loaded by `bin/mdsite.js`.              |
-| `.<server.path>/` (e.g. `.mdsite/`)              | `start -d` / `preview -d`        | Tracked-detached runtime state: `start.json`/`preview.json` (PIDs, ports) + `start.log`/`preview.log`. |
+| `.<server.path>/` (e.g. `.mdsite/`)              | `start -d` / `preview -d`        | Tracked-detached runtime state: `live.json`/`static.json` (PIDs, ports) + `live.log`/`static.log`. |
 | `.<server.path>/public/` (e.g. `.mdsite/public/`) | renderer favicon pipeline        | Generated `favicon.svg`/`favicon.ico`/`apple-touch-icon.png`/`icon-192.png`/`icon-512.png` + `site.webmanifest`. |
 | `.output/public/`                | `mdsite generate` (via renderer) | The static site, ready to deploy.                    |
 | `mdsite-nuxt/.env`               | every CLI run                    | Points the renderer at the active content directory. |

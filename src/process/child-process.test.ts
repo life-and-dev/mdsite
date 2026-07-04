@@ -49,10 +49,10 @@ describe('child-process helpers', () => {
   })
 
   it('uses the same parent-directory log setup for start background processes', async () => {
-    await expect(runBackground('npm', ['run', 'dev'], '/renderer', { TEST: '1' }, '/content/.renderer/start.log')).resolves.toBe(1234)
+    await expect(runBackground('npm', ['run', 'dev'], '/renderer', { TEST: '1' }, '/content/.renderer/live.log')).resolves.toBe(1234)
 
     expect(mkdirMock).toHaveBeenCalledWith('/content/.renderer', { recursive: true })
-    expect(openMock).toHaveBeenCalledWith('/content/.renderer/start.log', 'a')
+    expect(openMock).toHaveBeenCalledWith('/content/.renderer/live.log', 'a')
   })
 
   it('opens preview URLs in the default browser on supported platforms', async () => {

@@ -269,7 +269,7 @@ describe('command helpers', () => {
     startRendererInBackgroundMock.mockResolvedValueOnce(777)
 
     await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite live running in background (PID 777). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 777). Log: /content/.renderer/live.log'
     )
     expect(ensureRendererDependenciesMock).toHaveBeenCalledWith('/renderer')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
@@ -294,7 +294,7 @@ describe('command helpers', () => {
     startRendererInBackgroundMock.mockResolvedValueOnce(778)
 
     await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite live running in background (PID 778). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 778). Log: /content/.renderer/live.log'
     )
     expect(waitForTcpPortMock).toHaveBeenCalledWith('start.local', 4321)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://start.local:4321')
@@ -306,7 +306,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockResolvedValueOnce(false)
 
     await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite live running in background (PID 779). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 779). Log: /content/.renderer/live.log'
     )
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
@@ -318,7 +318,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockRejectedValueOnce(new Error('connect failed'))
 
     await expect(runStartCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite live running in background (PID 780). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 780). Log: /content/.renderer/live.log'
     )
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
   })
@@ -339,13 +339,13 @@ describe('command helpers', () => {
     startRendererInBackgroundMock.mockResolvedValueOnce(781)
 
     await expect(runStartCommand('/content', { detached: true, host: '0.0.0.0' })).resolves.toBe(
-      'mdsite live running in background (PID 781). Log: /content/.renderer/start.log'
+      'mdsite live running in background (PID 781). Log: /content/.renderer/live.log'
     )
     expect(startRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       NUXT_HOST: '0.0.0.0',
       HOST: '0.0.0.0',
       NITRO_HOST: '0.0.0.0'
-    }), '/content/.renderer/start.log')
+    }), '/content/.renderer/live.log')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('0.0.0.0', 3000)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://0.0.0.0:3000')
   })
@@ -386,7 +386,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(888)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite static running in background (PID 888). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 888). URL: http://localhost:3000 Log: /content/.renderer/static.log'
     )
     expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
     expect(ensurePreviewArtifactsMock.mock.invocationCallOrder[0]).toBeGreaterThan(ensureRendererDependenciesMock.mock.invocationCallOrder[0] ?? 0)
@@ -398,7 +398,7 @@ describe('command helpers', () => {
       PORT: '3000',
       NITRO_HOST: 'localhost',
       NITRO_PORT: '3000'
-    }), '/content/.renderer/preview.log')
+    }), '/content/.renderer/static.log')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
     expect(waitForTcpPortMock.mock.invocationCallOrder[0]).toBeGreaterThan(writeRuntimeStateMock.mock.invocationCallOrder[0] ?? 0)
     expect(openUrlInBrowserMock.mock.invocationCallOrder[0]).toBeGreaterThan(waitForTcpPortMock.mock.invocationCallOrder[0] ?? 0)
@@ -420,7 +420,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(999)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite static running in background (PID 999). URL: http://preview.local:4321 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 999). URL: http://preview.local:4321 Log: /content/.renderer/static.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       HOST: 'preview.local',
@@ -429,7 +429,7 @@ describe('command helpers', () => {
       NUXT_PORT: '4321',
       NITRO_HOST: 'preview.local',
       NITRO_PORT: '4321'
-    }), '/content/.renderer/preview.log')
+    }), '/content/.renderer/static.log')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('preview.local', 4321)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://preview.local:4321')
   })
@@ -443,7 +443,7 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(1000)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite static running in background (PID 1000). URL: http://127.0.0.1:4173 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1000). URL: http://127.0.0.1:4173 Log: /content/.renderer/static.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       HOST: '127.0.0.1',
@@ -452,7 +452,7 @@ describe('command helpers', () => {
       NUXT_PORT: '4173',
       NITRO_HOST: '127.0.0.1',
       NITRO_PORT: '4173'
-    }), '/content/.renderer/preview.log')
+    }), '/content/.renderer/static.log')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('127.0.0.1', 4173)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://127.0.0.1:4173')
   })
@@ -476,14 +476,14 @@ describe('command helpers', () => {
     previewRendererInBackgroundMock.mockResolvedValueOnce(1003)
 
     await expect(runPreviewCommand('/content', { detached: true, host: '0.0.0.0' })).resolves.toBe(
-      'mdsite static running in background (PID 1003). URL: http://0.0.0.0:4321 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1003). URL: http://0.0.0.0:4321 Log: /content/.renderer/static.log'
     )
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       NUXT_HOST: '0.0.0.0',
       HOST: '0.0.0.0',
       NITRO_HOST: '0.0.0.0',
       NUXT_PORT: '4321'
-    }), '/content/.renderer/preview.log')
+    }), '/content/.renderer/static.log')
     expect(waitForTcpPortMock).toHaveBeenCalledWith('0.0.0.0', 4321)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://0.0.0.0:4321')
   })
@@ -494,7 +494,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockResolvedValueOnce(false)
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite static running in background (PID 1001). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1001). URL: http://localhost:3000 Log: /content/.renderer/static.log'
     )
     expect(waitForTcpPortMock).toHaveBeenCalledWith('localhost', 3000)
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
@@ -506,7 +506,7 @@ describe('command helpers', () => {
     waitForTcpPortMock.mockRejectedValueOnce(new Error('connect failed'))
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite static running in background (PID 1002). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1002). URL: http://localhost:3000 Log: /content/.renderer/static.log'
     )
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
   })
@@ -559,12 +559,12 @@ describe('command helpers', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite static running in background (PID 5555). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 5555). URL: http://localhost:3000 Log: /content/.renderer/static.log'
     )
 
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
     expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
-    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }), '/content/.renderer/preview.log')
+    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }), '/content/.renderer/static.log')
     consoleSpy.mockRestore()
   })
 
@@ -607,12 +607,12 @@ describe('command helpers', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
-      'mdsite static running in background (PID 1234). URL: http://localhost:3000 Log: /content/.renderer/preview.log'
+      'mdsite static running in background (PID 1234). URL: http://localhost:3000 Log: /content/.renderer/static.log'
     )
 
     expect(hasPreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
     expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
-    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }), '/content/.renderer/preview.log')
+    expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }), '/content/.renderer/static.log')
     consoleSpy.mockRestore()
   })
 

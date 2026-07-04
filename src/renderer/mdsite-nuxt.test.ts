@@ -268,14 +268,14 @@ describe('mdsite-nuxt renderer helpers', () => {
   it('delegates stable dev/generate/preview script names to child-process helpers', async () => {
     const env = { TEST: '1' }
 
-    await startRendererInBackground('/renderer', env, '/logs/start.log')
-    await previewRendererInBackground('/renderer', env, '/logs/preview.log')
+    await startRendererInBackground('/renderer', env, '/logs/live.log')
+    await previewRendererInBackground('/renderer', env, '/logs/static.log')
     await generateRenderer('/renderer', env)
     await startRendererForeground('/renderer', env)
     await previewRendererForeground('/renderer', env)
 
-    expect(runBackgroundMock).toHaveBeenNthCalledWith(1, 'npm', ['run', 'dev'], '/renderer', env, '/logs/start.log')
-    expect(runBackgroundMock).toHaveBeenNthCalledWith(2, 'npm', ['run', 'preview'], '/renderer', env, '/logs/preview.log')
+    expect(runBackgroundMock).toHaveBeenNthCalledWith(1, 'npm', ['run', 'dev'], '/renderer', env, '/logs/live.log')
+    expect(runBackgroundMock).toHaveBeenNthCalledWith(2, 'npm', ['run', 'preview'], '/renderer', env, '/logs/static.log')
     expect(runForegroundMock).toHaveBeenNthCalledWith(1, 'npm', ['run', 'generate'], '/renderer', env)
     expect(runForegroundMock).toHaveBeenNthCalledWith(2, 'npm', ['run', 'dev'], '/renderer', env)
     expect(runForegroundMock).toHaveBeenNthCalledWith(3, 'npm', ['run', 'preview'], '/renderer', env)

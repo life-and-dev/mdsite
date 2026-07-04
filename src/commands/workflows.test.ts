@@ -266,7 +266,7 @@ describe('CLI workflow coverage', () => {
     runBackgroundMock.mockResolvedValueOnce(4321)
 
     await expect(runStartCommand(contentDir, { detached: true })).resolves.toBe(
-      `mdsite live running in background (PID 4321). Log: ${path.join(contentDir, '.renderer', 'start.log')}`
+      `mdsite live running in background (PID 4321). Log: ${path.join(contentDir, '.renderer', 'live.log')}`
     )
 
     expect(runBackgroundMock).toHaveBeenCalledWith(
@@ -278,7 +278,7 @@ describe('CLI workflow coverage', () => {
         CONTENT_DIR: contentDir,
         MDSITE_CONFIG_PATH: path.join(contentDir, 'mdsite.yml')
       }),
-      path.join(contentDir, '.renderer', 'start.log')
+      path.join(contentDir, '.renderer', 'live.log')
     )
     expect(waitForTcpPortMocked).toHaveBeenCalledWith('localhost', 3000)
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
@@ -335,7 +335,7 @@ describe('CLI workflow coverage', () => {
     stopProcessMock.mockResolvedValueOnce(true)
 
     await expect(runPreviewCommand(contentDir, { detached: true })).resolves.toBe(
-      `mdsite static running in background (PID 2468). URL: http://localhost:3000 Log: ${path.join(contentDir, '.renderer', 'preview.log')}`
+      `mdsite static running in background (PID 2468). URL: http://localhost:3000 Log: ${path.join(contentDir, '.renderer', 'static.log')}`
     )
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
     await expect(runStopCommand(contentDir)).resolves.toBe('Stopped preview process 2468.')
@@ -382,7 +382,7 @@ describe('CLI workflow coverage', () => {
 
     await expect(runStartCommand(contentDir)).rejects.toThrow('Failed to start npm run dev.')
     await expect(readRuntimeState(contentDir, config, 'start')).resolves.toBeNull()
-    await expect(access(path.join(contentDir, '.renderer', 'start.json'))).rejects.toThrow()
-    await expect(access(path.join(contentDir, '.renderer', 'start.log'))).rejects.toThrow()
+    await expect(access(path.join(contentDir, '.renderer', 'live.json'))).rejects.toThrow()
+    await expect(access(path.join(contentDir, '.renderer', 'live.log'))).rejects.toThrow()
   })
 })

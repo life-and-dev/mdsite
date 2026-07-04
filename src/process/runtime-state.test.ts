@@ -41,8 +41,8 @@ afterEach(async () => {
 describe('runtime-state helpers', () => {
   it('builds runtime and log paths under the configured server path', () => {
     expect(getRuntimeDir('/content', config)).toBe(path.join('/content', '.renderer'))
-    expect(getRuntimeLogPath('/content', config, 'preview')).toBe(path.join('/content', '.renderer', 'preview.log'))
-    expect(getRuntimeLogPath('/content', config, 'start')).toBe(path.join('/content', '.renderer', 'start.log'))
+    expect(getRuntimeLogPath('/content', config, 'preview')).toBe(path.join('/content', '.renderer', 'static.log'))
+    expect(getRuntimeLogPath('/content', config, 'start')).toBe(path.join('/content', '.renderer', 'live.log'))
   })
 
   it('writes, reads, and clears runtime state', async () => {
@@ -50,7 +50,7 @@ describe('runtime-state helpers', () => {
     const state = {
       kind: 'start' as const,
       pid: 321,
-      logPath: '/tmp/start.log',
+      logPath: '/tmp/live.log',
       rendererDir: '/renderer',
       contentDir,
       command: ['npm', 'run', 'dev'],
@@ -61,7 +61,7 @@ describe('runtime-state helpers', () => {
 
     expect(await readRuntimeState(contentDir, config, 'start')).toEqual(state)
 
-    const raw = await readFile(path.join(getRuntimeDir(contentDir, config), 'start.json'), 'utf8')
+    const raw = await readFile(path.join(getRuntimeDir(contentDir, config), 'live.json'), 'utf8')
     expect(raw.endsWith('\n')).toBe(true)
 
     await clearRuntimeState(contentDir, config, 'start')
@@ -73,7 +73,7 @@ describe('runtime-state helpers', () => {
     expect(await readRuntimeState(contentDir, config, 'preview')).toBeNull()
 
     const runtimeDir = getRuntimeDir(contentDir, config)
-    await import('node:fs/promises').then(({ mkdir, writeFile }) => mkdir(runtimeDir, { recursive: true }).then(() => writeFile(path.join(runtimeDir, 'preview.json'), '{oops', 'utf8')))
+    await import('node:fs/promises').then(({ mkdir, writeFile }) => mkdir(runtimeDir, { recursive: true }).then(() => writeFile(path.join(runtimeDir, 'static.json'), '{oops', 'utf8')))
 
     await expect(readRuntimeState(contentDir, config, 'preview')).resolves.toBeNull()
   })
