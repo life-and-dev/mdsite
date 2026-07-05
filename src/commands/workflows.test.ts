@@ -334,7 +334,7 @@ describe('CLI workflow coverage', () => {
 
     // The embedded init step created mdsite.yml automatically instead of erroring.
     await expect(access(path.join(contentDir, 'mdsite.yml'))).resolves.toBeUndefined()
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Missing mdsite.yml'))
     consoleSpy.mockRestore()
   })
 

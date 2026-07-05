@@ -536,9 +536,32 @@ describe('command helpers', () => {
 
     await expect(runStartCommand('/content')).resolves.toBeUndefined()
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Missing mdsite.yml'))
     expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
     expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(startRendererForegroundMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
+    consoleSpy.mockRestore()
+  })
+
+  it('runStartCommand repairs a missing .nvmrc when mdsite.yml already exists', async () => {
+    // mdsite.yml and .gitignore exist; only .nvmrc is missing.
+    const existing = new Set<string>(['/content/mdsite.yml', '/content/.gitignore'])
+    accessMock.mockImplementation(async (p) => {
+      if (typeof p === 'string' && existing.has(p)) return
+      throw new Error('missing')
+    })
+    readFileMock.mockResolvedValueOnce('user-line\n')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await expect(runStartCommand('/content')).resolves.toBeUndefined()
+
+    // The repair created .nvmrc, not mdsite.yml (which already existed).
+    expect(writeFileMock).toHaveBeenCalledWith('/content/.nvmrc', '24\n', 'utf8')
+    expect(writeFileMock).not.toHaveBeenCalledWith('/content/mdsite.yml', expect.anything(), expect.anything())
+    // The announcement message names the missing file(s).
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Missing'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('.nvmrc'))
+    // Repair is non-disruptive: the renderer still starts.
     expect(startRendererForegroundMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
     consoleSpy.mockRestore()
   })
@@ -554,7 +577,7 @@ describe('command helpers', () => {
 
     await expect(runPreviewCommand('/content')).resolves.toBeUndefined()
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Missing mdsite.yml'))
     expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
     expect(loadConfigMock).toHaveBeenCalledWith('/content')
     expect(previewRendererForegroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }))
@@ -576,7 +599,7 @@ describe('command helpers', () => {
       'mdsite static running in background (PID 5555). URL: http://localhost:3000 Log: /content/.renderer/static.log'
     )
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Missing mdsite.yml'))
     expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }), '/content/.renderer/static.log')
     consoleSpy.mockRestore()
@@ -593,9 +616,32 @@ describe('command helpers', () => {
 
     await expect(runGenerateCommand('/content')).resolves.toBe('Generated site synced to /content/.output/public')
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No mdsite.yml found'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Missing mdsite.yml'))
     expect(writeFileMock).toHaveBeenCalledWith('/content/mdsite.yml', 'serialized-config', 'utf8')
     expect(loadConfigMock).toHaveBeenCalledWith('/content')
+    expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
+    consoleSpy.mockRestore()
+  })
+
+  it('runGenerateCommand repairs a missing .nvmrc when mdsite.yml already exists', async () => {
+    // mdsite.yml and .gitignore exist; only .nvmrc is missing.
+    const existing = new Set<string>(['/content/mdsite.yml', '/content/.gitignore'])
+    accessMock.mockImplementation(async (p) => {
+      if (typeof p === 'string' && existing.has(p)) return
+      throw new Error('missing')
+    })
+    readFileMock.mockResolvedValueOnce('user-line\n')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await expect(runGenerateCommand('/content')).resolves.toBe('Generated site synced to /content/.output/public')
+
+    // The repair created .nvmrc, not mdsite.yml (which already existed).
+    expect(writeFileMock).toHaveBeenCalledWith('/content/.nvmrc', '24\n', 'utf8')
+    expect(writeFileMock).not.toHaveBeenCalledWith('/content/mdsite.yml', expect.anything(), expect.anything())
+    // The announcement message names the missing file(s).
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Missing'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('.nvmrc'))
+    // Repair is non-disruptive: the renderer still generates.
     expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
     consoleSpy.mockRestore()
   })

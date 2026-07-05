@@ -55,12 +55,22 @@ export async function runInitCommand(contentDir: string): Promise<string> {
 }
 
 export async function ensureInitialized(contentDir: string): Promise<boolean> {
-  const configPath = path.join(contentDir, 'mdsite.yml')
-  if (await pathExists(configPath)) {
+  // Ensure every init-managed file is present, not just mdsite.yml. A project
+  // with an existing mdsite.yml but a missing .nvmrc (e.g. created before
+  // .nvmrc support landed, or hand-authored) otherwise never gets repaired by
+  // live/generate/static, leaving hosts without a Node version pin.
+  const managedFiles = ['mdsite.yml', '.nvmrc', '.gitignore']
+  const missing: string[] = []
+  for (const file of managedFiles) {
+    if (!(await pathExists(path.join(contentDir, file)))) {
+      missing.push(file)
+    }
+  }
+  if (missing.length === 0) {
     return false
   }
 
-  console.log(`No mdsite.yml found in ${contentDir}. Running \`mdsite init\` automatically...`)
+  console.log(`Missing ${missing.join(', ')} in ${contentDir}. Running \`mdsite init\` automatically...`)
   console.log(await runInitCommand(contentDir))
   return true
 }
