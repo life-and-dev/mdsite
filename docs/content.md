@@ -8,7 +8,7 @@ This is a reference for the `paths.input` field in `mdsite.yml`. It controls whe
 
 ## 1. Default Behavior
 
-If you omit `paths.input`, MD-Site treats the directory that contains `mdsite.yml` as the content directory. This is what `mdsite init` assumes: your Markdown files sit alongside `mdsite.yml`.
+If you omit `paths.input`, MD-Site treats the directory that contains `mdsite.yml` as the content directory. `mdsite init` leaves `paths.input` empty unless it finds a `docs/` (or `doc/`) subdirectory, in which case it points `paths.input` there.
 
 ```text
 my-site/
@@ -17,7 +17,6 @@ my-site/
 ├── guide.md
 └── about.md
 ```
-
 ## 2. Pointing at a Subdirectory
 
 When you want to keep `mdsite.yml` (and files like `.nvmrc`, `.gitignore`, your favicon source) at the project root but organize all Markdown in a dedicated folder, set `paths.input` to that folder. The path is resolved relative to the directory containing `mdsite.yml`.
@@ -42,7 +41,7 @@ my-site/
 ```
 
 > [!NOTE]
-> `mdsite init` does not write a `paths:` block. Add it by hand if you move your Markdown into a subdirectory.
+> `mdsite init` writes `paths.input` automatically when it finds a `docs/` or `doc/` subdirectory. For any other layout, add or edit the `paths:` block by hand.
 
 ## 3. The Homepage
 

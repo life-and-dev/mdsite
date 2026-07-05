@@ -12,15 +12,28 @@ const ignoredDirectories = new Set([
   'node_modules'
 ])
 
-export async function deriveSiteNameFromIndex(contentDir: string): Promise<string> {
-  const indexPath = path.join(contentDir, 'index.md')
+/**
+ * Derive the site name from the first H1 heading. Prefers `README.md`, then
+ * falls back to `index.md`. Returns `''` when neither file exists or has an
+ * H1, so callers can leave the field blank for the user to fill in.
+ */
+export async function deriveSiteName(contentDir: string): Promise<string> {
+  const fromReadme = await readFirstH1(path.join(contentDir, 'README.md'))
+  if (fromReadme) return fromReadme
 
+  const fromIndex = await readFirstH1(path.join(contentDir, 'index.md'))
+  if (fromIndex) return fromIndex
+
+  return ''
+}
+
+async function readFirstH1(filePath: string): Promise<string | null> {
   try {
-    const content = await readFile(indexPath, 'utf8')
+    const content = await readFile(filePath, 'utf8')
     const match = content.match(/^#\s+(.+)$/m)
-    return match?.[1]?.trim() || 'MD Site'
+    return match?.[1]?.trim() || null
   } catch {
-    return 'MD Site'
+    return null
   }
 }
 

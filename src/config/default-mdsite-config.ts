@@ -56,22 +56,37 @@ const defaultDarkColors = {
   'outline-bars': '#161b22'
 } satisfies Record<string, string>
 
-export function createDefaultMdsiteConfig(siteName: string, menu: MdsiteConfig['menu']): MdsiteConfig {
+export interface DefaultConfigOverrides {
+  favicon?: string
+  sourceEdit?: string
+  inputPath?: string
+}
+
+/**
+ * Assemble a full default `MdsiteConfig`. The optional `overrides` carry
+ * init-time auto-detected values (favicon, source-edit URL, input dir); any
+ * field left unset defaults to `''` so the user can fill it in later.
+ */
+export function createDefaultMdsiteConfig(
+  siteName: string,
+  menu: MdsiteConfig['menu'],
+  overrides: DefaultConfigOverrides = {}
+): MdsiteConfig {
   return {
     features: {
       bibleTooltips: true,
-      sourceEdit: '',
+      sourceEdit: overrides.sourceEdit ?? '',
       footer: []
     },
     menu,
     paths: {
-      input: '',
+      input: overrides.inputPath ?? '',
       build: '.mdsite',
       output: '.output'
     },
     site: {
       canonical: '',
-      favicon: '',
+      favicon: overrides.favicon ?? '',
       name: siteName
     },
     themes: {

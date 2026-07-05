@@ -4,7 +4,8 @@ import path from 'node:path'
 import YAML from 'yaml'
 
 import { createDefaultMdsiteConfig } from './default-mdsite-config.js'
-import { deriveSiteNameFromIndex, generateMenuFromMarkdownFiles } from './menu.js'
+import { detectFavicon, detectInputPath, detectSourceEditUrl } from './detect.js'
+import { deriveSiteName, generateMenuFromMarkdownFiles } from './menu.js'
 
 export type MenuItem = string | null | { [key: string]: string | null | MenuItem[] }
 
@@ -128,9 +129,12 @@ export async function loadMdsiteConfig(configDir: string): Promise<LoadedMdsiteC
 }
 
 export async function buildDefaultMdsiteConfig(contentDir: string): Promise<MdsiteConfig> {
-  const siteName = await deriveSiteNameFromIndex(contentDir)
+  const siteName = await deriveSiteName(contentDir)
   const menu = await generateMenuFromMarkdownFiles(contentDir)
-  return createDefaultMdsiteConfig(siteName, menu)
+  const favicon = await detectFavicon(contentDir)
+  const sourceEdit = await detectSourceEditUrl(contentDir)
+  const inputPath = await detectInputPath(contentDir)
+  return createDefaultMdsiteConfig(siteName, menu, { favicon, sourceEdit, inputPath })
 }
 
 export function serializeMdsiteConfig(config: MdsiteConfig): string {

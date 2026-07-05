@@ -6,7 +6,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 ## Primary features
 
 - **`mdsite help`**: Show CLI help.
-- **`mdsite init`**: Create `mdsite.yml` from local markdown files. Also writes a `.nvmrc` pinning Node 24 so Cloudflare, Netlify, and other hosts use the right Node version.
+- **`mdsite init`**: Create `mdsite.yml` from local markdown files, with smart defaults auto-detected from the project: `site.name` (first H1 in `README.md`, then `index.md`), `site.favicon` (first `logo`/`favicon` image), `features.source-edit` (GitHub edit URL from `.git/config` + current branch), and `paths.input` (`docs`/`doc` subdir if present). Also writes a `.nvmrc` pinning Node 24 so Cloudflare, Netlify, and other hosts use the right Node version.
 - **`mdsite live`**: Start local renderer in the foreground for current content directory.
 - **`mdsite live -d` / `mdsite live --detached`**: Start tracked background renderer and log to `<paths.build>/live.log`.
 - **`mdsite live --host [addr]`** / **`mdsite static --host [addr]`**: Expose the `start`/`preview` server on the network by binding `0.0.0.0` (or a given addr) via `NUXT_HOST`/`HOST`/`NITRO_HOST`. Combinable with `-d`/`--detached`.
@@ -32,7 +32,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 
 - `src/index.ts`: CLI entrypoint and command dispatch.
 - `src/commands/`: Command handlers.
-- `src/config/`: `mdsite.yml` schema, defaults, and menu/footer parsing.
+- `src/config/`: `mdsite.yml` schema, defaults, menu/footer parsing, and init-time project detection (`detect.ts`: favicon, source-edit URL, input dir).
 - `src/process/`: Foreground/background child-process helpers and runtime-state (writes tracked-detached PIDs/logs into the renderer working dir, not `.mdsite-runtime`).
 - `src/renderer/mdsite-nuxt.ts`: Renderer prep and run helpers.
 - `mdsite init`: writes `mdsite.yml`, `.nvmrc`, and a managed `.gitignore`.

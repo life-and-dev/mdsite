@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { deriveSiteNameFromIndex, generateMenuFromMarkdownFiles } from './menu.js'
+import { deriveSiteName, generateMenuFromMarkdownFiles } from './menu.js'
 
 const tempDirs: string[] = []
 
@@ -19,20 +19,27 @@ afterEach(async () => {
 })
 
 describe('menu helpers', () => {
-  it('derives the site name from the first H1 in index.md', async () => {
+  it('derives the site name from the first H1 in README.md', async () => {
     const contentDir = await makeTempDir()
-    await writeFile(path.join(contentDir, 'index.md'), 'Intro\n#  Example Site  \n## More\n', 'utf8')
+    await writeFile(path.join(contentDir, 'README.md'), 'Intro\n#  Example Site  \n## More\n', 'utf8')
 
-    await expect(deriveSiteNameFromIndex(contentDir)).resolves.toBe('Example Site')
+    await expect(deriveSiteName(contentDir)).resolves.toBe('Example Site')
   })
 
-  it('falls back to MD Site when index.md is missing or lacks an H1', async () => {
+  it('falls back to index.md when README.md is missing or lacks an H1', async () => {
+    const contentDir = await makeTempDir()
+    await writeFile(path.join(contentDir, 'index.md'), '# Index Title', 'utf8')
+
+    await expect(deriveSiteName(contentDir)).resolves.toBe('Index Title')
+  })
+
+  it('returns blank when neither README.md nor index.md has an H1', async () => {
     const missingDir = await makeTempDir()
     const noHeadingDir = await makeTempDir()
-    await writeFile(path.join(noHeadingDir, 'index.md'), '## Not the site name', 'utf8')
+    await writeFile(path.join(noHeadingDir, 'README.md'), '## Not the site name', 'utf8')
 
-    await expect(deriveSiteNameFromIndex(missingDir)).resolves.toBe('MD Site')
-    await expect(deriveSiteNameFromIndex(noHeadingDir)).resolves.toBe('MD Site')
+    await expect(deriveSiteName(missingDir)).resolves.toBe('')
+    await expect(deriveSiteName(noHeadingDir)).resolves.toBe('')
   })
 
   it('generates a sorted extensionless menu from markdown files and ignores runtime/build entries', async () => {

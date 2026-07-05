@@ -8,7 +8,7 @@ The Source Edit feature provides a direct link for users to edit the current pag
 
 ## Configuration
 
-Set `features.source-edit` to the URL prefix that points at the directory holding your Markdown files:
+`mdsite init` auto-detects this prefix from your `origin` git remote and current branch (`https://github.com/<owner>/<repo>/blob/<branch>/`). You can also set it by hand to the URL prefix that points at the directory holding your Markdown files:
 
 ```yaml
 features:
@@ -16,7 +16,6 @@ features:
 ```
 
 The renderer appends `<page>.md` to this prefix to build the Edit link, so the prefix must include the trailing path segment that leads to the file.
-
 ### Requirements
 
 For the "Edit" link to be generated and rendered:
@@ -25,4 +24,4 @@ For the "Edit" link to be generated and rendered:
 2.  The URL prefix must include the trailing path segment to the file (e.g. `.../blob/main/` for GitHub).
 3.  For Markdown that lives in a subdirectory of the repository, include that subdir in the prefix (e.g. `.../blob/main/docs/`).
 
-Setting `source-edit: ''` (the default) or omitting it entirely disables the Edit button.
+Setting `source-edit: ''` or omitting it entirely (also the outcome when init finds no GitHub remote) disables the Edit button.

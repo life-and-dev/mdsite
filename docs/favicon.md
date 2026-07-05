@@ -1,6 +1,6 @@
 # Favicon Configuration
 
-mdsite uses the `site.favicon` value in `mdsite.yml` to pass a favicon path to the local renderer.
+mdsite uses the `site.favicon` value in `mdsite.yml` to pass a favicon path to the local renderer. `mdsite init` auto-detects a favicon by scanning for the first `logo` or `favicon` image (`.webp`/`.jpg`/`.png`/`.ico`), top-level first; you can also set `site.favicon` by hand.
 
 ## How it Works
 

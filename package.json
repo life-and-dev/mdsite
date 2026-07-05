@@ -9,6 +9,10 @@
     "type": "git",
     "url": "https://github.com/life-and-dev/mdsite"
   },
+  "homepage": "https://life-and-dev.github.io/mdsite",
+  "bugs": {
+    "url": "https://github.com/life-and-dev/mdsite/issues"
+  },
   "bin": {
     "mdsite": "./bin/mdsite.js"
   },

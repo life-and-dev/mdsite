@@ -36,6 +36,41 @@ describe('mdsite config helpers', () => {
     expect(config.paths.output).toBe('.output')
   })
 
+  it('buildDefaultMdsiteConfig auto-detects favicon, source-edit, input dir, and README site name together', async () => {
+    const contentDir = await makeTempDir()
+    await writeFile(path.join(contentDir, 'README.md'), '# Readme Title', 'utf8')
+    await writeFile(path.join(contentDir, 'favicon.ico'), 'x', 'utf8')
+    await mkdir(path.join(contentDir, 'docs'), { recursive: true })
+    await writeFile(path.join(contentDir, 'docs', 'guide.md'), '# Guide', 'utf8')
+    await mkdir(path.join(contentDir, '.git'), { recursive: true })
+    await writeFile(
+      path.join(contentDir, '.git', 'config'),
+      '[remote "origin"]\n\turl = git@github.com:owner/repo.git\n',
+      'utf8'
+    )
+    await writeFile(path.join(contentDir, '.git', 'HEAD'), 'ref: refs/heads/main\n', 'utf8')
+
+    const config = await buildDefaultMdsiteConfig(contentDir)
+
+    expect(config.site.name).toBe('Readme Title')
+    expect(config.site.favicon).toBe('favicon.ico')
+    expect(config.features.sourceEdit).toBe('https://github.com/owner/repo/blob/main/')
+    expect(config.paths.input).toBe('docs')
+    expect(config.menu).toEqual(expect.arrayContaining(['docs/guide']))
+  })
+
+  it('buildDefaultMdsiteConfig leaves smart defaults blank when nothing can be detected', async () => {
+    const contentDir = await makeTempDir()
+
+    const config = await buildDefaultMdsiteConfig(contentDir)
+
+    expect(config.site.name).toBe('')
+    expect(config.site.favicon).toBe('')
+    expect(config.features.sourceEdit).toBe('')
+    expect(config.paths.input).toBe('')
+    expect(config.menu).toEqual([])
+  })
+
   it('serializeMdsiteConfig returns yaml text with the configured values', async () => {
     const contentDir = await makeTempDir()
     await writeFile(path.join(contentDir, 'index.md'), '# Docs', 'utf8')
