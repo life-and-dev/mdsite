@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { detectFavicon, detectInputPath, detectSourceEditUrl } from './detect.js'
+import { detectCanonicalUrl, detectFavicon, detectInputPath, detectSourceEditUrl } from './detect.js'
 
 const tempDirs: string[] = []
 
@@ -134,5 +134,41 @@ describe('detectSourceEditUrl', () => {
     const dir = await makeTempDir()
 
     await expect(detectSourceEditUrl(dir)).resolves.toBe('')
+  })
+})
+
+describe('detectCanonicalUrl', () => {
+  it('builds a github pages URL from an SSH remote', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = git@github.com:owner/repo.git\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('https://owner.github.io/repo')
+  })
+
+  it('builds a github pages URL from an HTTPS remote', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = https://github.com/owner/repo.git\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('https://owner.github.io/repo')
+  })
+
+  it('returns blank for a non-github remote', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = git@gitlab.com:owner/repo.git\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('')
+  })
+
+  it('returns blank when git metadata is missing', async () => {
+    const dir = await makeTempDir()
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('')
+  })
+
+  it('never throws on unparseable input (returns blank)', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = not-a-valid-url\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('')
   })
 })

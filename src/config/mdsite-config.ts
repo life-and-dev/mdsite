@@ -4,7 +4,7 @@ import path from 'node:path'
 import YAML from 'yaml'
 
 import { createDefaultMdsiteConfig } from './default-mdsite-config.js'
-import { detectFavicon, detectInputPath, detectSourceEditUrl } from './detect.js'
+import { detectCanonicalUrl, detectFavicon, detectInputPath, detectSourceEditUrl } from './detect.js'
 import { deriveSiteName, generateMenuFromMarkdownFiles } from './menu.js'
 
 export type MenuItem = string | null | { [key: string]: string | null | MenuItem[] }
@@ -129,12 +129,19 @@ export async function loadMdsiteConfig(configDir: string): Promise<LoadedMdsiteC
 }
 
 export async function buildDefaultMdsiteConfig(contentDir: string): Promise<MdsiteConfig> {
-  const siteName = await deriveSiteName(contentDir)
-  const menu = await generateMenuFromMarkdownFiles(contentDir)
-  const favicon = await detectFavicon(contentDir)
-  const sourceEdit = await detectSourceEditUrl(contentDir)
   const inputPath = await detectInputPath(contentDir)
-  return createDefaultMdsiteConfig(siteName, menu, { favicon, sourceEdit, inputPath })
+  // When a docs/doc subdir is detected, content lives there: derive the site
+  // name, favicon, and menu from it (paths relative to it). The renderer
+  // resolves favicon against this same input dir at runtime, so the favicon
+  // path must be relative to the input dir, not the project root.
+  const contentRoot = inputPath ? path.join(contentDir, inputPath) : contentDir
+  const siteName = await deriveSiteName(contentRoot)
+  const menu = await generateMenuFromMarkdownFiles(contentRoot)
+  const favicon = await detectFavicon(contentRoot)
+  // Git metadata lives at the project root, not inside the input dir.
+  const sourceEdit = await detectSourceEditUrl(contentDir)
+  const canonical = await detectCanonicalUrl(contentDir)
+  return createDefaultMdsiteConfig(siteName, menu, { favicon, sourceEdit, inputPath, canonical })
 }
 
 export function serializeMdsiteConfig(config: MdsiteConfig): string {

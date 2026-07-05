@@ -60,11 +60,12 @@ export interface DefaultConfigOverrides {
   favicon?: string
   sourceEdit?: string
   inputPath?: string
+  canonical?: string
 }
 
 /**
  * Assemble a full default `MdsiteConfig`. The optional `overrides` carry
- * init-time auto-detected values (favicon, source-edit URL, input dir); any
+ * init-time auto-detected values (favicon, source-edit URL, input dir, canonical URL); any
  * field left unset defaults to `''` so the user can fill it in later.
  */
 export function createDefaultMdsiteConfig(
@@ -85,7 +86,7 @@ export function createDefaultMdsiteConfig(
       output: '.output'
     },
     site: {
-      canonical: '',
+      canonical: overrides.canonical ?? '',
       favicon: overrides.favicon ?? '',
       name: siteName
     },

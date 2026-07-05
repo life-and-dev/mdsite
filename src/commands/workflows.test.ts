@@ -50,7 +50,7 @@ async function makeTempDir(): Promise<string> {
 async function createContentDir(): Promise<string> {
   const contentDir = await makeTempDir()
   await mkdir(path.join(contentDir, 'docs'), { recursive: true })
-  await writeFile(path.join(contentDir, 'index.md'), '# Workspace Docs\n', 'utf8')
+  await writeFile(path.join(contentDir, 'docs', 'index.md'), '# Workspace Docs\n', 'utf8')
   await writeFile(path.join(contentDir, 'docs', 'guide.md'), '# Guide\n', 'utf8')
   return contentDir
 }
@@ -128,7 +128,7 @@ describe('CLI workflow coverage', () => {
     const configText = await readFile(configPath, 'utf8')
     expect(configText).toContain('name: Workspace Docs')
     expect(configText).toContain('output: .output')
-    expect(configText).toContain('- docs/guide')
+    expect(configText).toContain('- guide')
 
     const nvmrcPath = path.join(contentDir, '.nvmrc')
     const nvmrcText = await readFile(nvmrcPath, 'utf8')

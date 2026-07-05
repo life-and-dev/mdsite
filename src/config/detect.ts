@@ -85,6 +85,30 @@ export async function detectSourceEditUrl(contentDir: string): Promise<string> {
 }
 
 /**
+ * Guess a GitHub Pages canonical URL from local git metadata. Reads
+ * `<contentDir>/.git/config` for the `origin` remote URL and builds
+ * `https://<owner>.github.io/<repo>` from the GitHub owner/repo. Returns `''`
+ * when the remote is not GitHub, the git metadata is missing, or anything
+ * else goes wrong (never throws).
+ */
+export async function detectCanonicalUrl(contentDir: string): Promise<string> {
+  try {
+    const remoteUrl = await readOriginRemoteUrl(contentDir)
+    if (!remoteUrl) return ''
+
+    const repoPath = parseGitHubRepoPath(remoteUrl)
+    if (!repoPath) return ''
+
+    const [owner, repo] = repoPath.split('/')
+    if (!owner || !repo) return ''
+
+    return `https://${owner}.github.io/${repo}`
+  } catch {
+    return ''
+  }
+}
+
+/**
  * Detect a content input directory: prefers `docs/`, then `doc/`. Returns the
  * directory name relative to `contentDir`, or `''` when neither exists.
  */

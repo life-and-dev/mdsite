@@ -69,4 +69,17 @@ describe('menu helpers', () => {
       'guides/nested/beta'
     ])
   })
+
+  it('excludes repo-meta markdown (README, AGENTS, LICENSE, CONTRIBUTING, SECURITY) from the menu', async () => {
+    const contentDir = await makeTempDir()
+    await writeFile(path.join(contentDir, 'README.md'), '# Readme', 'utf8')
+    await writeFile(path.join(contentDir, 'AGENTS.md'), '# Agents', 'utf8')
+    await writeFile(path.join(contentDir, 'LICENSE.md'), '# License', 'utf8')
+    await writeFile(path.join(contentDir, 'CONTRIBUTING.md'), '# Contributing', 'utf8')
+    await writeFile(path.join(contentDir, 'SECURITY.md'), '# Security', 'utf8')
+    await writeFile(path.join(contentDir, 'about.md'), '# About', 'utf8')
+    await writeFile(path.join(contentDir, 'guide.md'), '# Guide', 'utf8')
+
+    await expect(generateMenuFromMarkdownFiles(contentDir)).resolves.toEqual(['about', 'guide'])
+  })
 })

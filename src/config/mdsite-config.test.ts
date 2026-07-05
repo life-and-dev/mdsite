@@ -38,9 +38,9 @@ describe('mdsite config helpers', () => {
 
   it('buildDefaultMdsiteConfig auto-detects favicon, source-edit, input dir, and README site name together', async () => {
     const contentDir = await makeTempDir()
-    await writeFile(path.join(contentDir, 'README.md'), '# Readme Title', 'utf8')
-    await writeFile(path.join(contentDir, 'favicon.ico'), 'x', 'utf8')
     await mkdir(path.join(contentDir, 'docs'), { recursive: true })
+    await writeFile(path.join(contentDir, 'docs', 'README.md'), '# Readme Title', 'utf8')
+    await writeFile(path.join(contentDir, 'docs', 'favicon.ico'), 'x', 'utf8')
     await writeFile(path.join(contentDir, 'docs', 'guide.md'), '# Guide', 'utf8')
     await mkdir(path.join(contentDir, '.git'), { recursive: true })
     await writeFile(
@@ -55,8 +55,9 @@ describe('mdsite config helpers', () => {
     expect(config.site.name).toBe('Readme Title')
     expect(config.site.favicon).toBe('favicon.ico')
     expect(config.features.sourceEdit).toBe('https://github.com/owner/repo/blob/main/')
+    expect(config.site.canonical).toBe('https://owner.github.io/repo')
     expect(config.paths.input).toBe('docs')
-    expect(config.menu).toEqual(expect.arrayContaining(['docs/guide']))
+    expect(config.menu).toEqual(['guide'])
   })
 
   it('buildDefaultMdsiteConfig leaves smart defaults blank when nothing can be detected', async () => {
@@ -66,9 +67,34 @@ describe('mdsite config helpers', () => {
 
     expect(config.site.name).toBe('')
     expect(config.site.favicon).toBe('')
+    expect(config.site.canonical).toBe('')
     expect(config.features.sourceEdit).toBe('')
     expect(config.paths.input).toBe('')
     expect(config.menu).toEqual([])
+  })
+
+  it('buildDefaultMdsiteConfig scopes menu, site name, and favicon to docs/ when input dir is detected', async () => {
+    const contentDir = await makeTempDir()
+    await mkdir(path.join(contentDir, 'docs', 'guides'), { recursive: true })
+    await writeFile(path.join(contentDir, 'docs', 'index.md'), '# Home', 'utf8')
+    await writeFile(path.join(contentDir, 'docs', 'README.md'), '# Docs Readme', 'utf8')
+    await writeFile(path.join(contentDir, 'docs', 'AGENTS.md'), '# Docs Agents', 'utf8')
+    await writeFile(path.join(contentDir, 'docs', 'favicon.png'), 'x', 'utf8')
+    await writeFile(path.join(contentDir, 'docs', 'intro.md'), '# Intro', 'utf8')
+    await writeFile(path.join(contentDir, 'docs', 'guides', 'alpha.md'), '# Alpha', 'utf8')
+    // Root-level files outside docs/ must NOT drive detection.
+    await writeFile(path.join(contentDir, 'root-page.md'), '# Root', 'utf8')
+    await writeFile(path.join(contentDir, 'README.md'), '# Project Readme', 'utf8')
+    await writeFile(path.join(contentDir, 'favicon.ico'), 'x', 'utf8')
+
+    const config = await buildDefaultMdsiteConfig(contentDir)
+
+    expect(config.paths.input).toBe('docs')
+    // index.md (homepage), README.md, AGENTS.md excluded; paths relative to docs/.
+    expect(config.menu).toEqual(['guides/alpha', 'intro'])
+    // Site name + favicon come from docs/, not the project root.
+    expect(config.site.name).toBe('Docs Readme')
+    expect(config.site.favicon).toBe('favicon.png')
   })
 
   it('serializeMdsiteConfig returns yaml text with the configured values', async () => {

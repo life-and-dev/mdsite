@@ -13,6 +13,21 @@ const ignoredDirectories = new Set([
 ])
 
 /**
+ * Markdown files excluded from the generated menu because they are repo/project
+ * metadata, not site pages. Compared case-insensitively by basename.
+ */
+const excludedFiles = new Set([
+  '_menu.yml',
+  '_menu.yaml',
+  'readme.md',
+  'agents.md',
+  'license.md',
+  'contribution.md',
+  'contributing.md',
+  'security.md'
+])
+
+/**
  * Derive the site name from the first H1 heading. Prefers `README.md`, then
  * falls back to `index.md`. Returns `''` when neither file exists or has an
  * H1, so callers can leave the field blank for the user to fill in.
@@ -66,7 +81,7 @@ async function collectMarkdownFiles(rootDir: string, currentDir: string = rootDi
       continue
     }
 
-    if (entry.name === '_menu.yml' || entry.name === '_menu.yaml') {
+    if (excludedFiles.has(entry.name.toLowerCase())) {
       continue
     }
 
