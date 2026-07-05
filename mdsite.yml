@@ -24,8 +24,8 @@ paths:
   input: docs
   output: .output
 site:
-  canonical: "https://life-and-dev.github.io/mdsite"
-  favicon: "logo.svg"
+  canonical: https://life-and-dev.github.io/mdsite
+  favicon: logo.svg
   name: MD Site Documentation
 themes:
   light:
