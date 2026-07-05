@@ -8,11 +8,11 @@ The site uses a set of regex patterns to match common Bible reference formats (e
 
 ## Configuration
 
-This feature is controlled by the `bibleTooltips` toggle in `mdsite.yml`:
+This feature is controlled by the `bible-tooltips` toggle in `mdsite.yml`:
 
 ```yaml
 features:
-  bibleTooltips: true # Set to true to enable, false to disable
+  bible-tooltips: true # Set to true to enable, false to disable
 ```
 
 ## Supported Formats

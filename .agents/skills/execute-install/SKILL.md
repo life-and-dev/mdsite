@@ -32,15 +32,15 @@ description: Use this skill to understand how to install, setup, run or deploy p
    ```
    Expect: `mdsite.yml` created in current dir.
 
-2. Edit `mdsite.yml` for local config. `server.path` is relative to content dir.
+2. Edit `mdsite.yml` for local config. `paths.build` is relative to content dir.
    Example:
    ```yml
-   server:
-     path: ../mdsite-nuxt
+   paths:
+     build: ../mdsite-nuxt
      output: .output
    ```
 
-3. Keep `server.output` under content dir. Default path is `.output`.
+3. Keep `paths.output` under content dir. Default path is `.output`.
 
 [Startup Steps]
 
@@ -60,7 +60,7 @@ description: Use this skill to understand how to install, setup, run or deploy p
    ```bash
    node /path/to/md-site/dist/index.js generate
    ```
-   Expect: site synced to `server.output` or `.output`.
+   Expect: site synced to `paths.output` or `.output`.
 
 3. Preview only after `generate`.
    ```bash
@@ -112,7 +112,7 @@ description: Use this skill to understand how to install, setup, run or deploy p
 
 [Deployment Steps]
 
-1. Copy generated `server.output` content to host that serves static files.
+1. Copy generated `paths.output` content to host that serves static files.
 2. Use current `generate` output; docs do not claim npm publish or release hardening.
 
 ---

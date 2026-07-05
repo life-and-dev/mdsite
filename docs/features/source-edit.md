@@ -4,19 +4,25 @@ The Source Edit feature provides a direct link for users to edit the current pag
 
 ## How it Works
 
-When enabled, an "Edit" button appears in the application bar (as a pencil icon) and in the footer. Clicking this button redirects the user to the specific file on GitHub that corresponds to the current page.
+`features.source-edit` is a **URL prefix**. When it is a non-empty string, an "Edit" button appears in the application bar (as a pencil icon) and in the footer. Clicking the button opens `<source-edit><page>.md` in a new tab, so the reader lands directly on the source file in your repository.
 
 ## Configuration
 
-This feature is controlled by the `sourceEdit` toggle in `mdsite.yml`:
+Set `features.source-edit` to the URL prefix that points at the directory holding your Markdown files:
 
 ```yaml
 features:
-  sourceEdit: true # Set to true to enable, false to disable
+  source-edit: https://github.com/life-and-dev/mdsite/blob/main/
 ```
+
+The renderer appends `<page>.md` to this prefix to build the Edit link, so the prefix must include the trailing path segment that leads to the file.
 
 ### Requirements
 
 For the "Edit" link to be generated and rendered:
-1.  `sourceEdit` must be set to `true`.
-2.  Source repository metadata must be present in the generated renderer configuration.
+
+1.  `source-edit` must be a non-empty string.
+2.  The URL prefix must include the trailing path segment to the file (e.g. `.../blob/main/` for GitHub).
+3.  For Markdown that lives in a subdirectory of the repository, include that subdir in the prefix (e.g. `.../blob/main/docs/`).
+
+Setting `source-edit: ''` (the default) or omitting it entirely disables the Edit button.

@@ -12,7 +12,7 @@ You need:
 Run all `mdsite` commands from the content directory that contains `mdsite.yml`.
 
 > [!NOTE] 
-> Pay attention to `server.output` in `mdsite.yml` which indicates where generated static pages will be written to. The default value is `.output`, so the static site is generated in `.output/public` by default.
+> Pay attention to `paths.output` in `mdsite.yml` which indicates where generated static pages will be written to. The default value is `.output`, so the static site is generated in `.output/public` by default.
 
 > [!NOTE] 
 > `mdsite` requires Node.js 24. Some builders defaults to different Node versions. `mdsite init` writes a `.nvmrc` containing `24` that should also be Git committed.
@@ -57,7 +57,7 @@ git commit -m "Add GitHub Pages deployment"
 git push
 ```
 
-In GitHub, set **Settings > Pages > Build and deployment > Source** to **GitHub Actions**. The generated workflow builds on pushes to `main` and publishes the static site from `<server.output>/public`.
+In GitHub, set **Settings > Pages > Build and deployment > Source** to **GitHub Actions**. The generated workflow builds on pushes to `main` and publishes the static site from `<paths.output>/public`.
 
 After the workflow finishes, preview the site online at:
 
@@ -80,7 +80,7 @@ In Cloudflare Pages, connect the repository that contains your mdsite content an
 | Build output directory | `.output/public` |
 | Root directory | Your content directory, or `/` if the repository root is the content directory |
 
-If `mdsite.yml` sets a different `server.output`, set the **Build output directory** to `<server.output>/public`.
+If `mdsite.yml` sets a different `paths.output`, set the **Build output directory** to `<paths.output>/public`.
 
 ## Troubleshooting
 
@@ -96,7 +96,7 @@ Then configure the generated `mdsite.yml`
 
 ### ⚠️ Deployed site is empty or 404s
 
-Check that the host publishes `<server.output>/public`. With the default config, this is `.output/public`.
+Check that the host publishes `<paths.output>/public`. With the default config, this is `.output/public`.
 
 ### ⚠️ GitHub workflow generation fails
 

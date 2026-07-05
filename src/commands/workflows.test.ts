@@ -5,11 +5,13 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const waitForTcpPortMock = vi.hoisted(() => vi.fn())
+const waitForRendererPortMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../process/child-process.js', () => ({
   openUrlInBrowser: vi.fn(),
   runBackground: vi.fn(),
   runForeground: vi.fn(),
+  waitForRendererPort: waitForRendererPortMock,
   waitForTcpPort: waitForTcpPortMock,
   stopProcess: vi.fn()
 }))
@@ -19,8 +21,8 @@ vi.mock('../renderer/mdsite-nuxt.js', async (importOriginal) => {
   return { ...actual, prepareRenderer: vi.fn() }
 })
 
-import { serializeMdsiteConfig, type MdsiteConfig } from '../config/mdsite-config.js'
-import { openUrlInBrowser, stopProcess, waitForTcpPort, runBackground, runForeground } from '../process/child-process.js'
+import { serializeMdsiteConfig, type DeepPartial, type MdsiteConfig } from '../config/mdsite-config.js'
+import { openUrlInBrowser, stopProcess, waitForRendererPort, waitForTcpPort, runBackground, runForeground } from '../process/child-process.js'
 import { readRuntimeState } from '../process/runtime-state.js'
 import { prepareRenderer } from '../renderer/mdsite-nuxt.js'
 import { runGenerateCommand } from './generate.js'
@@ -34,6 +36,7 @@ const runForegroundMock = vi.mocked(runForeground)
 const openUrlInBrowserMock = vi.mocked(openUrlInBrowser)
 const stopProcessMock = vi.mocked(stopProcess)
 const waitForTcpPortMocked = vi.mocked(waitForTcpPort)
+const waitForRendererPortMocked = vi.mocked(waitForRendererPort)
 const prepareRendererMock = vi.mocked(prepareRenderer)
 
 const tempDirs: string[] = []
@@ -63,29 +66,28 @@ async function createRendererDir(contentDir: string, withNodeModules: boolean = 
   return rendererDir
 }
 
-async function writeConfig(contentDir: string, overrides: Partial<MdsiteConfig> = {}): Promise<MdsiteConfig> {
+async function writeConfig(contentDir: string, overrides: DeepPartial<MdsiteConfig> = {}): Promise<MdsiteConfig> {
   const config: MdsiteConfig = {
-    favicon: '',
-    features: { bibleTooltips: true, sourceEdit: true },
-    menu: [],
-    footer: [],
-    server: {
-      output: '.output',
-      path: '.renderer',
-      repo: 'https://github.com/life-and-dev/mdsite',
-      gitBranch: 'main',
-      ...overrides.server
+    features: {
+      bibleTooltips: overrides.features?.bibleTooltips ?? true,
+      sourceEdit: overrides.features?.sourceEdit ?? '',
+      footer: overrides.features?.footer ?? []
+    },
+    menu: overrides.menu ?? [],
+    paths: {
+      input: overrides.paths?.input ?? '',
+      build: overrides.paths?.build ?? '.renderer',
+      output: overrides.paths?.output ?? '.output'
     },
     site: {
-      canonical: '',
-      name: 'Workspace Docs',
-      ...overrides.site
+      canonical: overrides.site?.canonical ?? '',
+      favicon: overrides.site?.favicon ?? '',
+      name: overrides.site?.name ?? 'Workspace Docs'
     },
     themes: {
-      light: { colors: {} },
-      dark: { colors: {} }
-    },
-    ...overrides
+      light: { colors: (overrides.themes?.light?.colors ?? {}) as Record<string, string> },
+      dark: { colors: (overrides.themes?.dark?.colors ?? {}) as Record<string, string> }
+    }
   }
 
   await writeFile(path.join(contentDir, 'mdsite.yml'), serializeMdsiteConfig(config), 'utf8')
@@ -102,6 +104,7 @@ describe('CLI workflow coverage', () => {
     vi.clearAllMocks()
     openUrlInBrowserMock.mockResolvedValue(true)
     waitForTcpPortMocked.mockResolvedValue(true)
+    waitForRendererPortMocked.mockImplementation(async (_logPath, fallbackPort) => fallbackPort)
     prepareRendererMock.mockImplementation(async (contentDir, _config, _options) => {
       const rendererDir = path.join(contentDir, '.renderer')
       return {
@@ -278,11 +281,8 @@ describe('CLI workflow coverage', () => {
     const contentDir = await createContentDir()
     const rendererDir = await createRendererDir(contentDir)
     await writeConfig(contentDir, {
-      server: {
-        output: 'public/site',
-        path: '.renderer',
-        repo: 'https://github.com/life-and-dev/mdsite',
-        gitBranch: 'main'
+      paths: {
+        output: 'public/site'
       }
     })
 

@@ -75,8 +75,7 @@ The following commands will be available after installation:
 4. `mdsite static` : Start the static website - preview how it would behave on static webserver like Cloudflare Pages.
 5. `mdsite stop` : Stop tracked detached `mdsite live -d` or `mdsite static -d` processes.
 6. `mdsite prepare github` : Generate a Github Pages deployment workflow.
-
-After install, the `mdsite` command is available from any content directory.
+7. `mdsite clean` : Delete the renderer working dir and the generated output (refuses while a tracked process is running).
 
 All commands operate on the **current working directory** as the content/project directory. `-d`/`--detached` to runs a tracked background webserver, and `--host` (or `--host <addr>`) to expose the server on the network — see the start and preview sections below. Run `mdsite help` for more details.
 
@@ -84,20 +83,20 @@ All commands operate on the **current working directory** as the content/project
 
 `mdsite.yml` is the only active content-directory configuration file. `mdsite init` creates it and fills defaults from local markdown files where possible.
 
-| Key                      | Default                                  | Description                                                                                                                                                                  |
-| ------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `favicon`                | empty string                             | Source image path relative to the content directory (any format `sharp` supports). The renderer generates derived favicons into the renderer's `public/` dir.                |
-| `features.bibleTooltips` | `true`                                   | Enables renderer Bible tooltip support.                                                                                                                                      |
-| `features.sourceEdit`    | `true`                                   | Enables renderer source-edit support.                                                                                                                                        |
-| `footer`                 | empty array                              | Flat list of markdown file names (no `.md`) that appear in the bottom bar. Files listed here are excluded from `menu`.                                                         |
-| `menu`                   | derived from markdown files              | Menu structure for the sidebar navigation.                                                                                                                                   |
-| `server.output`          | `.output`                                | Static output path under the content directory.                                                                                                                              |
-| `server.path`            | `.mdsite`                                | The renderer working directory, relative to the content directory. End-user runs materialize the bundled renderer here; in the dev repo the bundled submodule runs in place. |
-| `server.repo`            | `https://github.com/life-and-dev/mdsite` | Stored for compatibility and generated renderer config. It is not used for active clone/pull behaviour.                                                                      |
-| `site.canonical`         | empty string                             | Canonical site URL passed to the renderer.                                                                                                                                   |
-| `site.name`              | derived from `index.md` or directory     | Site name passed to the renderer.                                                                                                                                            |
-| `themes.light.colors`    | built-in palette                         | Light theme colour overrides.                                                                                                                                                |
-| `themes.dark.colors`     | built-in palette                         | Dark theme colour overrides.                                                                                                                                                 |
+| Key                       | Default                              | Description                                                                                                                                                                                                                                    |
+| ------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `features.bible-tooltips` | `true`                               | Enables renderer Bible tooltip support.                                                                                                                                                                                                        |
+| `features.source-edit`    | empty string                         | URL prefix for the Edit button. When non-empty, the renderer appends `<page>.md` to this prefix to build the Edit link (e.g. `https://github.com/<owner>/<repo>/blob/main/`). An empty string (the default) disables the Edit button entirely. |
+| `features.footer`         | empty array                          | List of links, separators, and external URLs rendered in the bottom bar. Mirrors the `menu` item shape (string, `null`, or single-key object) without sub-menus.                                                                               |
+| `menu`                    | derived from markdown files          | Menu structure for the sidebar navigation.                                                                                                                                                                                                     |
+| `paths.input`             | directory of `mdsite.yml`            | Path to the directory holding your Markdown files, relative to the directory containing `mdsite.yml`. When omitted, MD-Site uses the directory of `mdsite.yml` as the content directory.                                                       |
+| `paths.build`             | `.mdsite`                            | The renderer working directory, relative to the content directory. End-user runs materialize the bundled renderer here; in the dev repo the bundled submodule runs in place.                                                                   |
+| `paths.output`            | `.output`                            | Static output path under the content directory.                                                                                                                                                                                                |
+| `site.canonical`          | empty string                         | Canonical site URL passed to the renderer.                                                                                                                                                                                                     |
+| `site.favicon`            | empty string                         | Source image path relative to the content directory (any format `sharp` supports). The renderer generates derived favicons into the renderer's `public/` dir.                                                                                  |
+| `site.name`               | derived from `index.md` or directory | Browser title, navbar, breadcrumb root, and web manifest name; overrides `index.md` H1.                                                                                                                                                        |
+| `themes.light.colors`     | built-in palette                     | Light theme colour overrides.                                                                                                                                                                                                                  |
+| `themes.dark.colors`      | built-in palette                     | Dark theme colour overrides.                                                                                                                                                                                                                   |
 
 The full documentation lives at [https://life-and-dev.github.io/mdsite/](https://life-and-dev.github.io/mdsite/).
 
@@ -118,7 +117,7 @@ We have prepared a series of tutorials to guide you through every aspect of work
   Learn the syntax of the `menu` section in `mdsite.yml`.
 
 - **[Footer Configuration](https://life-and-dev.github.io/mdsite/footer)**  
-  Learn how to populate the bottom bar with the `footer` section in `mdsite.yml`.
+  Learn how to populate the bottom bar with links, separators, and external URLs via the `footer` section in `mdsite.yml`.
 
 - **[Generating Favicons](https://life-and-dev.github.io/mdsite/favicon)**  
   Learn how to configure a favicon path in `mdsite.yml`.

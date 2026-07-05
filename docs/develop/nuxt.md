@@ -73,8 +73,8 @@ The renderer reads `mdsite.yml` directly via `utils/mdsite-config.ts` for some l
 - **Themes** — Vuetify color tokens for light/dark mode (see [Theme Configuration](https://life-and-dev.github.io/mdsite/theme)).
 - **Features** — Bible tooltips, source-edit links (see [Features](https://life-and-dev.github.io/mdsite/features)).
 - **Site name and canonical URL** — used in metadata.
-- **Favicon** — set `favicon` to a source image path relative to the content dir; the renderer generates all derived icons and the web manifest directly into its own `public/` dir (the renderer working dir, e.g. `.mdsite/public/`). No files are written into the content dir.
-- **Footer links** — flat list of markdown file names rendered as links in the bottom bar (see [Footer Configuration](../footer)).
+- **Favicon** — set `site.favicon` to a source image path relative to the content dir; the renderer generates all derived icons and the web manifest directly into its own `public/` dir (the renderer working dir, e.g. `.mdsite/public/`). No files are written into the content dir.
+- **Footer links** — list of links, separators, and external URLs rendered in the bottom bar, configured under `features.footer` in `mdsite.yml`. Mirrors the `menu` item shape (string, null, or single-key object) but without sub-menus (see [Footer Configuration](../footer)).
 
 ### What requires editing the submodule
 
@@ -140,7 +140,7 @@ Plugins live in `app/plugins/`. Use them for one-time setup like registering Vue
 
 | Hook | When it runs | What it does |
 | --- | --- | --- |
-| `content:file:beforeParse` | Before `@nuxt/content` parses each Markdown file | Transforms GFM alerts into `::markdown-alert` MDC components, and (if `features.bibleTooltips` is on) wraps Bible references in `<span class="bible-ref">`. |
+| `content:file:beforeParse` | Before `@nuxt/content` parses each Markdown file | Transforms GFM alerts into `::markdown-alert` MDC components, and (if `features.bible-tooltips` is on) wraps Bible references in `<span class="bible-ref">`. |
 | `build:before` | Before the production build | Runs `scripts/renderer-hooks.ts` to build search indices, navigation trees, and favicons. Skipped when the CLI has already orchestrated these. |
 | `ready` (via `scripts/start.ts`) | When the dev server starts | Starts the `sync-content.ts` watcher that copies images and regenerates JSON as you edit. |
 

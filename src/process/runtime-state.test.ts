@@ -16,12 +16,10 @@ import {
 } from './runtime-state.js'
 
 const config: MdsiteConfig = {
-  favicon: '',
-  features: { bibleTooltips: true, sourceEdit: true },
+  features: { bibleTooltips: true, sourceEdit: '', footer: [] },
   menu: [],
-  footer: [],
-  server: { output: '.output', path: '.renderer', repo: 'repo', gitBranch: 'main' },
-  site: { canonical: '', name: 'Docs' },
+  paths: { input: '', build: '.renderer', output: '.output' },
+  site: { canonical: '', favicon: '', name: 'Docs' },
   themes: { light: { colors: {} }, dark: { colors: {} } }
 }
 

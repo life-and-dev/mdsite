@@ -31,6 +31,7 @@ import {
   prepareRenderer,
   previewRendererForeground,
   previewRendererInBackground,
+  resolveRendererOutputPath,
   startRendererForeground,
   startRendererInBackground
 } from './mdsite-nuxt.js'
@@ -44,12 +45,10 @@ const runForegroundMock = vi.mocked(runForeground)
 const runBackgroundMock = vi.mocked(runBackground)
 
 const baseConfig = {
-  favicon: '',
-  features: { bibleTooltips: true, sourceEdit: true },
-  footer: [],
+  features: { bibleTooltips: true, sourceEdit: '', footer: [] },
   menu: [],
-  server: { output: '.output', path: '.renderer', repo: 'repo', gitBranch: 'main' },
-  site: { canonical: '', name: 'Docs' },
+  paths: { input: '', build: '.renderer', output: '.output' },
+  site: { canonical: '', favicon: '', name: 'Docs' },
   themes: {
     light: { colors: { primary: '#111111' } },
     dark: { colors: { primary: '#222222' } }
@@ -260,5 +259,37 @@ describe('mdsite-nuxt renderer helpers', () => {
     await prepareRendererBackend('/renderer', env)
 
     expect(runForegroundMock).toHaveBeenCalledWith('npm', ['run', 'prepare:renderer'], '/renderer', env)
+  })
+
+  it('resolveRendererOutputPath returns the checked-in renderer output in dev mode', async () => {
+    const contentDir = '/workspace/content'
+    const checkedInRendererDir = path.resolve(process.cwd(), 'mdsite-nuxt')
+
+    await expect(resolveRendererOutputPath(contentDir, baseConfig)).resolves.toBe(
+      path.join(checkedInRendererDir, '.output')
+    )
+  })
+
+  it('resolveRendererOutputPath returns undefined when the checked-in renderer is missing', async () => {
+    const contentDir = '/workspace/content'
+    const checkedInRendererDir = path.resolve(process.cwd(), 'mdsite-nuxt')
+
+    accessMock.mockImplementation(async (targetPath) => {
+      if (targetPath === checkedInRendererDir) {
+        throw new Error('missing submodule')
+      }
+    })
+
+    await expect(resolveRendererOutputPath(contentDir, baseConfig)).resolves.toBeUndefined()
+  })
+
+  it('resolveRendererOutputPath returns undefined when paths.build points at the checked-in renderer', async () => {
+    const rendererDirAsBuild = path.resolve(process.cwd(), 'mdsite-nuxt')
+    const config = {
+      ...baseConfig,
+      paths: { ...baseConfig.paths, build: rendererDirAsBuild }
+    }
+
+    await expect(resolveRendererOutputPath(rendererDirAsBuild, config)).resolves.toBeUndefined()
   })
 })

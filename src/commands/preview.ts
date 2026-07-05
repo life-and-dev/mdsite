@@ -1,5 +1,5 @@
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
-import { openUrlInBrowser, waitForTcpPort } from '../process/child-process.js'
+import { openUrlInBrowser, waitForRendererPort, waitForTcpPort } from '../process/child-process.js'
 import { getRuntimeLogPath, isProcessRunning, readRuntimeState, writeRuntimeState } from '../process/runtime-state.js'
 import { ensurePreviewArtifacts, ensureRendererDependencies, hasPreviewArtifacts, prepareRenderer, previewRendererForeground, previewRendererInBackground } from '../renderer/mdsite-nuxt.js'
 import { runGenerateCommand } from './generate.js'
@@ -54,7 +54,6 @@ async function runDetachedPreviewCommand(contentDir: string, options: PreviewCom
   const previewEnv = getPreviewEnv(rendererEnv, options.host)
   const logPath = getRuntimeLogPath(configDir, config, 'preview')
   const pid = await previewRendererInBackground(rendererDir, previewEnv, logPath)
-  const previewUrl = getPreviewUrl(previewEnv)
 
   await writeRuntimeState(configDir, config, {
     kind: 'preview',
@@ -66,19 +65,19 @@ async function runDetachedPreviewCommand(contentDir: string, options: PreviewCom
     startedAt: new Date().toISOString()
   })
 
-  const previewReady = await waitForTcpPort(previewEnv.HOST ?? 'localhost', Number.parseInt(previewEnv.PORT ?? '3000', 10)).catch(() => false)
+  const host = previewEnv.NUXT_HOST ?? previewEnv.HOST ?? 'localhost'
+  const configuredPort = Number.parseInt(previewEnv.NUXT_PORT ?? previewEnv.PORT ?? '3000', 10)
+  // Nitro may fall back to the next free port when the configured one is occupied;
+  // detect the actual port from the renderer log so we open the right URL.
+  const actualPort = await waitForRendererPort(logPath, configuredPort)
+  const previewUrl = `http://${host}:${actualPort}`
+
+  const previewReady = await waitForTcpPort(host, actualPort).catch(() => false)
   if (previewReady) {
     await openUrlInBrowser(previewUrl)
   }
 
   return `mdsite static running in background (PID ${pid}). URL: ${previewUrl} Log: ${logPath}`
-}
-
-function getPreviewUrl(env: NodeJS.ProcessEnv): string {
-  const host = env.NUXT_HOST ?? env.HOST ?? 'localhost'
-  const port = env.NUXT_PORT ?? env.PORT ?? '3000'
-
-  return `http://${host}:${port}`
 }
 
 function getPreviewEnv(env: NodeJS.ProcessEnv, overrideHost?: string): NodeJS.ProcessEnv {

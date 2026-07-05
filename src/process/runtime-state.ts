@@ -20,7 +20,7 @@ export interface RuntimeProcessState {
 }
 
 export function getRuntimeDir(configDir: string, config: MdsiteConfig): string {
-  return path.resolve(configDir, config.server.path)
+  return path.resolve(configDir, config.paths.build)
 }
 
 export function getRuntimeLogPath(configDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): string {

@@ -14,7 +14,7 @@ Local-first `mdsite` CLI drives checked-in `mdsite-nuxt` renderer from current c
 - **Node child process APIs**: start/stop/background orchestration.
 
 ## Key Data Models
-- **MdsiteConfig** (`src/config/mdsite-config.ts`): site, menu, server, theme, feature config.
+- **MdsiteConfig** (`src/config/mdsite-config.ts`): site, menu, paths, theme, feature config.
 - **RuntimeProcessState** (`src/process/runtime-state.ts`): tracked `start`/`preview` PID and log state.
 
 ## Key API Endpoints
@@ -33,7 +33,7 @@ Local-first `mdsite` CLI drives checked-in `mdsite-nuxt` renderer from current c
 - **ensurePreviewArtifacts** (`src/renderer/mdsite-nuxt.ts`): preview needs prior `generate`.
 
 ## Security Design
-No auth or role layer in CLI. Renderer env built from local content dir and current process env. Config paths stay local; renderer resolution is local-only, with fallback to checked-in `mdsite-nuxt` when `server.path` path not present.
+No auth or role layer in CLI. Renderer env built from local content dir and current process env. Config paths stay local; renderer resolution is local-only, with fallback to checked-in `mdsite-nuxt` when `paths.build` path not present.
 
 ## External Integrations
 - **mdsite-nuxt** (`mdsite-nuxt/`): Nuxt renderer scripts, build, dev, preview, prepare.
@@ -53,7 +53,7 @@ No auth or role layer in CLI. Renderer env built from local content dir and curr
 - `mdsite-nuxt/.mdsite-compat.yml`: checked-in compat config.
 
 ## Known Risks & Anti-Patterns
-- **Local fallback renderer**: `server.path` missing falls back to checked-in `mdsite-nuxt`.
+- **Local fallback renderer**: `paths.build` missing falls back to checked-in `mdsite-nuxt`.
 - **Generated state files**: CLI writes runtime and compat files into content/renderer dirs.
 - **Preview depends on generate**: no built output means preview fails.
 

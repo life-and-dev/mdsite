@@ -20,10 +20,10 @@ export async function runPrepareGithubCommand(contentDir: string): Promise<strin
 }
 
 function buildGithubWorkflow(config: Awaited<ReturnType<typeof loadMdsiteConfig>>['config']): string {
-  const outputPath = path.posix.normalize(config.server.output.replace(/\\/g, '/'))
+  const outputPath = path.posix.normalize(config.paths.output.replace(/\\/g, '/'))
   const workflowName = 'Deploy Docs'
   const artifactPath = `./${outputPath}/public`
-  const workspaceContentPath = config.content?.path ? `\${{ github.workspace }}/${path.posix.normalize(config.content.path.replace(/\\/g, '/'))}` : '${{ github.workspace }}'
+  const workspaceContentPath = config.paths.input ? `\${{ github.workspace }}/${path.posix.normalize(config.paths.input.replace(/\\/g, '/'))}` : '${{ github.workspace }}'
 
   return [
     `name: ${JSON.stringify(workflowName)}`,

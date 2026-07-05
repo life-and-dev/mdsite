@@ -58,21 +58,20 @@ const defaultDarkColors = {
 
 export function createDefaultMdsiteConfig(siteName: string, menu: MdsiteConfig['menu']): MdsiteConfig {
   return {
-    favicon: '',
     features: {
       bibleTooltips: true,
-      sourceEdit: true
+      sourceEdit: '',
+      footer: []
     },
     menu,
-    footer: [],
-    server: {
-      output: '.output',
-      path: '.mdsite',
-      repo: 'https://github.com/life-and-dev/mdsite',
-      gitBranch: 'main'
+    paths: {
+      input: '',
+      build: '.mdsite',
+      output: '.output'
     },
     site: {
       canonical: '',
+      favicon: '',
       name: siteName
     },
     themes: {

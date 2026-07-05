@@ -9,21 +9,20 @@ describe('createDefaultMdsiteConfig', () => {
     const config = createDefaultMdsiteConfig('My Site', menu)
 
     expect(config).toEqual({
-      favicon: '',
       features: {
         bibleTooltips: true,
-        sourceEdit: true
+        sourceEdit: '',
+        footer: []
       },
       menu,
-      footer: [],
-      server: {
-        output: '.output',
-        path: '.mdsite',
-        repo: 'https://github.com/life-and-dev/mdsite',
-        gitBranch: 'main'
+      paths: {
+        input: '',
+        build: '.mdsite',
+        output: '.output'
       },
       site: {
         canonical: '',
+        favicon: '',
         name: 'My Site'
       },
       themes: {

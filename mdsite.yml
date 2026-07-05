@@ -1,9 +1,9 @@
-content:
-  path: docs
-favicon: ""
 features:
-  bibleTooltips: false
-  sourceEdit: true
+  bible-tooltips: false
+  footer:
+    - GitHub Repo: https://github.com/life-and-dev/mdsite
+    - NPM Registry: https://www.npmjs.com/package/@life-and-dev/mdsite
+  source-edit: https://github.com/life-and-dev/mdsite/blob/main/docs
 menu:
   - index
   - content
@@ -19,12 +19,13 @@ menu:
       - nuxt
       - tests
       - release
-server:
+paths:
+  build: .mdsite
+  input: docs
   output: .output
-  path: .mdsite
-  repo: https://github.com/life-and-dev/mdsite
 site:
-  canonical: ""
+  canonical: "https://life-and-dev.github.io/mdsite"
+  favicon: "logo.svg"
   name: MD Site Documentation
 themes:
   light:

@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mkdirMock, openMock, spawnMock, connectMock } = vi.hoisted(() => ({
+const { mkdirMock, openMock, readFileMock, spawnMock, connectMock } = vi.hoisted(() => ({
   mkdirMock: vi.fn(),
   openMock: vi.fn(),
+  readFileMock: vi.fn(),
   spawnMock: vi.fn(),
   connectMock: vi.fn()
 }))
 
 vi.mock('node:fs/promises', () => ({
   mkdir: mkdirMock,
-  open: openMock
+  open: openMock,
+  readFile: readFileMock
 }))
 
 vi.mock('node:child_process', () => ({
@@ -22,7 +24,7 @@ vi.mock('node:net', () => ({
   }
 }))
 
-import { openUrlInBrowser, runBackground, waitForTcpPort } from './child-process.js'
+import { openUrlInBrowser, runBackground, waitForRendererPort, waitForTcpPort } from './child-process.js'
 
 describe('child-process helpers', () => {
   beforeEach(() => {
@@ -150,5 +152,51 @@ describe('child-process helpers', () => {
 
     await expect(waitPromise).resolves.toBe(false)
     expect(connectMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('waitForRendererPort detects the Nuxt dev fallback port from the Local URL', async () => {
+    vi.useFakeTimers()
+    readFileMock
+      .mockRejectedValueOnce(new Error('ENOENT'))
+      .mockResolvedValueOnce('  ➜  Local:   http://localhost:3001/\n  ➜  Network: http://10.0.0.5:3001/\n')
+
+    const waitPromise = waitForRendererPort('/content/.mdsite/live.log', 3000, { retryIntervalMs: 25, timeoutMs: 200 })
+    await vi.advanceTimersByTimeAsync(50)
+
+    await expect(waitPromise).resolves.toBe(3001)
+    expect(readFileMock).toHaveBeenCalledWith('/content/.mdsite/live.log', 'utf8')
+  })
+
+  it('waitForRendererPort detects the Nitro preview fallback port from the Listening URL', async () => {
+    vi.useFakeTimers()
+    readFileMock.mockResolvedValueOnce('Listening on http://[::]:4173\n')
+
+    const waitPromise = waitForRendererPort('/content/.mdsite/static.log', 4173, { retryIntervalMs: 25, timeoutMs: 200 })
+    await vi.advanceTimersByTimeAsync(50)
+
+    await expect(waitPromise).resolves.toBe(4173)
+  })
+
+  it('waitForRendererPort returns the fallback port when no listening URL is logged before the timeout', async () => {
+    vi.useFakeTimers()
+    readFileMock.mockRejectedValue(new Error('ENOENT'))
+
+    const waitPromise = waitForRendererPort('/content/.mdsite/live.log', 3000, { retryIntervalMs: 25, timeoutMs: 60 })
+    await vi.advanceTimersByTimeAsync(100)
+
+    await expect(waitPromise).resolves.toBe(3000)
+  })
+
+  it('waitForRendererPort keeps polling across partial log writes until the URL appears', async () => {
+    vi.useFakeTimers()
+    readFileMock
+      .mockResolvedValueOnce('Nuxt 4 starting...\n')
+      .mockResolvedValueOnce('Nuxt 4 starting...\n  ➜  Local:   http://localhost:3002/\n')
+
+    const waitPromise = waitForRendererPort('/content/.mdsite/live.log', 3000, { retryIntervalMs: 25, timeoutMs: 200 })
+    await vi.advanceTimersByTimeAsync(75)
+
+    await expect(waitPromise).resolves.toBe(3002)
+    expect(readFileMock.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 })

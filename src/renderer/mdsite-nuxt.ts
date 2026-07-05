@@ -45,7 +45,7 @@ export async function prepareConfiguredRenderer(contentDir: string, config: Mdsi
 
 export async function ensureConfiguredRendererInstalled(contentDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<string> {
   const rendererBaseDir = options.configDir ?? contentDir
-  const rendererDir = path.resolve(rendererBaseDir, config.server.path)
+  const rendererDir = path.resolve(rendererBaseDir, config.paths.build)
 
   await ensureDirectoryIsAvailable(rendererDir)
 
@@ -138,6 +138,38 @@ export function getRendererGeneratedOutputPath(rendererDir: string): string {
   return path.join(rendererDir, '.output', 'public')
 }
 
+/**
+ * Path of the renderer's own generated output directory for the current install,
+ * for use by `mdsite clean`.
+ *
+ * - Production (CLI installed via npm): the renderer is materialized into
+ *   `<configDir>/<paths.build>`, so this returns `undefined` — the existing
+ *   `paths.build` removal already covers `<paths.build>/.output`.
+ * - Dev (CLI run from this repo): the renderer is the checked-in `mdsite-nuxt/`
+ *   submodule, so this returns `<mdsite-nuxt>/.output` for `mdsite clean` to
+ *   wipe stale Nuxt build artifacts that would otherwise survive the clean
+ *   and make `mdsite static` serve the previous config.
+ * - Submodule missing (e.g. shallow clone): returns `undefined` — nothing to
+ *   clean beyond `paths.build`/`paths.output`.
+ */
+export async function resolveRendererOutputPath(configDir: string, config: MdsiteConfig): Promise<string | undefined> {
+  const buildDir = path.resolve(configDir, config.paths.build)
+
+  if (isInsideNodeModules(checkedInRendererDir)) {
+    return undefined
+  }
+
+  if (!await pathExists(checkedInRendererDir)) {
+    return undefined
+  }
+
+  if (path.resolve(checkedInRendererDir) === buildDir) {
+    return undefined
+  }
+
+  return path.join(checkedInRendererDir, '.output')
+}
+
 async function resolveRendererDir(rendererBaseDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<string> {
   if (isInsideNodeModules(checkedInRendererDir)) {
     return ensureConfiguredRendererInstalled(rendererBaseDir, config, options)
@@ -151,7 +183,7 @@ async function resolveRendererDir(rendererBaseDir: string, config: MdsiteConfig,
 }
 
 async function resolveConfiguredRendererDir(contentDir: string, config: MdsiteConfig): Promise<string> {
-  const rendererDir = path.resolve(contentDir, config.server.path)
+  const rendererDir = path.resolve(contentDir, config.paths.build)
 
   let rendererStats: Awaited<ReturnType<typeof stat>>
   try {
@@ -202,8 +234,10 @@ async function writeCompatibilityConfigFile(rendererDir: string, contentDir: str
     siteName: config.site.name,
     siteCanonical: config.site.canonical,
     contentPath: contentDir,
-    contentGitRepo: config.server.repo,
-    features: config.features,
+    features: {
+      'bible-tooltips': config.features.bibleTooltips,
+      'source-edit': config.features.sourceEdit
+    },
     themes: config.themes
   }
 

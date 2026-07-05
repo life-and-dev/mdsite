@@ -39,8 +39,8 @@ describe('runPrepareGithubCommand', () => {
       [
         'site:',
         '  name: Example Docs',
-        'server:',
-        '  path: renderer',
+        'paths:',
+        '  build: renderer',
         '  output: build/site',
         ''
       ].join('\n'),
@@ -92,7 +92,7 @@ describe('runPrepareGithubCommand', () => {
     )
   })
 
-  it('writes GitHub workflow paths for a root config with content.path', async () => {
+  it('writes GitHub workflow paths for a root config with paths.input', async () => {
     const configDir = await mkdtemp(path.join(os.tmpdir(), 'mdsite-prepare-'))
     tempDirs.push(configDir)
 
@@ -103,13 +103,12 @@ describe('runPrepareGithubCommand', () => {
     await writeFile(
       path.join(configDir, 'mdsite.yml'),
       [
-        'content:',
-        '  path: docs',
+        'paths:',
+        '  input: docs',
+        '  build: renderer',
+        '  output: build/site',
         'site:',
         '  name: Root Docs',
-        'server:',
-        '  path: renderer',
-        '  output: build/site',
         ''
       ].join('\n'),
       'utf8'
@@ -156,8 +155,8 @@ describe('runPrepareGithubCommand', () => {
       [
         'site:',
         '  name: Default Renderer Docs',
-        'server:',
-        '  path: .mdsite',
+        'paths:',
+        '  build: .mdsite',
         '  output: .output',
         ''
       ].join('\n'),

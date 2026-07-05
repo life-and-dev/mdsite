@@ -89,7 +89,7 @@ The CLI is a thin orchestrator. It does not contain any rendering logic — all 
 | `src/index.ts`  | CLI entrypoint. Parses `process.argv`, dispatches to a command handler.                                                                                                             |
 | `src/commands/` | One file per command. Each handler takes a content directory (and options) and returns a status string.                                                                             |
 | `src/config/`   | Defines the `MdsiteConfig` schema, default values produced by `init`, and the `menu` and `footer` parsers for `mdsite.yml`'s `menu:` and `footer:` sections.          |
-| `src/process/`  | `child-process.ts` wraps foreground and background spawning. `runtime-state.ts` writes tracked-detached runtime state (PIDs/logs) into the renderer working dir (`<server.path>`).                                 |
+| `src/process/`  | `child-process.ts` wraps foreground and background spawning. `runtime-state.ts` writes tracked-detached runtime state (PIDs/logs) into the renderer working dir (`<paths.build>`).                                 |
 | `src/renderer/` | `mdsite-nuxt.ts` is the bridge: it resolves the renderer directory, installs its dependencies if missing, writes `.env` and `content.config.yml`, and invokes the right npm script. |
 
 Each module ships next to a `*.test.ts` file (for example `src/index.test.ts`, `src/commands/prepare.test.ts`). See [Testing](develop/tests) for the full picture.
@@ -117,10 +117,10 @@ graph TB
 Renderer resolution is **dev-aware**:
 
 - **Dev repo / submodule in place** — when the bundled renderer is the local `mdsite-nuxt/` submodule and is NOT inside `node_modules` (the normal case in this repo), the CLI runs it **in place**, so live-editing of `mdsite-nuxt/` keeps working.
-- **End users (`node_modules`)** — when the bundled renderer lives inside `node_modules` (an `npm install` / `npx` / CI run), the CLI **materializes** a copy into `<content-dir>/<server.path>` (default `.mdsite`) and runs there.
+- **End users (`node_modules`)** — when the bundled renderer lives inside `node_modules` (an `npm install` / `npx` / CI run), the CLI **materializes** a copy into `<content-dir>/<paths.build>` (default `.mdsite`) and runs there.
 - If the resolved renderer directory has no `node_modules`, the CLI runs `npm install` in it.
 
-`mdsite prepare github` never clones or pulls the renderer itself; the generated workflow is self-adapting and still expects `<server.path>` to be materializable in CI.
+`mdsite prepare github` never clones or pulls the renderer itself; the generated workflow is self-adapting and still expects `<paths.build>` to be materializable in CI.
 
 ### Step 3: Write compatibility artifacts
 
@@ -145,7 +145,9 @@ Finally, the CLI spawns `npm run <script>` inside the renderer directory, where 
 | `mdsite generate` | `generate`      | yes        | —          |
 | `mdsite static`  | `preview`       | yes        | with `-d`  |
 
-Background runs are tracked via state files in the renderer working dir (`<server.path>`, e.g. `.mdsite/`) so `mdsite stop` can find and terminate them.
+Background runs are tracked via state files in the renderer working dir (`<paths.build>`, e.g. `.mdsite/`) so `mdsite stop` can find and terminate them.
+
+When the configured port is occupied, Nuxt falls back to the next free one. The CLI detects the actual port by tailing `live.log`/`static.log` for the `Local:` (dev) or `Listening on` (Nitro preview) URL line, then waits for and opens that port instead of the configured one. If the log line never appears before the readiness timeout, the CLI falls back to the configured port.
 
 ## 5. Configuration model
 
@@ -154,20 +156,21 @@ Background runs are tracked via state files in the renderer working dir (`<serve
 - `src/config/mdsite-config.ts` — the TypeScript schema and parser.
 - `src/config/default-mdsite-config.ts` — defaults applied by `init`, including theme palette and feature flags.
 - `src/config/menu.ts` — the menu parser. Menu items are markdown file references; submenu keys (like `features:` or `develop:`) double as folder prefixes, so `features:` with item `bible-tooltips` resolves to `docs/features/bible-tooltips.md`.
-- `src/config/mdsite-config.ts` `footer:` — the footer parser. The footer is a flat `string[]` of markdown file names (no `.md`, no nesting). Files listed here are also removed from the generated `menu` tree by `mdsite-nuxt/scripts/generate-indices.ts` (see `filterTreeByExcludedPaths`); the two parsers must therefore stay in sync.
+- `src/config/mdsite-config.ts` `features.footer` — the footer parser. The footer lives under the `features` block in `mdsite.yml` (i.e. `features.footer: [...]`) and mirrors the `menu` item shape (`FooterItem = string | null | { [key: string]: string | null }`) but **without** the recursive sub-menu case — values inside an object entry are always a `string` (file path or `http(s)://` URL) or `null` (separator). Internal files listed here are also removed from the generated `menu` tree by `mdsite-nuxt/scripts/generate-indices.ts` (see `filterTreeByExcludedPaths` and `extractInternalPath`); the two parsers must therefore stay in sync. External URLs and separators are ignored by the exclusion pass.
 
 ## 6. Build artifacts and runtime state
 
 | Path                             | Written by                       | Purpose                                              |
 | -------------------------------- | -------------------------------- | ---------------------------------------------------- |
 | `dist/`                          | `npm run build` (tsc)            | Compiled CLI loaded by `bin/mdsite.js`.              |
-| `.<server.path>/` (e.g. `.mdsite/`)              | `start -d` / `preview -d`        | Tracked-detached runtime state: `live.json`/`static.json` (PIDs, ports) + `live.log`/`static.log`. |
-| `.<server.path>/public/` (e.g. `.mdsite/public/`) | renderer favicon pipeline        | Generated `favicon.svg`/`favicon.ico`/`apple-touch-icon.png`/`icon-192.png`/`icon-512.png` + `site.webmanifest`. |
-| `.output/public/`                | `mdsite generate` (via renderer) | The static site, ready to deploy.                    |
+| `.<paths.build>/` (e.g. `.mdsite/`)              | `start -d` / `preview -d`        | Tracked-detached runtime state: `live.json`/`static.json` (PIDs, ports) + `live.log`/`static.log`. |
+| `.<paths.build>/public/` (e.g. `.mdsite/public/`) | renderer favicon pipeline        | Generated `favicon.svg`/`favicon.ico`/`apple-touch-icon.png`/`icon-192.png`/`icon-512.png` + `site.webmanifest`. |
+| `.<paths.output>/public/`        | `mdsite generate` (via renderer) | The static site, ready to deploy.                    |
 | `mdsite-nuxt/.env`               | every CLI run                    | Points the renderer at the active content directory. |
 | `mdsite-nuxt/content.config.yml` | every CLI run                    | Serialized site config consumed by the renderer.     |
+| `mdsite-nuxt/.output/`           | `mdsite generate` / `mdsite static` (dev only) | Nuxt's own build output; lives inside the submodule while the CLI is being developed from this repo. Wiped by `mdsite clean`. |
 
-Most of these are gitignored. `.mdsite/` is fully gitignored and the renderer source is materialized here from the bundled `mdsite-nuxt/` on every CLI run; nothing under `.<server.path>/` or `.output/` should be committed. `mdsite clean` is the user-facing way to delete `.<server.path>/` and `./<server.output>/` (default `.mdsite/` and `.output/`). It refuses to run while a tracked start/preview process is alive, so the usual pre-cleanup is `mdsite stop` (or the foreground `Ctrl+C`).
+Most of these are gitignored. `.mdsite/` is fully gitignored and the renderer source is materialized here from the bundled `mdsite-nuxt/` on every CLI run; nothing under `.<paths.build>/` or `.<paths.output>/` should be committed. `mdsite clean` is the user-facing way to delete `.<paths.build>/` and `.<paths.output>/` (default `.mdsite/` and `.output/`), and — in dev mode when the CLI is run from this repo — also `mdsite-nuxt/.output/`. The dev-only wipe is what stops stale Nuxt build artifacts from making `mdsite static` serve the prior `mdsite.yml` config after a `mdsite clean`. `mdsite clean` refuses to run while a tracked start/preview process is alive, so the usual pre-cleanup is `mdsite stop` (or the foreground `Ctrl+C`).
 
 ### Generated CI workflow (`mdsite prepare github`)
 

@@ -74,15 +74,16 @@ Just paste the URL as the value.
 
 ## 4. Excluding Items from the Menu
 
-Entries listed in `footer:` are removed from the `menu:` output. This lets you move a page from the sidebar to the bottom bar without leaving a duplicate in the sidebar.
+Entries listed in `features.footer` are removed from the `menu:` output. This lets you move a page from the sidebar to the bottom bar without leaving a duplicate in the sidebar.
 
 ```yaml
 menu:
   - about
   - contacts
   - help
-footer:
-  - contacts
+features:
+  footer:
+    - contacts
 ```
 
 In this example, the sidebar shows `about` and `help`; `contacts` is dropped because it appears in the bottom bar.

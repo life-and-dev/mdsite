@@ -66,8 +66,8 @@ export async function ensureInitialized(contentDir: string): Promise<boolean> {
 }
 
 async function ensureContentGitignore(contentDir: string, config: MdsiteConfig): Promise<void> {
-  const serverPath = config.server.path.replace(/\\/g, '/')
-  const serverOutput = config.server.output.replace(/\\/g, '/')
+  const serverPath = config.paths.build.replace(/\\/g, '/')
+  const serverOutput = config.paths.output.replace(/\\/g, '/')
   const requiredPatterns = [
     `${serverPath}/*`,
     `${serverOutput}/`

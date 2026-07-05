@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
 import { isProcessRunning, readRuntimeState } from '../process/runtime-state.js'
+import { resolveRendererOutputPath } from '../renderer/mdsite-nuxt.js'
 
 async function pathExists(targetPath: string): Promise<boolean> {
   try {
@@ -18,7 +19,7 @@ export async function runCleanCommand(contentDir: string): Promise<string> {
   const { config, configDir } = loaded
 
   // Refuse to wipe state while a tracked process is still pointing at it.
-  // Tracked PIDs live inside <server.path>, so the clean would orphan them.
+  // Tracked PIDs live inside <paths.build>, so the clean would orphan them.
   const trackedStates = await Promise.all([
     readRuntimeState(configDir, config, 'start'),
     readRuntimeState(configDir, config, 'preview')
@@ -31,31 +32,62 @@ export async function runCleanCommand(contentDir: string): Promise<string> {
     }
   }
 
-  const rendererPath = path.resolve(configDir, config.server.path)
-  const outputPath = path.resolve(configDir, config.server.output)
+  const rendererPath = path.resolve(configDir, config.paths.build)
+  const outputPath = path.resolve(configDir, config.paths.output)
+  const rendererOutputPath = await resolveRendererOutputPath(configDir, config)
 
-  const [rendererExists, outputExists] = await Promise.all([
+  const [rendererExists, outputExists, rendererOutputExists] = await Promise.all([
     pathExists(rendererPath),
-    pathExists(outputPath)
+    pathExists(outputPath),
+    rendererOutputPath ? pathExists(rendererOutputPath) : Promise.resolve(false)
   ])
 
   // `force: true` lets us skip non-existent paths without a separate branch.
-  await Promise.all([
+  const removals: Array<Promise<unknown>> = [
     rm(rendererPath, { recursive: true, force: true }),
     rm(outputPath, { recursive: true, force: true })
-  ])
+  ]
+  if (rendererOutputPath) {
+    removals.push(rm(rendererOutputPath, { recursive: true, force: true }))
+  }
+  await Promise.all(removals)
 
   const removed: string[] = []
   if (rendererExists) {
-    removed.push(config.server.path)
+    removed.push(config.paths.build)
   }
   if (outputExists) {
-    removed.push(config.server.output)
+    removed.push(config.paths.output)
+  }
+  if (rendererOutputExists && rendererOutputPath) {
+    removed.push(formatRemovedPath(contentDir, rendererOutputPath))
   }
 
   if (removed.length === 0) {
     return `Nothing to clean in ${contentDir}.`
   }
 
-  return `Removed ${removed.join(' and ')} from ${contentDir}.`
+  return `Removed ${joinRemoved(removed)} from ${contentDir}.`
+}
+
+function formatRemovedPath(contentDir: string, targetPath: string): string {
+  const relative = path.relative(contentDir, targetPath)
+  if (relative.length === 0 || relative.startsWith('..') || path.isAbsolute(relative)) {
+    return targetPath
+  }
+  return relative.split(path.sep).join('/')
+}
+
+/**
+ * Join the cleaned paths in a single human-readable phrase.
+ * One path: `<a>`. Two: `<a> and <b>`. Three or more: `<a>, <b>, and <c>`.
+ */
+function joinRemoved(parts: string[]): string {
+  if (parts.length === 1) {
+    return parts[0]
+  }
+  if (parts.length === 2) {
+    return `${parts[0]} and ${parts[1]}`
+  }
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`
 }

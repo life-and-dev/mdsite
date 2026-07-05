@@ -1,5 +1,5 @@
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
-import { openUrlInBrowser, waitForTcpPort } from '../process/child-process.js'
+import { openUrlInBrowser, waitForRendererPort, waitForTcpPort } from '../process/child-process.js'
 import { getRuntimeLogPath, isProcessRunning, readRuntimeState, writeRuntimeState } from '../process/runtime-state.js'
 import { ensureRendererDependencies, prepareRenderer, startRendererForeground, startRendererInBackground } from '../renderer/mdsite-nuxt.js'
 import { ensureInitialized } from './init.js'
@@ -40,7 +40,6 @@ async function runDetachedStartCommand(contentDir: string, options: StartCommand
   const env = withHostEnv(rendererEnv, options.host)
   const logPath = getRuntimeLogPath(configDir, config, 'start')
   const pid = await startRendererInBackground(rendererDir, env, logPath)
-  const startUrl = getStartUrl(env)
 
   await writeRuntimeState(configDir, config, {
     kind: 'start',
@@ -52,7 +51,14 @@ async function runDetachedStartCommand(contentDir: string, options: StartCommand
     startedAt: new Date().toISOString()
   })
 
-  const startReady = await waitForTcpPort(getStartHost(env), Number.parseInt(getStartPort(env), 10)).catch(() => false)
+  const host = getStartHost(env)
+  const configuredPort = Number.parseInt(getStartPort(env), 10)
+  // Nuxt may fall back to the next free port when the configured one is occupied;
+  // detect the actual port from the renderer log so we open the right URL.
+  const actualPort = await waitForRendererPort(logPath, configuredPort)
+  const startUrl = `http://${host}:${actualPort}`
+
+  const startReady = await waitForTcpPort(host, actualPort).catch(() => false)
   if (startReady) {
     await openUrlInBrowser(startUrl)
   }
@@ -71,10 +77,6 @@ function withHostEnv(env: NodeJS.ProcessEnv, host: string | undefined): NodeJS.P
     HOST: host,
     NITRO_HOST: host
   }
-}
-
-function getStartUrl(env: NodeJS.ProcessEnv): string {
-  return `http://${getStartHost(env)}:${getStartPort(env)}`
 }
 
 function getStartHost(env: NodeJS.ProcessEnv): string {

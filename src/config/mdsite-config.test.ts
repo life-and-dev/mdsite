@@ -33,7 +33,7 @@ describe('mdsite config helpers', () => {
 
     expect(config.site.name).toBe('My Docs')
     expect(config.menu).toEqual(['guide'])
-    expect(config.server.output).toBe('.output')
+    expect(config.paths.output).toBe('.output')
   })
 
   it('serializeMdsiteConfig returns yaml text with the configured values', async () => {
@@ -60,15 +60,15 @@ describe('mdsite config helpers', () => {
     await writeFile(path.join(contentDir, 'index.md'), '# Derived Name', 'utf8')
     await writeFile(path.join(contentDir, 'guide.md'), '# Guide', 'utf8')
     await writeFile(path.join(contentDir, 'mdsite.yml'), [
-      'favicon: assets/favicon.svg',
       'features:',
-      '  bibleTooltips: false',
+      '  bible-tooltips: false',
       'menu:',
       '  - custom/page',
-      'server:',
+      'paths:',
       '  output: dist/public',
-      '  path: .renderer',
+      '  build: .renderer',
       'site:',
+      '  favicon: assets/favicon.svg',
       '  canonical: https://example.test',
       '  name: "   "',
       'themes:',
@@ -85,21 +85,22 @@ describe('mdsite config helpers', () => {
 
     expect(loaded.configPath).toBe(path.join(contentDir, 'mdsite.yml'))
     expect(loaded.contentDir).toBe(contentDir)
-    expect(loaded.config.favicon).toBe('assets/favicon.svg')
+    expect(loaded.config.site.favicon).toBe('assets/favicon.svg')
     expect(loaded.config.features).toEqual({
       bibleTooltips: false,
-      sourceEdit: true
+      sourceEdit: '',
+      footer: []
     })
     expect(loaded.config.menu).toEqual(['custom/page'])
-    expect(loaded.config.footer).toEqual([])
-    expect(loaded.config.server).toEqual({
-      output: 'dist/public',
-      path: '.renderer',
-      repo: 'https://github.com/life-and-dev/mdsite',
-      gitBranch: 'main'
+    expect(loaded.config.features.footer).toEqual([])
+    expect(loaded.config.paths).toEqual({
+      input: '',
+      build: '.renderer',
+      output: 'dist/public'
     })
     expect(loaded.config.site).toEqual({
       canonical: 'https://example.test',
+      favicon: 'assets/favicon.svg',
       name: 'Derived Name'
     })
     expect(loaded.config.themes.light.colors.primary).toBe('#123456')
@@ -108,30 +109,57 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.themes.dark.colors.primary).toBe('#58a6ff')
   })
 
-  it('loadMdsiteConfig reads footer: as a flat string array', async () => {
+  it('loadMdsiteConfig reads features.footer: as a flat string array', async () => {
     const contentDir = await makeTempDir()
     await writeFile(path.join(contentDir, 'index.md'), '# Home', 'utf8')
     await writeFile(path.join(contentDir, 'about.md'), '# About', 'utf8')
     await writeFile(path.join(contentDir, 'contacts.md'), '# Contacts', 'utf8')
     await writeFile(path.join(contentDir, 'mdsite.yml'), [
-      'footer:',
-      '  - about',
-      '  - contacts',
-      '  - not-a-string: 1',
+      'features:',
+      '  footer:',
+      '    - about',
+      '    - contacts',
+      '    - not-a-string: 1',
       ''
     ].join('\n'), 'utf8')
 
     const loaded = await loadMdsiteConfig(contentDir)
 
-    expect(loaded.config.footer).toEqual(['about', 'contacts'])
+    expect(loaded.config.features.footer).toEqual(['about', 'contacts'])
   })
 
-  it('loadMdsiteConfig resolves content.path relative to the config directory', async () => {
+  it('loadMdsiteConfig accepts menu-shaped footer entries (custom labels, external URLs, separators)', async () => {
+    const contentDir = await makeTempDir()
+    await writeFile(path.join(contentDir, 'about.md'), '# About', 'utf8')
+    await writeFile(path.join(contentDir, 'mdsite.yml'), [
+      'features:',
+      '  footer:',
+      '    - about',
+      '    - "About Page": about',
+      '    - "GitHub Repo": https://github.com/life-and-dev/mdsite',
+      '    - null',
+      '    - "Multi":',
+      '        - nested: not allowed',
+      '    - { too: many, keys: true }',
+      ''
+    ].join('\n'), 'utf8')
+
+    const loaded = await loadMdsiteConfig(contentDir)
+
+    expect(loaded.config.features.footer).toEqual([
+      'about',
+      { 'About Page': 'about' },
+      { 'GitHub Repo': 'https://github.com/life-and-dev/mdsite' },
+      null,
+    ])
+  })
+
+  it('loadMdsiteConfig resolves paths.input relative to the config directory', async () => {
     const configDir = await makeTempDir()
     const contentDir = path.join(configDir, 'docs')
     await writeFile(path.join(configDir, 'mdsite.yml'), [
-      'content:',
-      '  path: docs',
+      'paths:',
+      '  input: docs',
       'site:',
       '  name: Root Config Docs',
       ''
@@ -144,14 +172,15 @@ describe('mdsite config helpers', () => {
     expect(loaded.configDir).toBe(configDir)
     expect(loaded.configPath).toBe(path.join(configDir, 'mdsite.yml'))
     expect(loaded.contentDir).toBe(contentDir)
-    expect(loaded.config.content).toEqual({ path: 'docs' })
+    expect(loaded.config.paths.input).toBe('docs')
   })
 
-  it('loadMdsiteConfig resolves the content string shorthand relative to the config directory', async () => {
+  it('loadMdsiteConfig resolves the paths.input string shorthand relative to the config directory', async () => {
     const configDir = await makeTempDir()
     const contentDir = path.join(configDir, 'content')
     await writeFile(path.join(configDir, 'mdsite.yml'), [
-      'content: content',
+      'paths:',
+      '  input: content',
       'site:',
       '  name: Shorthand Content',
       ''
@@ -162,48 +191,18 @@ describe('mdsite config helpers', () => {
     const loaded = await loadMdsiteConfig(configDir)
 
     expect(loaded.contentDir).toBe(contentDir)
-    expect(loaded.config.content).toEqual({ path: 'content' })
+    expect(loaded.config.paths.input).toBe('content')
   })
 
   it('resolveContentOutputPath resolves the configured output relative to the content directory', () => {
     const contentDir = '/tmp/example'
 
     expect(resolveContentOutputPath(contentDir, {
-      favicon: '',
-      features: { bibleTooltips: true, sourceEdit: true },
+      features: { bibleTooltips: true, sourceEdit: '', footer: [] },
       menu: [],
-      footer: [],
-      server: { output: 'public/site', path: '.mdsite', repo: 'repo', gitBranch: 'main' },
-      site: { canonical: '', name: 'Docs' },
+      paths: { input: '', build: '.mdsite', output: 'public/site' },
+      site: { canonical: '', favicon: '', name: 'Docs' },
       themes: { light: { colors: {} }, dark: { colors: {} } }
     })).toBe(path.resolve(contentDir, 'public', 'site', 'public'))
-  })
-
-  it('loadMdsiteConfig reads server.git-branch and defaults to "main" when missing or blank', async () => {
-    const contentDir = await makeTempDir()
-    await writeFile(path.join(contentDir, 'index.md'), '# Home', 'utf8')
-
-    const writeConfig = (branch?: string) => writeFile(
-      path.join(contentDir, 'mdsite.yml'),
-      branch === undefined
-        ? 'site:\n  name: Home\n'
-        : `site:\n  name: Home\nserver:\n  git-branch: ${branch}\n`,
-      'utf8'
-    )
-
-    // Missing -> default 'main'
-    await writeConfig()
-    const defaulted = await loadMdsiteConfig(contentDir)
-    expect(defaulted.config.server.gitBranch).toBe('main')
-
-    // Explicit value -> preserved
-    await writeConfig('develop')
-    const customized = await loadMdsiteConfig(contentDir)
-    expect(customized.config.server.gitBranch).toBe('develop')
-
-    // Blank string -> default 'main'
-    await writeConfig('   ')
-    const blanked = await loadMdsiteConfig(contentDir)
-    expect(blanked.config.server.gitBranch).toBe('main')
   })
 })

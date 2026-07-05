@@ -1,4 +1,4 @@
-import { mkdir, open } from 'node:fs/promises'
+import { mkdir, open, readFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import net from 'node:net'
 import path from 'node:path'
@@ -88,6 +88,47 @@ export async function waitForTcpPort(host: string, port: number, options: { retr
   }
 
   return false
+}
+
+// Matches Nuxt dev ("Local: http://host:port/") and Nitro preview
+// ("Listening on http://[::]:port") URLs so the CLI can follow the
+// fallback port Nuxt picks when the requested one is occupied.
+// The host portion is non-greedy and tolerates both bare hostnames
+// and IPv6 brackets (which contain ":"), and the trailing lookahead
+// stops the host group from swallowing the port digits.
+const LISTENING_URL_PATTERN = /(?:Local|Listening on)[\s:]*https?:\/\/(?:[^\s]+?):(\d+)(?=\D|$)/i
+
+export async function waitForRendererPort(
+  logPath: string,
+  fallbackPort: number,
+  options: { retryIntervalMs?: number, timeoutMs?: number } = {}
+): Promise<number> {
+  const retryIntervalMs = options.retryIntervalMs ?? 100
+  const timeoutMs = options.timeoutMs ?? 5_000
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    try {
+      const content = await readFile(logPath, 'utf8')
+      const match = content.match(LISTENING_URL_PATTERN)
+      if (match) {
+        const detected = Number.parseInt(match[1], 10)
+        if (Number.isFinite(detected)) {
+          return detected
+        }
+      }
+    } catch {
+      // Log file may not exist yet; keep polling until the deadline.
+    }
+
+    if (Date.now() >= deadline) {
+      break
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, retryIntervalMs))
+  }
+
+  return fallbackPort
 }
 
 export async function stopProcess(pid: number): Promise<boolean> {

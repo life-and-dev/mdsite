@@ -1,10 +1,10 @@
 # Favicon Configuration
 
-mdsite uses the `favicon` value in `mdsite.yml` to pass a favicon path to the local renderer.
+mdsite uses the `site.favicon` value in `mdsite.yml` to pass a favicon path to the local renderer.
 
 ## How it Works
 
-The `favicon` path is resolved relative to your content directory, and may be any raster or vector image format that [`sharp`](https://sharp.pixelplumbing.com/) supports. If `favicon` is configured, the referenced file must exist.
+The `site.favicon` path is resolved relative to your content directory, and may be any raster or vector image format that [`sharp`](https://sharp.pixelplumbing.com/) supports. If `site.favicon` is configured, the referenced file must exist.
 
 The renderer reads that source image directly and generates all derived favicon assets — `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, and `site.webmanifest` — into the renderer's own `public/` directory (the renderer working dir, e.g. `.mdsite/public/`). No favicon files are written into your content directory, and no `favicon/` subdirectory is created.
 
@@ -18,10 +18,11 @@ Place your favicon in the content directory, for example:
 your-content/favicon.svg
 ```
 
-### 2. Set `favicon` in `mdsite.yml`
+### 2. Set `site.favicon` in `mdsite.yml`
 
 ```yaml
-favicon: favicon.svg
+site:
+  favicon: favicon.svg
 ```
 
 ### 3. Run the CLI

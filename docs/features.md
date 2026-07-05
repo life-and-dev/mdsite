@@ -4,12 +4,12 @@ This site includes several optional features that can be toggled on or off depen
 
 ## Global Feature Toggles
 
-Features are managed in the `features` section of `mdsite.yml` in your content directory. Each feature can be enabled by setting its value to `true`.
+Features are managed in the `features` section of `mdsite.yml` in your content directory. Each feature has its own value format — booleans toggle the feature on or off, while URL prefixes configure the feature.
 
 ```yaml
 features:
-  bibleTooltips: true  # Automatic Bible reference detection
-  sourceEdit: true     # "Edit on GitHub" links
+  bible-tooltips: true                              # Automatic Bible reference detection
+  source-edit: https://github.com/<owner>/<repo>/blob/main/   # "Edit on GitHub" URL prefix
 ```
 
 ## Available Features

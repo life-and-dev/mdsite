@@ -8,25 +8,67 @@ import { deriveSiteNameFromIndex, generateMenuFromMarkdownFiles } from './menu.j
 
 export type MenuItem = string | null | { [key: string]: string | null | MenuItem[] }
 
-export interface MdsiteConfig {
-  content?: {
-    path?: string
+/**
+ * Footer items mirror the `menu` shape but with no nested sub-menus. Each item
+ * is one of:
+ *   - a bare markdown file name (string) — title is read from the file's H1
+ *   - `null` — rendered as a vertical separator
+ *   - a single-key object — the key is the link text, the value is either an
+ *     internal markdown path or an external URL (http/https)
+ *
+ * Lives under `features.footer` in `mdsite.yml`.
+ */
+export type FooterItem = string | null | { [key: string]: string | null }
+
+/**
+ * Runtime type-guard for entries inside the `footer:` YAML list. Accepts:
+ *   - non-empty strings (file names / external URLs)
+ *   - `null` (separator)
+ *   - single-key objects whose value is a string or `null`
+ * Drops anything else silently to stay backwards-compatible with malformed
+ * user input; the renderer mirrors this filter.
+ */
+function isValidFooterItem(item: unknown): item is FooterItem {
+  if (item === null) return true
+  if (typeof item === 'string') return item.trim().length > 0
+  if (typeof item === 'object') {
+    const keys = Object.keys(item as Record<string, unknown>)
+    if (keys.length !== 1) return false
+    const value = (item as Record<string, unknown>)[keys[0]]
+    return value === null || typeof value === 'string'
   }
-  favicon: string
+  return false
+}
+
+export interface MdsiteConfig {
   features: {
     bibleTooltips: boolean
-    sourceEdit: boolean
+    /**
+     * URL prefix for the "Edit on GitHub" link. The renderer appends
+     * `<route>.md` to this value to build the edit URL, so the prefix should
+     * end with `/` (e.g. `https://github.com/org/repo/blob/main/`). An
+     * empty string disables the edit button entirely.
+     */
+    sourceEdit: string
+    /**
+     * Footer items mirror the `menu` shape but with no nested sub-menus.
+     * Each item is one of:
+     *   - a bare markdown file name (string) — title is read from the file's H1
+     *   - `null` — rendered as a vertical separator
+     *   - a single-key object — the key is the link text, the value is either
+     *     an internal markdown path or an external URL (http/https)
+     */
+    footer: FooterItem[]
   }
   menu: MenuItem[]
-  footer: string[]
-  server: {
+  paths: {
+    input: string
+    build: string
     output: string
-    path: string
-    repo: string
-    gitBranch: string
   }
   site: {
     canonical: string
+    favicon: string
     name: string
   }
   themes: {
@@ -38,6 +80,22 @@ export interface MdsiteConfig {
     }
   }
 }
+
+/**
+ * Recursive variant of `Partial<T>` for object shapes. Recurses into nested
+ * objects so callers can override a single leaf field without restating the
+ * rest of the tree. Arrays are passed through unchanged — they should be
+ * replaced wholesale, not partially merged — and primitives pass through too.
+ *
+ * Use this for test/build helpers that layer overrides over a full default
+ * object — `Partial<MdsiteConfig>` is too shallow because it only makes the
+ * top-level keys optional.
+ */
+export type DeepPartial<T> = T extends ReadonlyArray<unknown>
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T
 
 export interface LoadedMdsiteConfig {
   config: MdsiteConfig
@@ -81,27 +139,27 @@ export function serializeMdsiteConfig(config: MdsiteConfig): string {
 
 async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir: string): Promise<MdsiteConfig> {
   const fallbackConfig = await buildDefaultMdsiteConfig(contentDir)
-  const contentPath = resolveContentConfigPath(rawConfig.content)
+  const inputPath = resolveInputConfigPath(rawConfig.paths?.input)
 
   return {
-    favicon: typeof rawConfig.favicon === 'string' ? rawConfig.favicon : fallbackConfig.favicon,
     features: {
-      bibleTooltips: rawConfig.features?.bibleTooltips ?? fallbackConfig.features.bibleTooltips,
-      sourceEdit: rawConfig.features?.sourceEdit ?? fallbackConfig.features.sourceEdit
+      bibleTooltips: rawConfig.features?.['bible-tooltips'] ?? fallbackConfig.features.bibleTooltips,
+      sourceEdit: typeof rawConfig.features?.['source-edit'] === 'string'
+        ? rawConfig.features['source-edit']
+        : fallbackConfig.features.sourceEdit,
+      footer: Array.isArray(rawConfig.features?.footer)
+        ? rawConfig.features.footer.filter(isValidFooterItem)
+        : fallbackConfig.features.footer
     },
-    content: contentPath ? { path: contentPath } : fallbackConfig.content,
     menu: Array.isArray(rawConfig.menu) ? rawConfig.menu : fallbackConfig.menu,
-    footer: Array.isArray(rawConfig.footer) ? rawConfig.footer.filter((item): item is string => typeof item === 'string') : [],
-    server: {
-      output: typeof rawConfig.server?.output === 'string' ? rawConfig.server.output : fallbackConfig.server.output,
-      path: typeof rawConfig.server?.path === 'string' ? rawConfig.server.path : fallbackConfig.server.path,
-      repo: typeof rawConfig.server?.repo === 'string' ? rawConfig.server.repo : fallbackConfig.server.repo,
-      gitBranch: typeof rawConfig.server?.['git-branch'] === 'string' && rawConfig.server['git-branch'].trim()
-        ? rawConfig.server['git-branch']
-        : fallbackConfig.server.gitBranch
+    paths: {
+      input: inputPath ?? fallbackConfig.paths.input,
+      build: typeof rawConfig.paths?.build === 'string' ? rawConfig.paths.build : fallbackConfig.paths.build,
+      output: typeof rawConfig.paths?.output === 'string' ? rawConfig.paths.output : fallbackConfig.paths.output
     },
     site: {
       canonical: typeof rawConfig.site?.canonical === 'string' ? rawConfig.site.canonical : fallbackConfig.site.canonical,
+      favicon: typeof rawConfig.site?.favicon === 'string' ? rawConfig.site.favicon : fallbackConfig.site.favicon,
       name: typeof rawConfig.site?.name === 'string' && rawConfig.site.name.trim() ? rawConfig.site.name : fallbackConfig.site.name
     },
     themes: {
@@ -122,28 +180,28 @@ async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir:
 }
 
 export function resolveContentOutputPath(contentDir: string, config: MdsiteConfig): string {
-  return path.resolve(contentDir, config.server.output, 'public')
+  return path.resolve(contentDir, config.paths.output, 'public')
 }
 
 /**
- * Extract the content path from either the shorthand string form
- * (`content: docs`) or the explicit object form (`content:\n  path: docs`).
- * Returns undefined when no usable path is configured.
+ * Extract the content path from `paths.input`. Accepts either a shorthand
+ * string form (`paths: { input: docs }`) or a nested object form. Returns
+ * undefined when no usable path is configured.
  */
-function resolveContentConfigPath(rawContent: unknown): string | undefined {
-  if (typeof rawContent === 'string') {
-    const trimmed = rawContent.trim()
+function resolveInputConfigPath(rawInput: unknown): string | undefined {
+  if (typeof rawInput === 'string') {
+    const trimmed = rawInput.trim()
     return trimmed.length > 0 ? trimmed : undefined
   }
 
-  if (rawContent && typeof rawContent === 'object' && typeof (rawContent as { path?: unknown }).path === 'string') {
-    return (rawContent as { path: string }).path
+  if (rawInput && typeof rawInput === 'object' && typeof (rawInput as { path?: unknown }).path === 'string') {
+    return (rawInput as { path: string }).path
   }
 
   return undefined
 }
 
 export function resolveConfiguredContentDir(configDir: string, rawConfig: Record<string, any>): string {
-  const contentPath = resolveContentConfigPath(rawConfig.content)
-  return contentPath ? path.resolve(configDir, contentPath) : configDir
+  const inputPath = resolveInputConfigPath(rawConfig.paths?.input)
+  return inputPath ? path.resolve(configDir, inputPath) : configDir
 }
