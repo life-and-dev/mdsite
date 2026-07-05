@@ -26,9 +26,9 @@ export async function runStartCommand(contentDir: string, options: StartCommandO
 
 async function runDetachedStartCommand(contentDir: string, options: StartCommandOptions): Promise<string> {
   const loaded = await loadMdsiteConfig(contentDir)
-  const { config, configDir } = loaded
+  const { config, contentDir: resolvedContentDir } = loaded
 
-  const existingState = await readRuntimeState(configDir, config, 'start')
+  const existingState = await readRuntimeState(resolvedContentDir, config, 'start')
   if (existingState && isProcessRunning(existingState.pid)) {
     throw new Error(`mdsite live is already running with PID ${existingState.pid}.`)
   }
@@ -38,15 +38,15 @@ async function runDetachedStartCommand(contentDir: string, options: StartCommand
   await ensureRendererDependencies(rendererDir)
 
   const env = withHostEnv(rendererEnv, options.host)
-  const logPath = getRuntimeLogPath(configDir, config, 'start')
+  const logPath = getRuntimeLogPath(resolvedContentDir, config, 'start')
   const pid = await startRendererInBackground(rendererDir, env, logPath)
 
-  await writeRuntimeState(configDir, config, {
+  await writeRuntimeState(resolvedContentDir, config, {
     kind: 'start',
     pid,
     logPath,
     rendererDir,
-    contentDir,
+    contentDir: resolvedContentDir,
     command: ['npm', 'run', 'dev'],
     startedAt: new Date().toISOString()
   })

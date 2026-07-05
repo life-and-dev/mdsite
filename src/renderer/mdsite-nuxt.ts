@@ -20,8 +20,34 @@ export function isInsideNodeModules(targetDir: string): boolean {
 }
 
 interface PreparedRenderer {
+  /**
+   * Where the renderer scripts run (`npm run dev` / `generate` / `preview`).
+   * In production this is `<configDir>/<paths.build>` (a materialized copy of
+   * the bundled renderer). In dev, when the CLI is run from this repo, it is
+   * the checked-in `mdsite-nuxt/` submodule.
+   */
   rendererDir: string
+  /**
+   * Environment to pass to renderer scripts. Includes the bridge vars
+   * (`NUXT_CONTENT_PATH`, `CONTENT_DIR`, `MDSITE_CONFIG_PATH`) and, in dev
+   * mode, `MDSITE_NITRO_OUTPUT_DIR` pointing the build output at
+   * `<configDir>/<paths.build>/.output/` instead of inside the submodule.
+   */
   rendererEnv: NodeJS.ProcessEnv
+  /**
+   * Absolute path of the renderer's Nitro build output directory (the
+   * directory that contains `public/` after a successful `npm run generate`).
+   *
+   * - Production: `<configDir>/<paths.build>/.output` (Nitro's default inside
+   *   the materialized copy).
+   * - Dev: `<configDir>/<paths.build>/.output` (set via `MDSITE_NITRO_OUTPUT_DIR`
+   *   so the build lands alongside the rest of the CLI's working state rather
+   *   than inside the `mdsite-nuxt/` submodule).
+   *
+   * `mdsite clean` removes `<configDir>/<paths.build>` entirely, which
+   * covers this path in both modes.
+   */
+  rendererOutputDir: string
 }
 
 interface PrepareRendererOptions {
@@ -63,18 +89,36 @@ export async function ensureConfiguredRendererInstalled(contentDir: string, conf
 async function prepareRendererEnvironment(contentDir: string, config: MdsiteConfig, rendererDir: string, configPath?: string): Promise<PreparedRenderer> {
   await writeCompatibilityConfigFile(rendererDir, contentDir, config)
 
-  const rendererEnv = {
+  // In dev mode, the renderer IS the checked-in submodule. Redirect Nitro's
+  // output to `<configDir>/<paths.build>/.output` so the build artifact lives
+  // alongside the rest of the CLI's working state (covered by `mdsite clean`)
+  // instead of inside the submodule source tree.
+  const isDevRenderer = !isInsideNodeModules(checkedInRendererDir) && path.resolve(rendererDir) === path.resolve(checkedInRendererDir)
+  const rendererOutputDir = isDevRenderer
+    ? path.resolve(contentDir, config.paths.build, '.output')
+    : path.join(rendererDir, '.output')
+
+  if (isDevRenderer) {
+    await mkdir(rendererOutputDir, { recursive: true })
+  }
+
+  const rendererEnv: NodeJS.ProcessEnv = {
     ...process.env,
     NUXT_CONTENT_PATH: contentDir,
     CONTENT_DIR: contentDir,
     MDSITE_CONFIG_PATH: configPath ?? path.join(contentDir, 'mdsite.yml')
   }
 
+  if (isDevRenderer) {
+    rendererEnv.MDSITE_NITRO_OUTPUT_DIR = rendererOutputDir
+  }
+
   await writeEnvFile(rendererDir, rendererEnv)
 
   return {
     rendererDir,
-    rendererEnv
+    rendererEnv,
+    rendererOutputDir
   }
 }
 
@@ -112,9 +156,9 @@ export async function prepareRendererBackend(rendererDir: string, env: NodeJS.Pr
   await runRendererScript(rendererDir, env, 'prepare:renderer')
 }
 
-export async function hasPreviewArtifacts(rendererDir: string): Promise<boolean> {
+export async function hasPreviewArtifacts(rendererOutputDir: string): Promise<boolean> {
   const previewArtifacts = [
-    path.join(rendererDir, '.output', 'public')
+    path.join(rendererOutputDir, 'public')
   ]
 
   for (const artifactPath of previewArtifacts) {
@@ -128,46 +172,10 @@ export async function hasPreviewArtifacts(rendererDir: string): Promise<boolean>
   return true
 }
 
-export async function ensurePreviewArtifacts(rendererDir: string): Promise<void> {
-  if (!(await hasPreviewArtifacts(rendererDir))) {
+export async function ensurePreviewArtifacts(rendererOutputDir: string): Promise<void> {
+  if (!(await hasPreviewArtifacts(rendererOutputDir))) {
     throw new Error('Preview is unavailable. Run `mdsite generate` before `mdsite static`.')
   }
-}
-
-export function getRendererGeneratedOutputPath(rendererDir: string): string {
-  return path.join(rendererDir, '.output', 'public')
-}
-
-/**
- * Path of the renderer's own generated output directory for the current install,
- * for use by `mdsite clean`.
- *
- * - Production (CLI installed via npm): the renderer is materialized into
- *   `<configDir>/<paths.build>`, so this returns `undefined` — the existing
- *   `paths.build` removal already covers `<paths.build>/.output`.
- * - Dev (CLI run from this repo): the renderer is the checked-in `mdsite-nuxt/`
- *   submodule, so this returns `<mdsite-nuxt>/.output` for `mdsite clean` to
- *   wipe stale Nuxt build artifacts that would otherwise survive the clean
- *   and make `mdsite static` serve the previous config.
- * - Submodule missing (e.g. shallow clone): returns `undefined` — nothing to
- *   clean beyond `paths.build`/`paths.output`.
- */
-export async function resolveRendererOutputPath(configDir: string, config: MdsiteConfig): Promise<string | undefined> {
-  const buildDir = path.resolve(configDir, config.paths.build)
-
-  if (isInsideNodeModules(checkedInRendererDir)) {
-    return undefined
-  }
-
-  if (!await pathExists(checkedInRendererDir)) {
-    return undefined
-  }
-
-  if (path.resolve(checkedInRendererDir) === buildDir) {
-    return undefined
-  }
-
-  return path.join(checkedInRendererDir, '.output')
 }
 
 async function resolveRendererDir(rendererBaseDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<string> {
@@ -225,6 +233,10 @@ async function writeEnvFile(rendererDir: string, env: NodeJS.ProcessEnv): Promis
     `CONTENT_DIR=${serializeEnvValue(env.CONTENT_DIR)}`,
     `MDSITE_CONFIG_PATH=${serializeEnvValue(env.MDSITE_CONFIG_PATH)}`
   ]
+
+  if (env.MDSITE_NITRO_OUTPUT_DIR) {
+    envLines.push(`MDSITE_NITRO_OUTPUT_DIR=${serializeEnvValue(env.MDSITE_NITRO_OUTPUT_DIR)}`)
+  }
 
   await writeFile(path.join(rendererDir, '.env'), `${envLines.join('\n')}\n`, 'utf8')
 }

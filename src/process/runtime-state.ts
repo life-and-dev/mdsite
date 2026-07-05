@@ -19,16 +19,24 @@ export interface RuntimeProcessState {
   startedAt: string
 }
 
-export function getRuntimeDir(configDir: string, config: MdsiteConfig): string {
-  return path.resolve(configDir, config.paths.build)
+/**
+ * Working directory for tracked detached processes.
+ *
+ * Anchored on the content directory (not the config directory) so that
+ * `<paths.build>` and `<paths.output>` resolve relative to the project the
+ * user is building, even when `paths.input` points the CLI at a sub-folder
+ * of the config directory.
+ */
+export function getRuntimeDir(contentDir: string, config: MdsiteConfig): string {
+  return path.resolve(contentDir, config.paths.build)
 }
 
-export function getRuntimeLogPath(configDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): string {
-  return path.join(getRuntimeDir(configDir, config), `${RUNTIME_BASENAME[kind]}.log`)
+export function getRuntimeLogPath(contentDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): string {
+  return path.join(getRuntimeDir(contentDir, config), `${RUNTIME_BASENAME[kind]}.log`)
 }
 
-export async function readRuntimeState(configDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): Promise<RuntimeProcessState | null> {
-  const statePath = getStatePath(configDir, config, kind)
+export async function readRuntimeState(contentDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): Promise<RuntimeProcessState | null> {
+  const statePath = getStatePath(contentDir, config, kind)
   try {
     const content = await readFile(statePath, 'utf8')
     return JSON.parse(content) as RuntimeProcessState
@@ -37,13 +45,13 @@ export async function readRuntimeState(configDir: string, config: MdsiteConfig, 
   }
 }
 
-export async function writeRuntimeState(configDir: string, config: MdsiteConfig, state: RuntimeProcessState): Promise<void> {
-  await mkdir(getRuntimeDir(configDir, config), { recursive: true })
-  await writeFile(getStatePath(configDir, config, state.kind), `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+export async function writeRuntimeState(contentDir: string, config: MdsiteConfig, state: RuntimeProcessState): Promise<void> {
+  await mkdir(getRuntimeDir(contentDir, config), { recursive: true })
+  await writeFile(getStatePath(contentDir, config, state.kind), `${JSON.stringify(state, null, 2)}\n`, 'utf8')
 }
 
-export async function clearRuntimeState(configDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): Promise<void> {
-  await rm(getStatePath(configDir, config, kind), { force: true })
+export async function clearRuntimeState(contentDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): Promise<void> {
+  await rm(getStatePath(contentDir, config, kind), { force: true })
 }
 
 export function isProcessRunning(pid: number): boolean {
@@ -55,6 +63,6 @@ export function isProcessRunning(pid: number): boolean {
   }
 }
 
-function getStatePath(configDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): string {
-  return path.join(getRuntimeDir(configDir, config), `${RUNTIME_BASENAME[kind]}.json`)
+function getStatePath(contentDir: string, config: MdsiteConfig, kind: RuntimeProcessKind): string {
+  return path.join(getRuntimeDir(contentDir, config), `${RUNTIME_BASENAME[kind]}.json`)
 }

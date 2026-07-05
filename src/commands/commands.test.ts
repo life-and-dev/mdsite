@@ -36,12 +36,10 @@ vi.mock('../renderer/mdsite-nuxt.js', () => ({
   ensureRendererDependencies: vi.fn(),
   generateRenderer: vi.fn(),
   getBundledRendererDir: vi.fn(),
-  getRendererGeneratedOutputPath: vi.fn(),
   hasPreviewArtifacts: vi.fn(),
   prepareRenderer: vi.fn(),
   previewRendererForeground: vi.fn(),
   previewRendererInBackground: vi.fn(),
-  resolveRendererOutputPath: vi.fn(),
   startRendererForeground: vi.fn(),
   startRendererInBackground: vi.fn()
 }))
@@ -69,12 +67,10 @@ import {
   ensureRendererDependencies,
   generateRenderer,
   getBundledRendererDir,
-  getRendererGeneratedOutputPath,
   hasPreviewArtifacts,
   prepareRenderer,
   previewRendererForeground,
   previewRendererInBackground,
-  resolveRendererOutputPath,
   startRendererForeground,
   startRendererInBackground
 } from '../renderer/mdsite-nuxt.js'
@@ -105,11 +101,9 @@ const ensurePreviewArtifactsMock = vi.mocked(ensurePreviewArtifacts)
 const hasPreviewArtifactsMock = vi.mocked(hasPreviewArtifacts)
 const ensureRendererDependenciesMock = vi.mocked(ensureRendererDependencies)
 const generateRendererMock = vi.mocked(generateRenderer)
-const getRendererGeneratedOutputPathMock = vi.mocked(getRendererGeneratedOutputPath)
 const prepareRendererMock = vi.mocked(prepareRenderer)
 const previewRendererForegroundMock = vi.mocked(previewRendererForeground)
 const previewRendererInBackgroundMock = vi.mocked(previewRendererInBackground)
-const resolveRendererOutputPathMock = vi.mocked(resolveRendererOutputPath)
 const startRendererForegroundMock = vi.mocked(startRendererForeground)
 const startRendererInBackgroundMock = vi.mocked(startRendererInBackground)
 const stopProcessMock = vi.mocked(stopProcess)
@@ -136,17 +130,17 @@ describe('command helpers', () => {
     vi.useRealTimers()
     loadConfigMock.mockResolvedValue(loadedConfig)
     hasPreviewArtifactsMock.mockResolvedValue(true)
-    prepareRendererMock.mockResolvedValue({ rendererDir: '/renderer', rendererEnv: { TEST: '1' } })
+    prepareRendererMock.mockResolvedValue({
+      rendererDir: '/renderer',
+      rendererEnv: { TEST: '1' },
+      rendererOutputDir: '/renderer/.output'
+    })
     getRuntimeLogPathMock.mockImplementation((configDir, config, kind) => {
       const basename = kind === 'start' ? 'live' : 'static'
       return `${configDir}/${config.paths.build}/${basename}.log`
     })
     resolveOutputMock.mockReturnValue('/content/.output/public')
-    getRendererGeneratedOutputPathMock.mockReturnValue('/renderer/.output/public')
     getBundledRendererDirMock.mockReturnValue('/home/gizbar/git/mdsite/mdsite-nuxt')
-    // Default: production (renderer materialized into paths.build) — the
-    // `paths.build` removal already covers the renderer's .output.
-    resolveRendererOutputPathMock.mockResolvedValue(undefined)
     openUrlInBrowserMock.mockResolvedValue(true)
     waitForTcpPortMock.mockResolvedValue(true)
     waitForRendererPortMock.mockImplementation(async (_logPath, fallbackPort) => fallbackPort)
@@ -275,7 +269,8 @@ describe('command helpers', () => {
     readRuntimeStateMock.mockResolvedValueOnce(null)
     prepareRendererMock.mockResolvedValueOnce({
       rendererDir: '/renderer',
-      rendererEnv: { HOST: '127.0.0.1', PORT: '4173', NUXT_HOST: 'start.local', NUXT_PORT: '4321' }
+      rendererEnv: { HOST: '127.0.0.1', PORT: '4173', NUXT_HOST: 'start.local', NUXT_PORT: '4321' },
+      rendererOutputDir: '/renderer/.output'
     })
     startRendererInBackgroundMock.mockResolvedValueOnce(778)
 
@@ -361,7 +356,7 @@ describe('command helpers', () => {
     expect(waitForTcpPortMock).not.toHaveBeenCalled()
     expect(openUrlInBrowserMock).not.toHaveBeenCalled()
     expect(ensureRendererDependenciesMock).toHaveBeenCalledWith('/renderer')
-    expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer/.output')
     expect(previewRendererForegroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       TEST: '1',
       NUXT_HOST: 'localhost',
@@ -389,7 +384,7 @@ describe('command helpers', () => {
     await expect(runPreviewCommand('/content', { detached: true })).resolves.toBe(
       'mdsite static running in background (PID 888). URL: http://localhost:3000 Log: /content/.renderer/static.log'
     )
-    expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer/.output')
     expect(ensurePreviewArtifactsMock.mock.invocationCallOrder[0]).toBeGreaterThan(ensureRendererDependenciesMock.mock.invocationCallOrder[0] ?? 0)
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({
       TEST: '1',
@@ -416,7 +411,8 @@ describe('command helpers', () => {
     readRuntimeStateMock.mockResolvedValueOnce(null)
     prepareRendererMock.mockResolvedValueOnce({
       rendererDir: '/renderer',
-      rendererEnv: { HOST: '127.0.0.1', PORT: '4173', NUXT_HOST: 'preview.local', NUXT_PORT: '4321' }
+      rendererEnv: { HOST: '127.0.0.1', PORT: '4173', NUXT_HOST: 'preview.local', NUXT_PORT: '4321' },
+      rendererOutputDir: '/renderer/.output'
     })
     previewRendererInBackgroundMock.mockResolvedValueOnce(999)
 
@@ -454,7 +450,8 @@ describe('command helpers', () => {
     readRuntimeStateMock.mockResolvedValueOnce(null)
     prepareRendererMock.mockResolvedValueOnce({
       rendererDir: '/renderer',
-      rendererEnv: { HOST: '127.0.0.1', PORT: '4173' }
+      rendererEnv: { HOST: '127.0.0.1', PORT: '4173' },
+      rendererOutputDir: '/renderer/.output'
     })
     previewRendererInBackgroundMock.mockResolvedValueOnce(1000)
 
@@ -487,7 +484,8 @@ describe('command helpers', () => {
     readRuntimeStateMock.mockResolvedValueOnce(null)
     prepareRendererMock.mockResolvedValueOnce({
       rendererDir: '/renderer',
-      rendererEnv: { HOST: '127.0.0.1', PORT: '4173', NUXT_HOST: 'preview.local', NUXT_PORT: '4321' }
+      rendererEnv: { HOST: '127.0.0.1', PORT: '4173', NUXT_HOST: 'preview.local', NUXT_PORT: '4321' },
+      rendererOutputDir: '/renderer/.output'
     })
     previewRendererInBackgroundMock.mockResolvedValueOnce(1003)
 
@@ -608,9 +606,9 @@ describe('command helpers', () => {
 
     await expect(runPreviewCommand('/content')).resolves.toBeUndefined()
 
-    expect(hasPreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(hasPreviewArtifactsMock).toHaveBeenCalledWith('/renderer/.output')
     expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
-    expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(ensurePreviewArtifactsMock).toHaveBeenCalledWith('/renderer/.output')
     expect(previewRendererForegroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }))
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No generated output found'))
     consoleSpy.mockRestore()
@@ -626,7 +624,7 @@ describe('command helpers', () => {
       'mdsite static running in background (PID 1234). URL: http://localhost:3000 Log: /content/.renderer/static.log'
     )
 
-    expect(hasPreviewArtifactsMock).toHaveBeenCalledWith('/renderer')
+    expect(hasPreviewArtifactsMock).toHaveBeenCalledWith('/renderer/.output')
     expect(generateRendererMock).toHaveBeenCalledWith('/renderer', { TEST: '1' })
     expect(previewRendererInBackgroundMock).toHaveBeenCalledWith('/renderer', expect.objectContaining({ TEST: '1' }), '/content/.renderer/static.log')
     consoleSpy.mockRestore()
@@ -756,49 +754,5 @@ describe('command helpers', () => {
       'Missing mdsite.yml in /content. Run `mdsite init` first.'
     )
     expect(rmMock).not.toHaveBeenCalled()
-  })
-
-  it('runCleanCommand also removes the renderer output when it lives outside paths.build (dev mode)', async () => {
-    // Dev mode: the renderer is the checked-in mdsite-nuxt submodule, so its
-    // .output sits outside <paths.build>. Without this, stale Nuxt build
-    // artifacts survive `mdsite clean` and `mdsite static` serves the prior
-    // mdsite.yml config.
-    resolveRendererOutputPathMock.mockResolvedValueOnce('/content/mdsite-nuxt/.output')
-
-    const existing = new Set<string>([
-      '/content/.renderer',
-      '/content/.output',
-      '/content/mdsite-nuxt/.output'
-    ])
-    accessMock.mockImplementation(async (p) => {
-      if (typeof p === 'string' && existing.has(p)) return
-      throw new Error('missing')
-    })
-    readRuntimeStateMock.mockResolvedValueOnce(null).mockResolvedValueOnce(null)
-
-    await expect(runCleanCommand('/content')).resolves.toBe(
-      'Removed .renderer, .output, and mdsite-nuxt/.output from /content.'
-    )
-
-    expect(rmMock).toHaveBeenCalledWith('/content/.renderer', { recursive: true, force: true })
-    expect(rmMock).toHaveBeenCalledWith('/content/.output', { recursive: true, force: true })
-    expect(rmMock).toHaveBeenCalledWith('/content/mdsite-nuxt/.output', { recursive: true, force: true })
-  })
-
-  it('runCleanCommand skips the renderer output rm when the path is absent in dev mode', async () => {
-    resolveRendererOutputPathMock.mockResolvedValueOnce('/content/mdsite-nuxt/.output')
-
-    // .renderer and .output exist, but the renderer's own .output does not.
-    const existing = new Set<string>(['/content/.renderer', '/content/.output'])
-    accessMock.mockImplementation(async (p) => {
-      if (typeof p === 'string' && existing.has(p)) return
-      throw new Error('missing')
-    })
-    readRuntimeStateMock.mockResolvedValueOnce(null).mockResolvedValueOnce(null)
-
-    await expect(runCleanCommand('/content')).resolves.toBe('Removed .renderer and .output from /content.')
-
-    // The forced rm() is still issued (idempotent) but the message only lists paths that existed.
-    expect(rmMock).toHaveBeenCalledWith('/content/mdsite-nuxt/.output', { recursive: true, force: true })
   })
 })

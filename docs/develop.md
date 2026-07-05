@@ -164,13 +164,17 @@ When the configured port is occupied, Nuxt falls back to the next free one. The 
 | -------------------------------- | -------------------------------- | ---------------------------------------------------- |
 | `dist/`                          | `npm run build` (tsc)            | Compiled CLI loaded by `bin/mdsite.js`.              |
 | `.<paths.build>/` (e.g. `.mdsite/`)              | `start -d` / `preview -d`        | Tracked-detached runtime state: `live.json`/`static.json` (PIDs, ports) + `live.log`/`static.log`. |
+| `.<paths.build>/.output/` (e.g. `.mdsite/.output/`) | `mdsite generate` / `mdsite static` | Nitro's build output (the prerendered site + assets). `mdsite generate` then copies `.<paths.build>/.output/public/` to `.<paths.output>/public/`. |
 | `.<paths.build>/public/` (e.g. `.mdsite/public/`) | renderer favicon pipeline        | Generated `favicon.svg`/`favicon.ico`/`apple-touch-icon.png`/`icon-192.png`/`icon-512.png` + `site.webmanifest`. |
 | `.<paths.output>/public/`        | `mdsite generate` (via renderer) | The static site, ready to deploy.                    |
-| `mdsite-nuxt/.env`               | every CLI run                    | Points the renderer at the active content directory. |
+| `mdsite-nuxt/.env`               | every CLI run                    | Points the renderer at the active content directory; in dev also sets `MDSITE_NITRO_OUTPUT_DIR` to redirect the build output to `.<paths.build>/.output/`. |
 | `mdsite-nuxt/content.config.yml` | every CLI run                    | Serialized site config consumed by the renderer.     |
-| `mdsite-nuxt/.output/`           | `mdsite generate` / `mdsite static` (dev only) | Nuxt's own build output; lives inside the submodule while the CLI is being developed from this repo. Wiped by `mdsite clean`. |
 
-Most of these are gitignored. `.mdsite/` is fully gitignored and the renderer source is materialized here from the bundled `mdsite-nuxt/` on every CLI run; nothing under `.<paths.build>/` or `.<paths.output>/` should be committed. `mdsite clean` is the user-facing way to delete `.<paths.build>/` and `.<paths.output>/` (default `.mdsite/` and `.output/`), and — in dev mode when the CLI is run from this repo — also `mdsite-nuxt/.output/`. The dev-only wipe is what stops stale Nuxt build artifacts from making `mdsite static` serve the prior `mdsite.yml` config after a `mdsite clean`. `mdsite clean` refuses to run while a tracked start/preview process is alive, so the usual pre-cleanup is `mdsite stop` (or the foreground `Ctrl+C`).
+`<paths.build>` and `<paths.output>` are resolved relative to the **content directory** (the directory containing the markdown sources), not the config directory or the cwd. With `paths.input: docs`, the build artifacts live in `docs/.mdsite/` and `docs/.output/` even though `mdsite.yml` is at the repo root.
+
+In dev mode (when the CLI is run from this repo), the renderer IS the checked-in `mdsite-nuxt/` submodule, so `mdsite-nuxt/.env` and `mdsite-nuxt/content.config.yml` are written there. The CLI sets `MDSITE_NITRO_OUTPUT_DIR` in the env so Nitro writes to `.<paths.build>/.output/` instead of inside the submodule — the submodule itself stays free of build artifacts.
+
+Most of these are gitignored. `.mdsite/` is fully gitignored and the renderer source is materialized here from the bundled `mdsite-nuxt/` on every CLI run; nothing under `.<paths.build>/` or `.<paths.output>/` should be committed. `mdsite clean` is the user-facing way to delete `.<paths.build>/` (which includes its `.output/` and runtime state files) and `.<paths.output>/` (default `.mdsite/` and `.output/`). It refuses to run while a tracked start/preview process is alive, so the usual pre-cleanup is `mdsite stop` (or the foreground `Ctrl+C`).
 
 ### Generated CI workflow (`mdsite prepare github`)
 

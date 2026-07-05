@@ -24,14 +24,12 @@ import {
   ensureConfiguredRendererInstalled,
   ensureRendererDependencies,
   generateRenderer,
-  getRendererGeneratedOutputPath,
   isInsideNodeModules,
   prepareRendererBackend,
   prepareConfiguredRenderer,
   prepareRenderer,
   previewRendererForeground,
   previewRendererInBackground,
-  resolveRendererOutputPath,
   startRendererForeground,
   startRendererInBackground
 } from './mdsite-nuxt.js'
@@ -70,8 +68,14 @@ describe('mdsite-nuxt renderer helpers', () => {
     const prepared = await prepareRenderer(contentDir, baseConfig)
 
     expect(prepared.rendererDir).toBe(rendererDir)
+    // In dev the renderer IS the checked-in submodule, so the build output
+    // is redirected to <contentDir>/<paths.build>/.output (covered by
+    // `mdsite clean`) instead of inside the submodule.
+    expect(prepared.rendererOutputDir).toBe(path.join(contentDir, baseConfig.paths.build, '.output'))
+    expect(prepared.rendererEnv.MDSITE_NITRO_OUTPUT_DIR).toBe(prepared.rendererOutputDir)
     expect(prepared.rendererEnv.NUXT_CONTENT_PATH).toBe(contentDir)
     expect(prepared.rendererEnv.MDSITE_CONFIG_PATH).toBe(path.join(contentDir, 'mdsite.yml'))
+    expect(mkdirMock).toHaveBeenCalledWith(prepared.rendererOutputDir, { recursive: true })
     expect(writeFileMock).toHaveBeenCalledWith(
       path.join(rendererDir, 'content.config.yml'),
       expect.stringContaining('siteName: Docs'),
@@ -80,6 +84,11 @@ describe('mdsite-nuxt renderer helpers', () => {
     expect(writeFileMock).toHaveBeenCalledWith(
       path.join(rendererDir, '.env'),
       expect.stringContaining(`NUXT_CONTENT_PATH=${JSON.stringify(contentDir)}`),
+      'utf8'
+    )
+    expect(writeFileMock).toHaveBeenCalledWith(
+      path.join(rendererDir, '.env'),
+      expect.stringContaining(`MDSITE_NITRO_OUTPUT_DIR=${JSON.stringify(prepared.rendererOutputDir)}`),
       'utf8'
     )
   })
@@ -93,9 +102,30 @@ describe('mdsite-nuxt renderer helpers', () => {
     const prepared = await prepareRenderer(contentDir, baseConfig, { configDir, configPath })
 
     expect(prepared.rendererDir).toBe(rendererDir)
+    // Output dir is anchored on the content dir, not the config dir, so a
+    // sibling `mdsite.yml` (e.g. `paths.input: docs`) still routes the
+    // build to the project's own working dir.
+    expect(prepared.rendererOutputDir).toBe(path.join(contentDir, baseConfig.paths.build, '.output'))
     expect(prepared.rendererEnv.NUXT_CONTENT_PATH).toBe(contentDir)
     expect(prepared.rendererEnv.CONTENT_DIR).toBe(contentDir)
     expect(prepared.rendererEnv.MDSITE_CONFIG_PATH).toBe(configPath)
+  })
+
+  it('prepareRenderer does not redirect the build output when the renderer is the configured build dir', async () => {
+    // Production: `ensureConfiguredRendererInstalled` materializes the
+    // renderer into `<configDir>/<paths.build>`. Nitro's default `.output`
+    // already lives inside `paths.build`, so no env var is needed and
+    // `mdsite clean` covers it via the existing `paths.build` removal.
+    const contentDir = '/workspace/content'
+    const configuredRendererDir = path.resolve(contentDir, baseConfig.paths.build)
+    statMock.mockResolvedValueOnce({ isDirectory: () => true } as Stats)
+    mkdirMock.mockResolvedValueOnce(undefined)
+
+    const prepared = await prepareConfiguredRenderer(contentDir, baseConfig)
+
+    expect(prepared.rendererDir).toBe(configuredRendererDir)
+    expect(prepared.rendererOutputDir).toBe(path.join(configuredRendererDir, '.output'))
+    expect(prepared.rendererEnv.MDSITE_NITRO_OUTPUT_DIR).toBeUndefined()
   })
 
   it('runs the checked-in renderer in place when the configured renderer dir is absent', async () => {
@@ -221,18 +251,17 @@ describe('mdsite-nuxt renderer helpers', () => {
     expect(runForegroundMock).not.toHaveBeenCalled()
   })
 
-  it('checks the generated preview artifact and exposes the generated output path', async () => {
-    const rendererDir = '/renderer'
+  it('checks the generated preview artifact inside the resolved renderer output dir', async () => {
+    const rendererOutputDir = '/renderer/.output'
 
-    await expect(ensurePreviewArtifacts(rendererDir)).resolves.toBeUndefined()
-    expect(getRendererGeneratedOutputPath(rendererDir)).toBe(path.join(rendererDir, '.output', 'public'))
-    expect(accessMock).toHaveBeenCalledWith(path.join(rendererDir, '.output', 'public'))
+    await expect(ensurePreviewArtifacts(rendererOutputDir)).resolves.toBeUndefined()
+    expect(accessMock).toHaveBeenCalledWith(path.join(rendererOutputDir, 'public'))
 
     accessMock.mockImplementationOnce(async () => {
       throw new Error('missing public output')
     })
 
-    await expect(ensurePreviewArtifacts(rendererDir)).rejects.toThrow(
+    await expect(ensurePreviewArtifacts(rendererOutputDir)).rejects.toThrow(
       'Preview is unavailable. Run `mdsite generate` before `mdsite static`.'
     )
   })
@@ -259,37 +288,5 @@ describe('mdsite-nuxt renderer helpers', () => {
     await prepareRendererBackend('/renderer', env)
 
     expect(runForegroundMock).toHaveBeenCalledWith('npm', ['run', 'prepare:renderer'], '/renderer', env)
-  })
-
-  it('resolveRendererOutputPath returns the checked-in renderer output in dev mode', async () => {
-    const contentDir = '/workspace/content'
-    const checkedInRendererDir = path.resolve(process.cwd(), 'mdsite-nuxt')
-
-    await expect(resolveRendererOutputPath(contentDir, baseConfig)).resolves.toBe(
-      path.join(checkedInRendererDir, '.output')
-    )
-  })
-
-  it('resolveRendererOutputPath returns undefined when the checked-in renderer is missing', async () => {
-    const contentDir = '/workspace/content'
-    const checkedInRendererDir = path.resolve(process.cwd(), 'mdsite-nuxt')
-
-    accessMock.mockImplementation(async (targetPath) => {
-      if (targetPath === checkedInRendererDir) {
-        throw new Error('missing submodule')
-      }
-    })
-
-    await expect(resolveRendererOutputPath(contentDir, baseConfig)).resolves.toBeUndefined()
-  })
-
-  it('resolveRendererOutputPath returns undefined when paths.build points at the checked-in renderer', async () => {
-    const rendererDirAsBuild = path.resolve(process.cwd(), 'mdsite-nuxt')
-    const config = {
-      ...baseConfig,
-      paths: { ...baseConfig.paths, build: rendererDirAsBuild }
-    }
-
-    await expect(resolveRendererOutputPath(rendererDirAsBuild, config)).resolves.toBeUndefined()
   })
 })

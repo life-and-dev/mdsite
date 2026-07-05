@@ -113,7 +113,8 @@ describe('CLI workflow coverage', () => {
           NUXT_CONTENT_PATH: contentDir,
           CONTENT_DIR: contentDir,
           MDSITE_CONFIG_PATH: path.join(contentDir, 'mdsite.yml')
-        }
+        },
+        rendererOutputDir: path.join(rendererDir, '.output')
       }
     })
   })

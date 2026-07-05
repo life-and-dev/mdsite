@@ -3,7 +3,6 @@ import path from 'node:path'
 
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
 import { isProcessRunning, readRuntimeState } from '../process/runtime-state.js'
-import { resolveRendererOutputPath } from '../renderer/mdsite-nuxt.js'
 
 async function pathExists(targetPath: string): Promise<boolean> {
   try {
@@ -16,13 +15,13 @@ async function pathExists(targetPath: string): Promise<boolean> {
 
 export async function runCleanCommand(contentDir: string): Promise<string> {
   const loaded = await loadMdsiteConfig(contentDir)
-  const { config, configDir } = loaded
+  const { config, contentDir: resolvedContentDir } = loaded
 
   // Refuse to wipe state while a tracked process is still pointing at it.
   // Tracked PIDs live inside <paths.build>, so the clean would orphan them.
   const trackedStates = await Promise.all([
-    readRuntimeState(configDir, config, 'start'),
-    readRuntimeState(configDir, config, 'preview')
+    readRuntimeState(resolvedContentDir, config, 'start'),
+    readRuntimeState(resolvedContentDir, config, 'preview')
   ])
 
   for (const state of trackedStates) {
@@ -32,25 +31,24 @@ export async function runCleanCommand(contentDir: string): Promise<string> {
     }
   }
 
-  const rendererPath = path.resolve(configDir, config.paths.build)
-  const outputPath = path.resolve(configDir, config.paths.output)
-  const rendererOutputPath = await resolveRendererOutputPath(configDir, config)
+  // Anchor on the resolved content directory (not the config directory or
+  // the cwd passed in), so that `paths.input: <subdir>` setups (where
+  // `mdsite.yml` lives at the repo root and the markdown content lives in
+  // a sub-folder) still resolve <paths.build> and <paths.output> to the
+  // project that was actually built.
+  const rendererPath = path.resolve(resolvedContentDir, config.paths.build)
+  const outputPath = path.resolve(resolvedContentDir, config.paths.output)
 
-  const [rendererExists, outputExists, rendererOutputExists] = await Promise.all([
+  const [rendererExists, outputExists] = await Promise.all([
     pathExists(rendererPath),
-    pathExists(outputPath),
-    rendererOutputPath ? pathExists(rendererOutputPath) : Promise.resolve(false)
+    pathExists(outputPath)
   ])
 
   // `force: true` lets us skip non-existent paths without a separate branch.
-  const removals: Array<Promise<unknown>> = [
+  await Promise.all([
     rm(rendererPath, { recursive: true, force: true }),
     rm(outputPath, { recursive: true, force: true })
-  ]
-  if (rendererOutputPath) {
-    removals.push(rm(rendererOutputPath, { recursive: true, force: true }))
-  }
-  await Promise.all(removals)
+  ])
 
   const removed: string[] = []
   if (rendererExists) {
@@ -59,23 +57,12 @@ export async function runCleanCommand(contentDir: string): Promise<string> {
   if (outputExists) {
     removed.push(config.paths.output)
   }
-  if (rendererOutputExists && rendererOutputPath) {
-    removed.push(formatRemovedPath(contentDir, rendererOutputPath))
-  }
 
   if (removed.length === 0) {
-    return `Nothing to clean in ${contentDir}.`
+    return `Nothing to clean in ${resolvedContentDir}.`
   }
 
-  return `Removed ${joinRemoved(removed)} from ${contentDir}.`
-}
-
-function formatRemovedPath(contentDir: string, targetPath: string): string {
-  const relative = path.relative(contentDir, targetPath)
-  if (relative.length === 0 || relative.startsWith('..') || path.isAbsolute(relative)) {
-    return targetPath
-  }
-  return relative.split(path.sep).join('/')
+  return `Removed ${joinRemoved(removed)} from ${resolvedContentDir}.`
 }
 
 /**

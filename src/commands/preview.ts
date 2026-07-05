@@ -10,8 +10,8 @@ interface PreviewCommandOptions {
   host?: string
 }
 
-async function ensureGeneratedOutput(contentDir: string, rendererDir: string): Promise<void> {
-  if (await hasPreviewArtifacts(rendererDir)) {
+async function ensureGeneratedOutput(contentDir: string, rendererOutputDir: string): Promise<void> {
+  if (await hasPreviewArtifacts(rendererOutputDir)) {
     return
   }
 
@@ -26,11 +26,11 @@ export async function runPreviewCommand(contentDir: string, options: PreviewComm
   }
 
   const loaded = await loadMdsiteConfig(contentDir)
-  const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
+  const { rendererDir, rendererEnv, rendererOutputDir } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
-  await ensureGeneratedOutput(contentDir, rendererDir)
-  await ensurePreviewArtifacts(rendererDir)
+  await ensureGeneratedOutput(contentDir, rendererOutputDir)
+  await ensurePreviewArtifacts(rendererOutputDir)
   await previewRendererForeground(rendererDir, getPreviewEnv(rendererEnv, options.host))
 
   return undefined
@@ -38,29 +38,29 @@ export async function runPreviewCommand(contentDir: string, options: PreviewComm
 
 async function runDetachedPreviewCommand(contentDir: string, options: PreviewCommandOptions): Promise<string> {
   const loaded = await loadMdsiteConfig(contentDir)
-  const { config, configDir } = loaded
+  const { config, contentDir: resolvedContentDir } = loaded
 
-  const existingState = await readRuntimeState(configDir, config, 'preview')
+  const existingState = await readRuntimeState(resolvedContentDir, config, 'preview')
   if (existingState && isProcessRunning(existingState.pid)) {
     throw new Error(`mdsite static is already running with PID ${existingState.pid}.`)
   }
 
-  const { rendererDir, rendererEnv } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
+  const { rendererDir, rendererEnv, rendererOutputDir } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
-  await ensureGeneratedOutput(contentDir, rendererDir)
-  await ensurePreviewArtifacts(rendererDir)
+  await ensureGeneratedOutput(resolvedContentDir, rendererOutputDir)
+  await ensurePreviewArtifacts(rendererOutputDir)
 
   const previewEnv = getPreviewEnv(rendererEnv, options.host)
-  const logPath = getRuntimeLogPath(configDir, config, 'preview')
+  const logPath = getRuntimeLogPath(resolvedContentDir, config, 'preview')
   const pid = await previewRendererInBackground(rendererDir, previewEnv, logPath)
 
-  await writeRuntimeState(configDir, config, {
+  await writeRuntimeState(resolvedContentDir, config, {
     kind: 'preview',
     pid,
     logPath,
     rendererDir,
-    contentDir,
+    contentDir: resolvedContentDir,
     command: ['npm', 'run', 'preview'],
     startedAt: new Date().toISOString()
   })
