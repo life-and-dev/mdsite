@@ -14,7 +14,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 - **`mdsite static`**: Preview generated output after `generate` in the foreground.
 - **`mdsite static -d` / `mdsite static --detached`**: Start tracked background preview and log to `<paths.build>/static.log`.
 - **`mdsite stop`**: Stop tracked detached `start` and `preview` processes.
-- **`mdsite clean`**: Delete the configured `<paths.build>` (e.g. `.mdsite/`) and `<paths.output>` (e.g. `.output/`) under the content directory. Requires `mdsite.yml`; refuses to run while a tracked start/preview process is alive (run `mdsite stop` first). Reports `Nothing to clean in <dir>.` if neither path exists.
+- **`mdsite clean`**: Delete the configured `<paths.build>` (e.g. `.mdsite/`) and `<paths.output>` (e.g. `.output/`). Requires `mdsite.yml`; refuses to run while a tracked start/preview process is alive (run `mdsite stop` first). Reports `Nothing to clean in <dir>.` if neither path exists.
 - **`mdsite prepare github`**: Generate `.github/workflows/deploy.yml` for this content dir.
 
 ## Core flow or states
@@ -43,7 +43,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 
 - **Content dir**: holds only user-authored files (`*.md`, `mdsite.yml`, `.nvmrc`, `.gitignore`, the user's favicon source). The CLI writes no generated non-config files to the content root.
 - **`.mdsite/`** (`<paths.build>`): the single renderer working dir — materialized renderer source (gitignored), `node_modules`, `.env`, `content.config.yml`, generated favicons, and detached-process runtime state (`live.json`/`static.json`/`live.log`/`static.log`). Only `package.json` + `package-lock.json` are committed.
-- **`.output/`** (`<paths.output>`): the deployable static site at the content root, synced by `mdsite generate`.
+- **`.output/`** (`<paths.output>`): the deployable static site generated from content dir.
 - `.mdsite-runtime/` and content-root `mdsite.log` no longer exist.
 
 ## Rules
