@@ -102,6 +102,11 @@ export async function detectCanonicalUrl(contentDir: string): Promise<string> {
     const [owner, repo] = repoPath.split('/')
     if (!owner || !repo) return ''
 
+    // User/org GitHub Pages repos are named <owner>.github.io and served at
+    // the bare domain; project pages live under <owner>.github.io/<repo>.
+    if (repo.endsWith('.github.io')) {
+      return `https://${repo}`
+    }
     return `https://${owner}.github.io/${repo}`
   } catch {
     return ''
@@ -113,6 +118,7 @@ export async function detectCanonicalUrl(contentDir: string): Promise<string> {
  * directory name relative to `contentDir`, or `''` when neither exists.
  */
 export async function detectInputPath(contentDir: string): Promise<string> {
+  // Root-level only: nested doc/docs dirs are intentionally ignored.
   for (const name of ['docs', 'doc']) {
     try {
       const info = await stat(path.join(contentDir, name))

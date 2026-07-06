@@ -65,6 +65,32 @@ describe('detectFavicon', () => {
 
     await expect(detectFavicon(dir)).resolves.toBe('')
   })
+
+  it('prefers the alphabetically-first match at the same depth', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'logo.png'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'favicon.png'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'favicon.ico'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir)).resolves.toBe('favicon.ico')
+  })
+
+  it('matches favicon names case-insensitively', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'LOGO.PNG'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir)).resolves.toBe('LOGO.PNG')
+  })
+
+  it('skips favicons inside ignored and hidden directories', async () => {
+    const dir = await makeTempDir()
+    await mkdir(path.join(dir, 'node_modules'), { recursive: true })
+    await mkdir(path.join(dir, '.cache'), { recursive: true })
+    await writeFile(path.join(dir, 'node_modules', 'favicon.ico'), 'x', 'utf8')
+    await writeFile(path.join(dir, '.cache', 'logo.png'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir)).resolves.toBe('')
+  })
 })
 
 describe('detectInputPath', () => {
@@ -94,6 +120,28 @@ describe('detectInputPath', () => {
     await writeFile(path.join(dir, 'docs'), 'not a dir', 'utf8')
 
     await expect(detectInputPath(dir)).resolves.toBe('')
+  })
+
+  it('ignores a nested docs directory (root-level only)', async () => {
+    const dir = await makeTempDir()
+    await mkdir(path.join(dir, 'subdir', 'docs'), { recursive: true })
+
+    await expect(detectInputPath(dir)).resolves.toBe('')
+  })
+
+  it('ignores a nested doc directory (root-level only)', async () => {
+    const dir = await makeTempDir()
+    await mkdir(path.join(dir, 'packages', 'doc'), { recursive: true })
+
+    await expect(detectInputPath(dir)).resolves.toBe('')
+  })
+
+  it('prefers a root docs/ over a nested docs directory', async () => {
+    const dir = await makeTempDir()
+    await mkdir(path.join(dir, 'docs'), { recursive: true })
+    await mkdir(path.join(dir, 'other', 'docs'), { recursive: true })
+
+    await expect(detectInputPath(dir)).resolves.toBe('docs')
   })
 })
 
@@ -135,6 +183,46 @@ describe('detectSourceEditUrl', () => {
 
     await expect(detectSourceEditUrl(dir)).resolves.toBe('')
   })
+
+  it('builds a github edit URL from an ssh:// protocol remote', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = ssh://git@github.com/owner/repo.git\n')
+    await writeFile(path.join(dir, '.git', 'HEAD'), 'ref: refs/heads/main\n', 'utf8')
+
+    await expect(detectSourceEditUrl(dir)).resolves.toBe('https://github.com/owner/repo/blob/main/')
+  })
+
+  it('handles a remote URL without a .git suffix', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = git@github.com:owner/repo\n')
+    await writeFile(path.join(dir, '.git', 'HEAD'), 'ref: refs/heads/main\n', 'utf8')
+
+    await expect(detectSourceEditUrl(dir)).resolves.toBe('https://github.com/owner/repo/blob/main/')
+  })
+
+  it('keeps the full path for a <owner>.github.io repo (no bare-domain special case)', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = git@github.com:life-and-dev/life-and-dev.github.io.git\n')
+    await writeFile(path.join(dir, '.git', 'HEAD'), 'ref: refs/heads/main\n', 'utf8')
+
+    await expect(detectSourceEditUrl(dir)).resolves.toBe('https://github.com/life-and-dev/life-and-dev.github.io/blob/main/')
+  })
+
+  it('supports branch names containing slashes', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = git@github.com:owner/repo.git\n')
+    await writeFile(path.join(dir, '.git', 'HEAD'), 'ref: refs/heads/feature/foo\n', 'utf8')
+
+    await expect(detectSourceEditUrl(dir)).resolves.toBe('https://github.com/owner/repo/blob/feature/foo/')
+  })
+
+  it('ignores remotes other than origin', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "upstream"]\n\turl = git@github.com:owner/repo.git\n')
+    await writeFile(path.join(dir, '.git', 'HEAD'), 'ref: refs/heads/main\n', 'utf8')
+
+    await expect(detectSourceEditUrl(dir)).resolves.toBe('')
+  })
 })
 
 describe('detectCanonicalUrl', () => {
@@ -148,6 +236,42 @@ describe('detectCanonicalUrl', () => {
   it('builds a github pages URL from an HTTPS remote', async () => {
     const dir = await makeTempDir()
     await writeGitConfig(dir, '[remote "origin"]\n\turl = https://github.com/owner/repo.git\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('https://owner.github.io/repo')
+  })
+
+  it('uses the bare domain for user/org pages repos named <owner>.github.io', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = git@github.com:life-and-dev/life-and-dev.github.io.git\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('https://life-and-dev.github.io')
+  })
+
+  it('uses the bare domain for an HTTPS <owner>.github.io remote', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = https://github.com/life-and-dev/life-and-dev.github.io.git\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('https://life-and-dev.github.io')
+  })
+
+  it('handles a remote URL without a .git suffix', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = git@github.com:owner/repo\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('https://owner.github.io/repo')
+  })
+
+  it('handles the ssh:// protocol remote form', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = ssh://git@github.com/owner/repo.git\n')
+
+    await expect(detectCanonicalUrl(dir)).resolves.toBe('https://owner.github.io/repo')
+  })
+
+  it('still resolves on a detached HEAD (does not read .git/HEAD)', async () => {
+    const dir = await makeTempDir()
+    await writeGitConfig(dir, '[remote "origin"]\n\turl = git@github.com:owner/repo.git\n')
+    await writeFile(path.join(dir, '.git', 'HEAD'), '0123456789abcdef0123456789abcdef01234567\n', 'utf8')
 
     await expect(detectCanonicalUrl(dir)).resolves.toBe('https://owner.github.io/repo')
   })
