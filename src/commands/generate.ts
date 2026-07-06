@@ -14,7 +14,7 @@ export async function runGenerateCommand(contentDir: string): Promise<string> {
   await generateRenderer(rendererDir, rendererEnv)
 
   const rendererOutputPath = path.join(rendererOutputDir, 'public')
-  const destinationOutputPath = resolveContentOutputPath(loaded.contentDir, loaded.config)
+  const destinationOutputPath = resolveContentOutputPath(loaded.configDir, loaded.config)
 
   try {
     await rm(destinationOutputPath, { recursive: true, force: true })

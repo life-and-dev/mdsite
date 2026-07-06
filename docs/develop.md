@@ -170,7 +170,7 @@ When the configured port is occupied, Nuxt falls back to the next free one. The 
 | `mdsite-nuxt/.env`               | every CLI run                    | Points the renderer at the active content directory; in dev also sets `MDSITE_NITRO_OUTPUT_DIR` to redirect the build output to `.<paths.build>/.output/`. |
 | `mdsite-nuxt/content.config.yml` | every CLI run                    | Serialized site config consumed by the renderer.     |
 
-`<paths.build>` and `<paths.output>` are resolved relative to the **content directory** (the directory containing the markdown sources), not the config directory or the cwd. With `paths.input: docs`, the build artifacts live in `docs/.mdsite/` and `docs/.output/` even though `mdsite.yml` is at the repo root.
+`<paths.build>` and `<paths.output>` are resolved relative to the **project root** (the directory containing `mdsite.yml`), not the markdown content directory or the cwd. With `paths.input: docs`, the build artifacts live in `.mdsite/` and `.output/` at the project root alongside `mdsite.yml`; only the markdown sources live in `docs/`.
 
 In dev mode (when the CLI is run from this repo), the renderer IS the checked-in `mdsite-nuxt/` submodule, so `mdsite-nuxt/.env` and `mdsite-nuxt/content.config.yml` are written there. The CLI sets `MDSITE_NITRO_OUTPUT_DIR` in the env so Nitro writes to `.<paths.build>/.output/` instead of inside the submodule — the submodule itself stays free of build artifacts.
 

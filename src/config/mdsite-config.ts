@@ -190,8 +190,14 @@ async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir:
   }
 }
 
-export function resolveContentOutputPath(contentDir: string, config: MdsiteConfig): string {
-  return path.resolve(contentDir, config.paths.output, 'public')
+/**
+ * Resolve the synced static output directory (`<paths.output>/public`).
+ * `baseDir` MUST be the project root (the directory containing `mdsite.yml`),
+ * so output always lands at the project root regardless of `paths.input`.
+ * Callers must pass `loaded.configDir`, NOT `loaded.contentDir`.
+ */
+export function resolveContentOutputPath(baseDir: string, config: MdsiteConfig): string {
+  return path.resolve(baseDir, config.paths.output, 'public')
 }
 
 /**

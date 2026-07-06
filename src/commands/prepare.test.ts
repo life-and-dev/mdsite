@@ -127,7 +127,7 @@ describe('runPrepareGithubCommand', () => {
     expect(workflow).toContain('npx -y @life-and-dev/mdsite generate')
     expect(workflow).toContain('node bin/mdsite.js generate')
     expect(workflow).toContain('npm run build')
-    expect(workflow).toContain('path: "./docs/build/site/public"')
+    expect(workflow).toContain('path: "./build/site/public"')
     expect(workflow).not.toContain('working-directory:')
     expect(workflow).not.toContain('cache: npm')
     expect(workflow).not.toContain('cache-dependency-path:')
@@ -143,38 +143,6 @@ describe('runPrepareGithubCommand', () => {
         NUXT_CONTENT_PATH: contentDir
       })
     )
-  })
-
-  it('writes the artifact path under paths.input when paths.output is the default', async () => {
-    const configDir = await mkdtemp(path.join(os.tmpdir(), 'mdsite-prepare-'))
-    tempDirs.push(configDir)
-
-    const contentDir = path.join(configDir, 'docs')
-    const rendererDir = path.join(configDir, 'renderer')
-    await mkdir(path.join(contentDir), { recursive: true })
-    await mkdir(path.join(rendererDir, 'node_modules'), { recursive: true })
-    await writeFile(
-      path.join(configDir, 'mdsite.yml'),
-      [
-        'paths:',
-        '  input: docs',
-        '  build: renderer',
-        '  output: .output',
-        'site:',
-        '  name: Default Output Root Docs',
-        ''
-      ].join('\n'),
-      'utf8'
-    )
-    await writeFile(path.join(contentDir, 'index.md'), '# Default Output Root Docs\n', 'utf8')
-
-    await runPrepareGithubCommand(configDir)
-    const workflow = await readFile(path.join(configDir, '.github', 'workflows', 'deploy.yml'), 'utf8')
-
-    expect(workflow).toContain('NUXT_CONTENT_PATH: "${{ github.workspace }}/docs"')
-    expect(workflow).toContain('CONTENT_DIR: "${{ github.workspace }}/docs"')
-    expect(workflow).toContain('path: "./docs/.output/public"')
-    expect(workflow).not.toContain('path: "./.output/public"')
   })
 
   it('creates the configured renderer before preparing the GitHub workflow', async () => {

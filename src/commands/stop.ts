@@ -4,14 +4,14 @@ import { stopProcess } from '../process/child-process.js'
 
 export async function runStopCommand(contentDir: string): Promise<string> {
   const loaded = await loadMdsiteConfig(contentDir)
-  const { config, contentDir: resolvedContentDir } = loaded
+  const { config, configDir } = loaded
 
-  // Resolve runtime state against the resolved content directory so that
+  // Resolve runtime state against the project root (configDir) so that
   // `paths.input: <subdir>` setups find their state files (which live in
-  // `<resolvedContentDir>/<paths.build>/`, not in the config directory).
+  // `<configDir>/<paths.build>/`, not in the markdown content directory).
   const states = await Promise.all([
-    readRuntimeState(resolvedContentDir, config, 'start'),
-    readRuntimeState(resolvedContentDir, config, 'preview')
+    readRuntimeState(configDir, config, 'start'),
+    readRuntimeState(configDir, config, 'preview')
   ])
 
   const messages: string[] = []
@@ -22,7 +22,7 @@ export async function runStopCommand(contentDir: string): Promise<string> {
     }
 
     const stopped = await stopProcess(state.pid)
-    await clearRuntimeState(resolvedContentDir, config, state.kind)
+    await clearRuntimeState(configDir, config, state.kind)
 
     if (stopped) {
       messages.push(`Stopped ${state.kind} process ${state.pid}.`)

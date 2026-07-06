@@ -15,13 +15,13 @@ async function pathExists(targetPath: string): Promise<boolean> {
 
 export async function runCleanCommand(contentDir: string): Promise<string> {
   const loaded = await loadMdsiteConfig(contentDir)
-  const { config, contentDir: resolvedContentDir } = loaded
+  const { config, configDir } = loaded
 
   // Refuse to wipe state while a tracked process is still pointing at it.
   // Tracked PIDs live inside <paths.build>, so the clean would orphan them.
   const trackedStates = await Promise.all([
-    readRuntimeState(resolvedContentDir, config, 'start'),
-    readRuntimeState(resolvedContentDir, config, 'preview')
+    readRuntimeState(configDir, config, 'start'),
+    readRuntimeState(configDir, config, 'preview')
   ])
 
   for (const state of trackedStates) {
@@ -36,8 +36,8 @@ export async function runCleanCommand(contentDir: string): Promise<string> {
   // `mdsite.yml` lives at the repo root and the markdown content lives in
   // a sub-folder) still resolve <paths.build> and <paths.output> to the
   // project that was actually built.
-  const rendererPath = path.resolve(resolvedContentDir, config.paths.build)
-  const outputPath = path.resolve(resolvedContentDir, config.paths.output)
+  const rendererPath = path.resolve(configDir, config.paths.build)
+  const outputPath = path.resolve(configDir, config.paths.output)
 
   const [rendererExists, outputExists] = await Promise.all([
     pathExists(rendererPath),
@@ -59,10 +59,10 @@ export async function runCleanCommand(contentDir: string): Promise<string> {
   }
 
   if (removed.length === 0) {
-    return `Nothing to clean in ${resolvedContentDir}.`
+    return `Nothing to clean in ${configDir}.`
   }
 
-  return `Removed ${joinRemoved(removed)} from ${resolvedContentDir}.`
+  return `Removed ${joinRemoved(removed)} from ${configDir}.`
 }
 
 /**

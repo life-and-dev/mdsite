@@ -38,9 +38,9 @@ export async function runPreviewCommand(contentDir: string, options: PreviewComm
 
 async function runDetachedPreviewCommand(contentDir: string, options: PreviewCommandOptions): Promise<string> {
   const loaded = await loadMdsiteConfig(contentDir)
-  const { config, contentDir: resolvedContentDir } = loaded
+  const { config, configDir } = loaded
 
-  const existingState = await readRuntimeState(resolvedContentDir, config, 'preview')
+  const existingState = await readRuntimeState(configDir, config, 'preview')
   if (existingState && isProcessRunning(existingState.pid)) {
     throw new Error(`mdsite static is already running with PID ${existingState.pid}.`)
   }
@@ -48,19 +48,19 @@ async function runDetachedPreviewCommand(contentDir: string, options: PreviewCom
   const { rendererDir, rendererEnv, rendererOutputDir } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
-  await ensureGeneratedOutput(resolvedContentDir, rendererOutputDir)
+  await ensureGeneratedOutput(loaded.configDir, rendererOutputDir)
   await ensurePreviewArtifacts(rendererOutputDir)
 
   const previewEnv = getPreviewEnv(rendererEnv, options.host)
-  const logPath = getRuntimeLogPath(resolvedContentDir, config, 'preview')
+  const logPath = getRuntimeLogPath(configDir, config, 'preview')
   const pid = await previewRendererInBackground(rendererDir, previewEnv, logPath)
 
-  await writeRuntimeState(resolvedContentDir, config, {
+  await writeRuntimeState(configDir, config, {
     kind: 'preview',
     pid,
     logPath,
     rendererDir,
-    contentDir: resolvedContentDir,
+    contentDir: loaded.contentDir,
     command: ['npm', 'run', 'preview'],
     startedAt: new Date().toISOString()
   })

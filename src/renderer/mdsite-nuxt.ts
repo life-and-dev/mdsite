@@ -59,14 +59,14 @@ export async function prepareRenderer(contentDir: string, config: MdsiteConfig, 
   const rendererBaseDir = options.configDir ?? contentDir
   const rendererDir = await resolveRendererDir(rendererBaseDir, config, options)
 
-  return prepareRendererEnvironment(contentDir, config, rendererDir, options.configPath)
+  return prepareRendererEnvironment(contentDir, config, rendererDir, options.configPath, rendererBaseDir)
 }
 
 export async function prepareConfiguredRenderer(contentDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<PreparedRenderer> {
   const rendererBaseDir = options.configDir ?? contentDir
   const rendererDir = await resolveConfiguredRendererDir(rendererBaseDir, config)
 
-  return prepareRendererEnvironment(contentDir, config, rendererDir, options.configPath)
+  return prepareRendererEnvironment(contentDir, config, rendererDir, options.configPath, rendererBaseDir)
 }
 
 export async function ensureConfiguredRendererInstalled(contentDir: string, config: MdsiteConfig, options: PrepareRendererOptions = {}): Promise<string> {
@@ -86,16 +86,19 @@ export async function ensureConfiguredRendererInstalled(contentDir: string, conf
   return rendererDir
 }
 
-async function prepareRendererEnvironment(contentDir: string, config: MdsiteConfig, rendererDir: string, configPath?: string): Promise<PreparedRenderer> {
+async function prepareRendererEnvironment(contentDir: string, config: MdsiteConfig, rendererDir: string, configPath?: string, buildBaseDir: string = contentDir): Promise<PreparedRenderer> {
   await writeCompatibilityConfigFile(rendererDir, contentDir, config)
 
   // In dev mode, the renderer IS the checked-in submodule. Redirect Nitro's
-  // output to `<configDir>/<paths.build>/.output` so the build artifact lives
-  // alongside the rest of the CLI's working state (covered by `mdsite clean`)
-  // instead of inside the submodule source tree.
+  // output to `<buildBaseDir>/<paths.build>/.output` (the project root, where
+  // `mdsite.yml` lives) so the build artifact sits alongside the rest of the
+  // CLI's working state (covered by `mdsite clean`) instead of inside the
+  // submodule source tree. `buildBaseDir` is the project root, NOT the
+  // markdown content dir, so `paths.build` resolves at the project root
+  // regardless of `paths.input`.
   const isDevRenderer = !isInsideNodeModules(checkedInRendererDir) && path.resolve(rendererDir) === path.resolve(checkedInRendererDir)
   const rendererOutputDir = isDevRenderer
-    ? path.resolve(contentDir, config.paths.build, '.output')
+    ? path.resolve(buildBaseDir, config.paths.build, '.output')
     : path.join(rendererDir, '.output')
 
   if (isDevRenderer) {
@@ -106,7 +109,7 @@ async function prepareRendererEnvironment(contentDir: string, config: MdsiteConf
     ...process.env,
     NUXT_CONTENT_PATH: contentDir,
     CONTENT_DIR: contentDir,
-    MDSITE_CONFIG_PATH: configPath ?? path.join(contentDir, 'mdsite.yml')
+    MDSITE_CONFIG_PATH: configPath ?? path.join(buildBaseDir, 'mdsite.yml')
   }
 
   if (isDevRenderer) {

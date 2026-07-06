@@ -102,10 +102,10 @@ describe('mdsite-nuxt renderer helpers', () => {
     const prepared = await prepareRenderer(contentDir, baseConfig, { configDir, configPath })
 
     expect(prepared.rendererDir).toBe(rendererDir)
-    // Output dir is anchored on the content dir, not the config dir, so a
-    // sibling `mdsite.yml` (e.g. `paths.input: docs`) still routes the
-    // build to the project's own working dir.
-    expect(prepared.rendererOutputDir).toBe(path.join(contentDir, baseConfig.paths.build, '.output'))
+    // Dev output dir is anchored on the project root (configDir), so a
+    // sibling `mdsite.yml` (e.g. `paths.input: docs`) routes the build to the
+    // project's own working dir, not nested under the markdown content dir.
+    expect(prepared.rendererOutputDir).toBe(path.join(configDir, baseConfig.paths.build, '.output'))
     expect(prepared.rendererEnv.NUXT_CONTENT_PATH).toBe(contentDir)
     expect(prepared.rendererEnv.CONTENT_DIR).toBe(contentDir)
     expect(prepared.rendererEnv.MDSITE_CONFIG_PATH).toBe(configPath)
