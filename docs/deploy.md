@@ -12,10 +12,9 @@ You need:
 Run all `mdsite` commands from the content directory that contains `mdsite.yml`.
 
 > [!NOTE] 
-> Pay attention to `paths.output` in `mdsite.yml` which indicates where generated static pages will be written to. The default value is `.output`, so the static site is generated in `.output/public` by default.
-
-> [!NOTE] 
-> `mdsite` requires Node.js 24. Some builders defaults to different Node versions. `mdsite init` writes a `.nvmrc` containing `24` that should also be Git committed.
+> Pay attention to `paths.output` in `mdsite.yml` which indicates where generated static pages will be written to. The default value is `.output`, so the static site is generated in `.output/public` by default. 
+> 
+> This mirrors [Nuxt's standard `.output/` layout](https://nuxt.com/docs/4.x/getting-started/deployment#static-hosting), where `public/` is the served web root and `server/` holds an optional Node runtime ([Nitro output config](https://nitro.build/config#output)). Keeping the conventional layout means a future server-side or hybrid mode could be added without breaking deploy configurations.
 
 ## Preview Locally
 
@@ -34,6 +33,11 @@ mdsite static
 ```
 
 Use `mdsite static` after `mdsite generate` to check the generated static site locally before deploying. The foreground preview stops when you interrupt the command or close the terminal. Use `mdsite static -d` for a tracked background preview, and `mdsite stop` to stop tracked detached previews.
+
+> [!NOTE] 
+> `mdsite generate` writes a `.nvmrc` containing `24` that should also be Git committed.
+>
+> Some Nuxt dependencies requires Node.js 24 while some builders defaults to older Node versions.
 
 ## GitHub Pages
 
@@ -57,7 +61,9 @@ git commit -m "Add GitHub Pages deployment"
 git push
 ```
 
-In GitHub, set **Settings > Pages > Build and deployment > Source** to **GitHub Actions**. The generated workflow builds on pushes to `main` and publishes the static site from `<paths.output>/public`.
+In GitHub, set **Settings > Pages > Build and deployment > Source** to **GitHub Actions**. Do not "Configure" any build-in GitHub Action template. Instead the committed `.github/workflows/deploy.yml` will take care of the GitHub Pages deployment.
+
+The generated workflow builds on pushes to `main` and publishes the static site from `<paths.output>/public`.
 
 After the workflow finishes, preview the site online at:
 
