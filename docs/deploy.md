@@ -82,12 +82,11 @@ In Cloudflare Pages, connect the repository that contains your mdsite content an
 | Setting | Value |
 | :--- | :--- |
 | Framework preset | None |
-| Build command | `npx @life-and-dev/mdsite generate` |
+| Build command | `npx @life-and-dev/mdsite@latest generate` |
 | Build output directory | `.output/public` |
 | Root directory | Your content directory, or `/` if the repository root is the content directory |
 
 If `mdsite.yml` sets a different `paths.output`, set the **Build output directory** to `<paths.output>/public`.
-
 ## Troubleshooting
 
 ### ⚠️ `mdsite.yml` is missing

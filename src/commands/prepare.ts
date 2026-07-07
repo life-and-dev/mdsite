@@ -81,7 +81,7 @@ function buildGithubWorkflow(config: Awaited<ReturnType<typeof loadMdsiteConfig>
     '',
     '      - name: Generate (npx)',
     "        if: steps.detect.outputs.is_source != 'true'",
-    '        run: npx -y @life-and-dev/mdsite generate',
+    '        run: npx -y @life-and-dev/mdsite@latest generate',
     '        env:',
     '          NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/',
     '',
