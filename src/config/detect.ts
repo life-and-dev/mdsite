@@ -10,53 +10,102 @@ const ignoredDirectories = new Set([
   'node_modules'
 ])
 
-const faviconBasenames = ['favicon', 'logo']
-const faviconExtensions = ['webp', 'jpg', 'png', 'ico', 'svg']
+// svg is preferred (vector, tiny), then raster formats by quality/size, with
+// .ico kept as a legacy last resort within each naming pattern.
+const faviconExtensions = ['svg', 'png', 'webp', 'jpg', 'ico']
 
 /**
- * Breadth-first scan of `contentDir` (top-level first) for the first file
- * whose basename is `favicon` or `logo` with a `.webp`/`.jpg`/`.png`/`.ico`/`.svg`
- * extension. At each directory level, matching files are sorted alphabetically
- * and the first wins (so `favicon.ico` is preferred over `logo.png` at the
- * same depth). Returns the match path relative to `contentDir` with forward
- * slashes, or `''` when nothing matches.
+ * Build the ordered list of favicon filename candidates. Priority (highest to
+ * lowest), with `<ext>` iterating `svg` > `png` > `webp` > `jpg` > `ico`:
+ *   1. `favicon.<ext>`
+ *   2. `<cwdName>-logo.<ext>`
+ *   3. `<cwdName>.<ext>`
+ *   4. `logo.<ext>`
  */
-export async function detectFavicon(contentDir: string): Promise<string> {
-  const queue: string[] = [contentDir]
+function buildFaviconCandidates(cwdName: string): string[] {
+  const basenames = ['favicon', `${cwdName}-logo`, cwdName, 'logo']
+  const candidates: string[] = []
+  for (const base of basenames) {
+    for (const ext of faviconExtensions) {
+      candidates.push(`${base}.${ext}`)
+    }
+  }
+  return candidates
+}
 
-  while (queue.length > 0) {
-    const currentDir = queue.shift() as string
+/**
+ * Read a directory into a map of lowercased filename -> actual filename for
+ * files, and a sorted list of immediate subdirectory names (skipping entries
+ * in `ignoredDirectories` and names starting with `.`). Returns `null` when
+ * the directory cannot be read.
+ */
+async function listFaviconDir(dir: string): Promise<{
+  files: Map<string, string>
+  subdirs: string[]
+} | null> {
+  let entries
+  try {
+    entries = await readdir(dir, { withFileTypes: true })
+  } catch {
+    return null
+  }
+  const files = new Map<string, string>()
+  const subdirs: string[] = []
+  for (const entry of entries) {
+    if (entry.isFile()) {
+      files.set(entry.name.toLowerCase(), entry.name)
+    } else if (entry.isDirectory() && !ignoredDirectories.has(entry.name) && !entry.name.startsWith('.')) {
+      subdirs.push(entry.name)
+    }
+  }
+  subdirs.sort((left, right) => left.localeCompare(right))
+  return { files, subdirs }
+}
 
-    let entries
-    try {
-      entries = await readdir(currentDir, { withFileTypes: true })
-    } catch {
-      continue
+/**
+ * Scan `contentRoot` and its immediate subdirectories for the first favicon
+ * candidate in priority order. Candidates are tried as:
+ *   1. `favicon.<ext>`
+ *   2. `<cwdName>-logo.<ext>`
+ *   3. `<cwdName>.<ext>`
+ *   4. `logo.<ext>`
+ * where `<ext>` iterates `svg` > `png` > `webp` > `jpg` > `ico`, and
+ * `<cwdName>` defaults to the basename of `process.cwd()`. For each
+ * candidate the top level of `contentRoot` is checked first, then its
+ * immediate subdirectories (alphabetical), so pattern/format priority
+ * dominates over depth. Matching is case-insensitive but the returned
+ * filename preserves its original case. Returns the match path relative to
+ * `contentRoot` with forward slashes, or `''` when nothing matches. When
+ * `''` is returned the renderer falls back to generating a monogram icon.
+ */
+export async function detectFavicon(
+  contentRoot: string,
+  cwdName: string = path.basename(process.cwd())
+): Promise<string> {
+  const candidates = buildFaviconCandidates(cwdName)
+
+  const top = await listFaviconDir(contentRoot)
+  const topLevelFiles = top?.files ?? new Map<string, string>()
+  const subdirNames = top?.subdirs ?? []
+  const subdirCache = new Map<string, Map<string, string>>()
+
+  for (const candidate of candidates) {
+    const topMatch = topLevelFiles.get(candidate.toLowerCase())
+    if (topMatch) {
+      return topMatch
     }
 
-    const matches: string[] = []
-    for (const entry of entries) {
-      if (!entry.isFile()) continue
-      const ext = path.extname(entry.name).toLowerCase().replace(/^\./, '')
-      const base = path.basename(entry.name, path.extname(entry.name)).toLowerCase()
-      if (faviconBasenames.includes(base) && faviconExtensions.includes(ext)) {
-        matches.push(entry.name)
+    for (const subdir of subdirNames) {
+      let files = subdirCache.get(subdir)
+      if (!files) {
+        const sub = await listFaviconDir(path.join(contentRoot, subdir))
+        files = sub?.files ?? new Map<string, string>()
+        subdirCache.set(subdir, files)
       }
-    }
-
-    if (matches.length > 0) {
-      matches.sort((left, right) => left.localeCompare(right))
-      const relative = path.relative(contentDir, path.join(currentDir, matches[0]))
-      return relative.split(path.sep).join('/')
-    }
-
-    const subdirs = entries
-      .filter((entry) => entry.isDirectory() && !ignoredDirectories.has(entry.name) && !entry.name.startsWith('.'))
-      .map((entry) => entry.name)
-      .sort((left, right) => left.localeCompare(right))
-
-    for (const name of subdirs) {
-      queue.push(path.join(currentDir, name))
+      const match = files.get(candidate.toLowerCase())
+      if (match) {
+        return path.join(subdir, match).split(path.sep).join('/')
+      }
     }
   }
 

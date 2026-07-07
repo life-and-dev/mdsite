@@ -1,6 +1,6 @@
 # Favicon Configuration
 
-mdsite uses the `site.favicon` value in `mdsite.yml` to pass a favicon path to the local renderer. `mdsite init` auto-detects a favicon by scanning for the first `logo` or `favicon` image (`.svg`/`.webp`/`.jpg`/`.png`/`.ico`), top-level first; you can also set `site.favicon` by hand.
+mdsite uses the `site.favicon` value in `mdsite.yml` to pass a favicon path to the local renderer. `mdsite init` auto-detects a favicon by scanning the content directory's top level and its immediate subdirectories in priority order — `favicon.<ext>` → `<project-name>-logo.<ext>` → `<project-name>.<ext>` → `logo.<ext>`, where `<ext>` is tried as `.svg` > `.png` > `.webp` > `.jpg` > `.ico` (with `.ico` as a last-resort legacy format) and `<project-name>` is the basename of the directory you run `mdsite init` in. You can also set `site.favicon` by hand.
 
 ## How it Works
 
@@ -10,7 +10,7 @@ The renderer reads that source image directly and generates all derived favicon 
 
 ## When No Favicon Is Set
 
-If `site.favicon` is empty or the referenced file is missing, the renderer generates a monogram favicon: the first letter of `site.name` rendered on a rounded square filled with the site's primary theme color. This avoids leaking any default branding and gives every site a distinct favicon out of the box.
+If `site.favicon` is empty or the referenced file is missing, the renderer generates a monogram favicon: the first letter of `site.name` rendered in `themes.light.colors.on-primary` on a rounded square filled with `themes.light.colors.primary` (each falling back to a built-in default when unset). This avoids leaking any default branding and gives every site a distinct favicon out of the box.
 
 ## Configuration Steps
 

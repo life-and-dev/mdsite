@@ -26,11 +26,14 @@ afterEach(async () => {
 })
 
 describe('detectFavicon', () => {
+  // cwdName is passed explicitly to avoid depending on the test runner's cwd.
+  const CWD_NAME = 'mysite'
+
   it('returns the top-level favicon when present', async () => {
     const dir = await makeTempDir()
     await writeFile(path.join(dir, 'favicon.ico'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('favicon.ico')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('favicon.ico')
   })
 
   it('prefers a top-level match over a nested one', async () => {
@@ -39,15 +42,23 @@ describe('detectFavicon', () => {
     await writeFile(path.join(dir, 'docs', 'logo.png'), 'x', 'utf8')
     await writeFile(path.join(dir, 'favicon.ico'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('favicon.ico')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('favicon.ico')
   })
 
-  it('finds a nested favicon when none exists at top level', async () => {
+  it('finds a favicon in an immediate subdirectory when none exists at top level', async () => {
+    const dir = await makeTempDir()
+    await mkdir(path.join(dir, 'docs'), { recursive: true })
+    await writeFile(path.join(dir, 'docs', 'logo.webp'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('docs/logo.webp')
+  })
+
+  it('does not search deeper than one level of subdirectory', async () => {
     const dir = await makeTempDir()
     await mkdir(path.join(dir, 'docs', 'img'), { recursive: true })
     await writeFile(path.join(dir, 'docs', 'img', 'logo.webp'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('docs/img/logo.webp')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('')
   })
 
   it('ignores non-matching names and extensions', async () => {
@@ -56,30 +67,37 @@ describe('detectFavicon', () => {
     await writeFile(path.join(dir, 'favicons.txt'), 'x', 'utf8')
     await writeFile(path.join(dir, 'readme.md'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('')
   })
 
   it('returns blank when no favicon exists', async () => {
     const dir = await makeTempDir()
     await writeFile(path.join(dir, 'index.md'), '# Hi', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('')
   })
 
-  it('prefers the alphabetically-first match at the same depth', async () => {
+  it('prefers svg over png within the same pattern', async () => {
     const dir = await makeTempDir()
-    await writeFile(path.join(dir, 'logo.png'), 'x', 'utf8')
     await writeFile(path.join(dir, 'favicon.png'), 'x', 'utf8')
-    await writeFile(path.join(dir, 'favicon.ico'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'favicon.svg'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('favicon.ico')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('favicon.svg')
+  })
+
+  it('prefers png over ico (.ico treated as last resort within each pattern)', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'favicon.ico'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'favicon.png'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('favicon.png')
   })
 
   it('matches favicon names case-insensitively', async () => {
     const dir = await makeTempDir()
     await writeFile(path.join(dir, 'LOGO.PNG'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('LOGO.PNG')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('LOGO.PNG')
   })
 
   it('skips favicons inside ignored and hidden directories', async () => {
@@ -89,37 +107,100 @@ describe('detectFavicon', () => {
     await writeFile(path.join(dir, 'node_modules', 'favicon.ico'), 'x', 'utf8')
     await writeFile(path.join(dir, '.cache', 'logo.png'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('')
+  })
+
+  it('skips favicons inside an ignored immediate subdirectory', async () => {
+    const dir = await makeTempDir()
+    await mkdir(path.join(dir, 'node_modules'), { recursive: true })
+    await writeFile(path.join(dir, 'node_modules', 'favicon.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('')
   })
 
   it('detects favicon.svg at the top level', async () => {
     const dir = await makeTempDir()
     await writeFile(path.join(dir, 'favicon.svg'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('favicon.svg')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('favicon.svg')
   })
 
   it('detects logo.svg at the top level', async () => {
     const dir = await makeTempDir()
     await writeFile(path.join(dir, 'logo.svg'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('logo.svg')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('logo.svg')
   })
 
-  it('prefers favicon.svg over logo.svg at the same depth (alphabetical)', async () => {
+  it('prefers favicon.svg over logo.svg (pattern 1 beats pattern 4)', async () => {
     const dir = await makeTempDir()
     await writeFile(path.join(dir, 'logo.svg'), 'x', 'utf8')
     await writeFile(path.join(dir, 'favicon.svg'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('favicon.svg')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('favicon.svg')
   })
 
-  it('finds logo.svg in a subdir via BFS at the correct depth', async () => {
+  it('finds logo.svg in an immediate subdir', async () => {
     const dir = await makeTempDir()
-    await mkdir(path.join(dir, 'docs', 'img'), { recursive: true })
-    await writeFile(path.join(dir, 'docs', 'img', 'logo.svg'), 'x', 'utf8')
+    await mkdir(path.join(dir, 'docs'), { recursive: true })
+    await writeFile(path.join(dir, 'docs', 'logo.svg'), 'x', 'utf8')
 
-    await expect(detectFavicon(dir)).resolves.toBe('docs/img/logo.svg')
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('docs/logo.svg')
+  })
+
+  it('detects <cwdName>-logo.svg as the second priority pattern', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'mysite-logo.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('mysite-logo.svg')
+  })
+
+  it('detects <cwdName>.svg as the third priority pattern', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'mysite.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('mysite.svg')
+  })
+
+  it('prefers favicon.svg over <cwdName>-logo.svg (pattern 1 > 2)', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'favicon.svg'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'mysite-logo.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('favicon.svg')
+  })
+
+  it('prefers <cwdName>-logo.svg over <cwdName>.svg (pattern 2 > 3)', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'mysite-logo.svg'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'mysite.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('mysite-logo.svg')
+  })
+
+  it('prefers <cwdName>.svg over logo.svg (pattern 3 > 4)', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'mysite.svg'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'logo.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('mysite.svg')
+  })
+
+  it('pattern priority dominates over depth (favicon in subdir beats logo at top)', async () => {
+    const dir = await makeTempDir()
+    await mkdir(path.join(dir, 'docs'), { recursive: true })
+    await writeFile(path.join(dir, 'docs', 'favicon.svg'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'logo.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir, CWD_NAME)).resolves.toBe('docs/favicon.svg')
+  })
+
+  it('defaults cwdName to basename of process.cwd()', async () => {
+    const dir = await makeTempDir()
+    const expectedName = path.basename(process.cwd())
+    await writeFile(path.join(dir, `${expectedName}.svg`), 'x', 'utf8')
+
+    await expect(detectFavicon(dir)).resolves.toBe(`${expectedName}.svg`)
   })
 })
 

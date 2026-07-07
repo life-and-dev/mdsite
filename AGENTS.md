@@ -6,7 +6,7 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 ## Primary features
 
 - **`mdsite help`**: Show CLI help.
-- **`mdsite init`**: Create `mdsite.yml` from local markdown files, with smart defaults auto-detected from the project: `site.name` (first H1 in `README.md`, then `index.md`), `site.favicon` (first `logo`/`favicon` image), `features.source-edit` (GitHub edit URL from `.git/config` + current branch), `site.canonical` (GitHub Pages URL `https://<owner>.github.io/<repo>` from `.git/config`), and `paths.input` (`docs`/`doc` subdir if present). Also writes a `.nvmrc` pinning Node 24 so Cloudflare, Netlify, and other hosts use the right Node version.
+- **`mdsite init`**: Create `mdsite.yml` from local markdown files, with smart defaults auto-detected from the project: `site.name` (first H1 in `README.md`, then `index.md`), `site.favicon` (favicon scan in priority order: `favicon.*` → `<project-name>-logo.*` → `<project-name>.*` → `logo.*`, with `<ext>` as `svg` > `png` > `webp` > `jpg` > `ico`; top-level + 1 level of subdirs; `<project-name>` = `process.cwd()` basename), `features.source-edit` (GitHub edit URL from `.git/config` + current branch), `site.canonical` (GitHub Pages URL `https://<owner>.github.io/<repo>` from `.git/config`), and `paths.input` (`docs`/`doc` subdir if present). Also writes a `.nvmrc` pinning Node 24 so Cloudflare, Netlify, and other hosts use the right Node version.
 - **`mdsite live`**: Start local renderer in the foreground for current content directory.
 - **`mdsite live -d` / `mdsite live --detached`**: Start tracked background renderer and log to `<paths.build>/live.log`.
 - **`mdsite live --host [addr]`** / **`mdsite static --host [addr]`**: Expose the `start`/`preview` server on the network by binding `0.0.0.0` (or a given addr) via `NUXT_HOST`/`HOST`/`NITRO_HOST`. Combinable with `-d`/`--detached`.
@@ -16,7 +16,6 @@ It drives `mdsite-nuxt` from one `mdsite.yml` in content dir.
 - **`mdsite stop`**: Stop tracked detached `start` and `preview` processes.
 - **`mdsite clean`**: Delete the configured `<paths.build>` (e.g. `.mdsite/`) and `<paths.output>` (e.g. `.output/`). Requires `mdsite.yml`; refuses to run while a tracked start/preview process is alive (run `mdsite stop` first). Reports `Nothing to clean in <dir>.` if neither path exists.
 - **`mdsite prepare github`**: Generate `.github/workflows/deploy.yml` for this content dir.
-
 ## Core flow or states
 
 - `init` runs in current content directory.
