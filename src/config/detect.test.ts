@@ -91,6 +91,36 @@ describe('detectFavicon', () => {
 
     await expect(detectFavicon(dir)).resolves.toBe('')
   })
+
+  it('detects favicon.svg at the top level', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'favicon.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir)).resolves.toBe('favicon.svg')
+  })
+
+  it('detects logo.svg at the top level', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'logo.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir)).resolves.toBe('logo.svg')
+  })
+
+  it('prefers favicon.svg over logo.svg at the same depth (alphabetical)', async () => {
+    const dir = await makeTempDir()
+    await writeFile(path.join(dir, 'logo.svg'), 'x', 'utf8')
+    await writeFile(path.join(dir, 'favicon.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir)).resolves.toBe('favicon.svg')
+  })
+
+  it('finds logo.svg in a subdir via BFS at the correct depth', async () => {
+    const dir = await makeTempDir()
+    await mkdir(path.join(dir, 'docs', 'img'), { recursive: true })
+    await writeFile(path.join(dir, 'docs', 'img', 'logo.svg'), 'x', 'utf8')
+
+    await expect(detectFavicon(dir)).resolves.toBe('docs/img/logo.svg')
+  })
 })
 
 describe('detectInputPath', () => {

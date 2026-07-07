@@ -11,11 +11,11 @@ const ignoredDirectories = new Set([
 ])
 
 const faviconBasenames = ['favicon', 'logo']
-const faviconExtensions = ['webp', 'jpg', 'png', 'ico']
+const faviconExtensions = ['webp', 'jpg', 'png', 'ico', 'svg']
 
 /**
  * Breadth-first scan of `contentDir` (top-level first) for the first file
- * whose basename is `favicon` or `logo` with a `.webp`/`.jpg`/`.png`/`.ico`
+ * whose basename is `favicon` or `logo` with a `.webp`/`.jpg`/`.png`/`.ico`/`.svg`
  * extension. At each directory level, matching files are sorted alphabetically
  * and the first wins (so `favicon.ico` is preferred over `logo.png` at the
  * same depth). Returns the match path relative to `contentDir` with forward
