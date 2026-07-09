@@ -158,12 +158,13 @@ We have prepared a series of tutorials to guide you through every aspect of work
 - [Testing](develop/tests.md) — how to run the CLI and renderer test suites.
 - [Release](develop/release.md) — how to cut and publish a new version of `@life-and-dev/mdsite`.
 
-## Demo Sites
+## Built with mdsite
 
 - [MD Site Documentation](https://life-and-dev.github.io/mdsite)
-- [Our Father God](https://ofgod.info)
-- [Kingdom of God](https://kingom.ofgod.info)
-- [Prophecies of God](https://prophecies.ofgod.info)
-- [Word of God](https://prophecies.ofgod.info)
+- [AutoCode](https://ahumandev.github.io/autocode)
 - [Church of God](https://church.ofgod.info)
+- [Kingdom of God](https://kingom.ofgod.info)
+- [Our Father God](https://ofgod.info)
+- [Prophecies of God](https://prophecies.ofgod.info)
 - [Son of God](https://son.ofgod.info)
+- [Word of God](https://prophecies.ofgod.info)
