@@ -27,6 +27,14 @@ export async function runInitCommand(contentDir: string): Promise<string> {
   const configPath = path.join(contentDir, 'mdsite.yml')
   const created: string[] = []
 
+  // Warn about a legacy _menu.yml/_menu.yaml that silently overrides the new mdsite.yml menu.
+  // The renderer reads _menu.yml first; leaving it in place during migration is a footgun.
+  for (const legacyMenuFile of ['_menu.yml', '_menu.yaml']) {
+    if (await pathExists(path.join(contentDir, legacyMenuFile))) {
+      console.warn(`Warning: found legacy ${legacyMenuFile} which overrides the menu in mdsite.yml. Remove or rename it so your mdsite.yml menu takes effect.`)
+    }
+  }
+
   // 1. mdsite.yml — user config; create from defaults only if missing, NEVER overwrite.
   let config: MdsiteConfig
   if (await pathExists(configPath)) {
