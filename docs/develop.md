@@ -13,6 +13,23 @@ The rest of this page maps the repository, explains how the two parts integrate,
 - [Testing](develop/tests) — how to run the test suite and how it is configured.
 - [Release](develop/release) — how to publish a new version of `@life-and-dev/mdsite`.
 
+---
+
+> [!TIP]
+> MDsite is intentionally a thin CLI on top of Nuxt. If you find yourself adding rendering logic inside `src/`, it probably belongs in the [mdsite-nuxt submodule](develop/nuxt) instead.
+
+## 0. First-time setup
+
+After a fresh clone, run `npm ci` once at the repo root before any `tsc`/typecheck or test task:
+
+```sh
+npm ci
+```
+
+`package.json` lists devDeps such as `@types/node`, but a fresh clone has an empty `node_modules/`. Without `npm ci`, `npx tsc -p tsconfig.scripts.json --noEmit` fails on Node built-in imports like `node:fs` with errors such as `Cannot find name 'node:fs'` or `Cannot find module 'node:fs'`. Re-run `npm ci` whenever the lockfile or `package.json` devDeps change.
+
+> The CLI orchestrates `npm ci` for the renderer (`mdsite-nuxt/`) on its own; the step above is only for the CLI's own root-level devDeps used by typecheck and tests.
+
 ## 1. Repository layout
 
 ```sh
@@ -48,10 +65,6 @@ The published npm package contains only `bin/`, `dist/`, `mdsite-nuxt/`, and `RE
 
 The submodule lives in its own repository at [life-and-dev/mdsite-nuxt](https://github.com/life-and-dev/mdsite-nuxt) and is pinned to a specific commit by the parent repo. The CLI never clones or pulls it at runtime — it expects the submodule to already be checked out in the working tree (or vendored into the published package).
 
-### Working with the submodule
-
-After a fresh clone of this repo, initialise the submodule:
-
 ```bash
 git clone --recurse-submodules https://github.com/life-and-dev/mdsite.git
 # or, if already cloned:
@@ -73,6 +86,10 @@ The parent repo records the submodule by commit SHA, so this bump is a normal co
 
 See [Renderer (mdsite-nuxt submodule)](develop/nuxt) for how to customize the renderer or extend it with custom Nuxt components.
 
+### Working with the submodule
+
+After a fresh clone of this repo, initialise the submodule:
+
 ## 3. CLI architecture
 
 The CLI is a thin orchestrator. It does not contain any rendering logic — all rendering happens inside `mdsite-nuxt`. The CLI's job is to:
@@ -81,6 +98,8 @@ The CLI is a thin orchestrator. It does not contain any rendering logic — all 
 2. Resolve which renderer directory to use.
 3. Write compatibility artifacts into that renderer directory.
 4. Spawn the renderer's npm scripts (`dev`, `generate`, `preview`) with the right environment.
+
+Each module ships next to a `*.test.ts` file (for example `src/index.test.ts`, `src/commands/prepare.test.ts`). See [Testing](develop/tests) for the full picture.
 
 ### Module breakdown
 
@@ -91,8 +110,6 @@ The CLI is a thin orchestrator. It does not contain any rendering logic — all 
 | `src/config/`   | Defines the `MdsiteConfig` schema, default values produced by `init`, and the `menu` and `footer` parsers for `mdsite.yml`'s `menu:` and `footer:` sections.          |
 | `src/process/`  | `child-process.ts` wraps foreground and background spawning. `runtime-state.ts` writes tracked-detached runtime state (PIDs/logs) into the renderer working dir (`<paths.build>`).                                 |
 | `src/renderer/` | `mdsite-nuxt.ts` is the bridge: it resolves the renderer directory, installs its dependencies if missing, writes `.env` and `content.config.yml`, and invokes the right npm script. |
-
-Each module ships next to a `*.test.ts` file (for example `src/index.test.ts`, `src/commands/prepare.test.ts`). See [Testing](develop/tests) for the full picture.
 
 ## 4. How the CLI and Nuxt integrate
 
@@ -107,6 +124,16 @@ graph TB
     E --> F[Run npm script: dev / generate / preview]
     F --> G[Browser or .output/public]
 ```
+
+| CLI command       | Renderer script | Foreground | Background |
+| ----------------- | --------------- | ---------- | ---------- |
+| `mdsite live`    | `dev`           | yes        | with `-d`  |
+| `mdsite generate` | `generate`      | yes        | —          |
+| `mdsite static`  | `preview`       | yes        | with `-d`  |
+
+Background runs are tracked via state files in the renderer working dir (`<paths.build>`, e.g. `.mdsite/`) so `mdsite stop` can find and terminate them.
+
+When the configured port is occupied, Nuxt falls back to the next free one. The CLI detects the actual port by tailing `live.log`/`static.log` for the `Local:` (dev) or `Listening on` (Nitro preview) URL line, then waits for and opens that port instead of the configured one. If the log line never appears before the readiness timeout, the CLI falls back to the configured port.
 
 ### Step 1: Read config
 
@@ -139,16 +166,6 @@ If the renderer directory has no `node_modules`, the CLI runs `npm ci` (when a l
 
 Finally, the CLI spawns `npm run <script>` inside the renderer directory, where `<script>` is one of:
 
-| CLI command       | Renderer script | Foreground | Background |
-| ----------------- | --------------- | ---------- | ---------- |
-| `mdsite live`    | `dev`           | yes        | with `-d`  |
-| `mdsite generate` | `generate`      | yes        | —          |
-| `mdsite static`  | `preview`       | yes        | with `-d`  |
-
-Background runs are tracked via state files in the renderer working dir (`<paths.build>`, e.g. `.mdsite/`) so `mdsite stop` can find and terminate them.
-
-When the configured port is occupied, Nuxt falls back to the next free one. The CLI detects the actual port by tailing `live.log`/`static.log` for the `Local:` (dev) or `Listening on` (Nitro preview) URL line, then waits for and opens that port instead of the configured one. If the log line never appears before the readiness timeout, the CLI falls back to the configured port.
-
 ## 5. Configuration model
 
 `mdsite.yml` is the only configuration file end users edit. The full schema is documented in the user-facing docs. From a developer perspective, the interesting pieces are:
@@ -176,15 +193,15 @@ In dev mode (when the CLI is run from this repo), the renderer IS the checked-in
 
 Most of these are gitignored. `.mdsite/` is fully gitignored and the renderer source is materialized here from the bundled `mdsite-nuxt/` on every CLI run; nothing under `.<paths.build>/` or `.<paths.output>/` should be committed. `mdsite clean` is the user-facing way to delete `.<paths.build>/` (which includes its `.output/` and runtime state files) and `.<paths.output>/` (default `.mdsite/` and `.output/`). It refuses to run while a tracked start/preview process is alive, so the usual pre-cleanup is `mdsite stop` (or the foreground `Ctrl+C`).
 
-### Generated CI workflow (`mdsite prepare github`)
-
-`mdsite prepare github` writes `.github/workflows/deploy.yml`. The generated workflow is **deliberately cache-free**:
-
 - No `actions/setup-node` `cache: npm` and no `actions/cache@v5` step.
 - Every CI run does a clean `npm install` via `mdsite generate`'s built-in `ensureRendererDependencies` step.
 - `mdsite generate` materializes the renderer from the bundled `mdsite-nuxt/` (creating `.mdsite/package-lock.json` from the CLI's own lockfile), then runs `npm ci` against it.
 
 **Why no cache:** The `mdsite` CLI bundles the renderer, so the dependency tree is determined by the CLI release, not by anything the user commits. A cache keyed on a non-existent user-controlled lockfile would either fail (Setup Node throws when the file is missing) or be shared across unrelated repos on the same CLI version (serving stale dependencies after a CLI upgrade). The CLI does not optimize CI install performance — that's the user's CI tuning concern. The default workflow is simple, correct, and version-agnostic.
+
+### Generated CI workflow (`mdsite prepare github`)
+
+`mdsite prepare github` writes `.github/workflows/deploy.yml`. The generated workflow is **deliberately cache-free**:
 
 ## 7. Technology stack
 
@@ -192,8 +209,3 @@ Most of these are gitignored. `.mdsite/` is fully gitignored and the renderer so
 - **Renderer**: Nuxt 4 (Vue 3), Vuetify (Material Design), `@nuxt/content`, Vite.
 - **Tests**: Vitest for the CLI; the renderer has its own Vitest and Playwright configs.
 - **Build**: `tsc` for the CLI; Nuxt/Vite for the renderer.
-
----
-
-> [!TIP]
-> MDsite is intentionally a thin CLI on top of Nuxt. If you find yourself adding rendering logic inside `src/`, it probably belongs in the [mdsite-nuxt submodule](develop/nuxt) instead.
