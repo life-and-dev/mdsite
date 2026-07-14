@@ -1,3 +1,6 @@
+import { stat } from 'node:fs/promises'
+import path from 'node:path'
+
 import { loadMdsiteConfig } from '../config/mdsite-config.js'
 import { openUrlInBrowser, waitForRendererPort, waitForTcpPort } from '../process/child-process.js'
 import { getRuntimeLogPath, isProcessRunning, readRuntimeState, writeRuntimeState } from '../process/runtime-state.js'
@@ -10,13 +13,37 @@ interface PreviewCommandOptions {
   host?: string
 }
 
-async function ensureGeneratedOutput(contentDir: string, rendererOutputDir: string): Promise<void> {
+async function ensureGeneratedOutput(contentDir: string, rendererOutputDir: string, configPath: string): Promise<void> {
   if (await hasPreviewArtifacts(rendererOutputDir)) {
-    return
+    if (!(await isOutputStale(configPath, rendererOutputDir))) {
+      return
+    }
+    console.log('Output is stale (mdsite.yml changed), regenerating...')
+  } else {
+    console.log('No generated output found. Running `mdsite generate` automatically...')
   }
 
-  console.log('No generated output found. Running `mdsite generate` automatically...')
   console.log(await runGenerateCommand(contentDir))
+}
+
+async function isOutputStale(configPath: string, rendererOutputDir: string): Promise<boolean> {
+  const navigationPath = path.join(rendererOutputDir, 'public', '_navigation.json')
+
+  let configMtime: Date
+  try {
+    configMtime = (await stat(configPath)).mtime
+  } catch {
+    return false
+  }
+
+  let navigationMtime: Date
+  try {
+    navigationMtime = (await stat(navigationPath)).mtime
+  } catch {
+    return true
+  }
+
+  return configMtime > navigationMtime
 }
 
 export async function runPreviewCommand(contentDir: string, options: PreviewCommandOptions = {}): Promise<string | undefined> {
@@ -29,7 +56,7 @@ export async function runPreviewCommand(contentDir: string, options: PreviewComm
   const { rendererDir, rendererEnv, rendererOutputDir } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
-  await ensureGeneratedOutput(contentDir, rendererOutputDir)
+  await ensureGeneratedOutput(contentDir, rendererOutputDir, loaded.configPath)
   await ensurePreviewArtifacts(rendererOutputDir)
   await previewRendererForeground(rendererDir, getPreviewEnv(rendererEnv, options.host))
 
@@ -48,7 +75,7 @@ async function runDetachedPreviewCommand(contentDir: string, options: PreviewCom
   const { rendererDir, rendererEnv, rendererOutputDir } = await prepareRenderer(loaded.contentDir, loaded.config, loaded)
 
   await ensureRendererDependencies(rendererDir)
-  await ensureGeneratedOutput(loaded.configDir, rendererOutputDir)
+  await ensureGeneratedOutput(loaded.configDir, rendererOutputDir, loaded.configPath)
   await ensurePreviewArtifacts(rendererOutputDir)
 
   const previewEnv = getPreviewEnv(rendererEnv, options.host)
