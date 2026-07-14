@@ -2,7 +2,7 @@
 
 This page explains how to cut a new release of `@life-and-dev/mdsite`. For the contributor overview, start at [Developing mdsite](../develop.md).
 
-Releases are **tag-driven**: a local script bumps the version, builds, verifies, commits, and tags. Pushing the tag triggers a GitHub Actions workflow that publishes to npm with provenance and creates the GitHub Release. You never run `npm publish` manually.
+Releases are **tag-driven**: a local script bumps the version, builds, verifies, commits, tags, and pushes. Pushing the tag triggers a GitHub Actions workflow that publishes to npm with provenance and creates the GitHub Release.
 
 ## 1. Prerequisites
 
@@ -33,8 +33,9 @@ npm run release:version -- 1.2.3    # exact version
 4. **Verifies the package layout** (`npm run verify:package`). This catches missing files, wrong bin path, wrong package name, and missing `files` entries before publish.
 5. **Commits** as `chore: release v<version>`.
 6. **Tags** the commit as `v<version>` (annotated).
+7. **Pushes** the local commit and the `v<version>` tag to `origin/main` via `git push --follow-tags origin HEAD:main` (using `spawnSync`).
 
-The script prints the next manual commands and exits. It does **not** push anything.
+The push is non-interactive and runs from inside the script. It fails loudly if `origin` cannot be reached, authentication fails, or the push is rejected — in that case no commit or tag is left on the remote and the script exits non-zero.
 
 ### What gets published
 
@@ -55,37 +56,26 @@ The published package contains only the paths listed in `package.json`'s `files`
 
 `package.json` defines:
 
-```json
-"prepublishOnly": "npm test && npm run typecheck && npm run build && npm run verify:package"
-```
-
-Even if you bypass the release script, `npm publish` locally would still run the full verification pipeline first. In CI, the publish workflow runs `npm ci` and `npm publish --provenance --access public` directly — `prepublishOnly` is what enforces quality at publish time.
-
 ## 3. Review the local commit and tag
 
-Before pushing, inspect what the script created:
+After the script completes (and before CI picks up the tag), inspect what was created:
 
 ```bash
 git log -1 --stat                    # the chore: release v<version> commit
 git show v<version>                  # the annotated tag
 git tag --list 'v*' | tail           # recent tags
+git ls-remote origin 'refs/tags/v*'  # confirm the tag reached origin
 ```
 
-If anything looks wrong, reset and re-run:
+If anything looks wrong, the script has already pushed the commit and the `v<version>` tag to `origin`, so recovery involves the local branch and the remote tag — see section 6 for the full cleanup path.
+
+## What the script pushed
+
+The `release:version` script's final step pushes the local commit and the `v<version>` tag to `origin/main` using `git push --follow-tags origin HEAD:main`. There is nothing to push manually.
 
 ```bash
-git tag -d v<version>
-git reset --hard HEAD~1
-# fix the issue, then re-run npm run release:version -- <bump>
-```
-
-## 4. Push and let CI publish
-
-When the local commit and tag look correct:
-
-```bash
-git push origin main
-git push origin v<version>
+git ls-remote origin 'refs/tags/v*'  # confirm the tag reached origin
+git log --oneline -1 origin/main     # confirm origin/main points at the chore: release commit
 ```
 
 > [!WARNING]
@@ -112,12 +102,12 @@ Once configured, no secrets are needed — GitHub Actions obtains a short-lived 
 
 ## 6. What if the publish workflow fails?
 
-If CI fails after you pushed the tag:
+If CI fails after the script pushed the tag:
 
 1. **Do not re-tag the same version.** A failed publish does not consume the version on npm if the workflow errored before `npm publish`.
 2. Read the failed step's logs. Common causes:
    - Trusted Publisher not configured → fix on npmjs.com and re-run the workflow from the Actions UI (`workflow_dispatch`).
-   - `verify:package` failed → a required file is missing from the tag. Fix the issue, delete the tag locally and remotely, then cut a new release with a corrected version.
+   - `verify:package` failed → a required file is missing from the tag. The script has already pushed the local commit and the `v<version>` tag to `origin`, so cleanup touches both sides: delete the remote tag, reset the local `main` branch back past the `chore: release` commit, fix the issue, then re-run `npm run release:version -- <bump>`.
 3. To re-run without cutting a new version, use the workflow's `workflow_dispatch` input and pass the existing tag name.
 
 ## 7. Release checklist
@@ -127,9 +117,6 @@ A quick summary you can paste into a PR description:
 - [ ] All tests pass (`npm test`).
 - [ ] `mdsite-nuxt` submodule is at the desired commit.
 - [ ] `npm run release:version -- <bump>` succeeded locally.
-- [ ] Local `chore: release v<version>` commit and `v<version>` tag look correct.
-- [ ] `git push origin main` succeeded.
-- [ ] `git push origin v<version>` succeeded.
 - [ ] GitHub Actions `npm publish` workflow went green.
 - [ ] New version is visible on [npmjs.com](https://www.npmjs.com/package/@life-and-dev/mdsite).
 
@@ -137,3 +124,4 @@ A quick summary you can paste into a PR description:
 
 > [!TIP]
 > Releases are immutable on npm. Once a version is published it cannot be overwritten — only deprecated or bumped. That is why the release script verifies everything locally before tagging, and why CI re-verifies before publishing.
+
