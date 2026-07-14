@@ -48,10 +48,7 @@ runCommand("npm", ["run", "verify:package"]);
 const version = readPackageVersion();
 
 runCommand("git", ["add", "package.json", "package-lock.json"]);
-runCommand("git", ["commit", "-m", `chore: release v${version}`]);
+runCommand("git", ["commit", "-m", `chore(release): v${version}`]);
 runCommand("git", ["tag", "-a", `v${version}`, `-m`, `@life-and-dev/mdsite v${version}`]);
 
-console.log("\nNext manual commands:");
-console.log("  git push origin main");
-console.log(`  git push origin v${version}`);
-console.log("\nWarning: pushing the tag triggers npm publish.");
+console.log(`\nRelease v${version} prepared. Pushing branch and tag to origin...`);
