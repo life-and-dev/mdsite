@@ -28,7 +28,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "install-alias": "node scripts/mdsite-dev-alias.ts install",
-    "release:version": "node scripts/release-version.ts && git push --follow-tags origin HEAD:main",
+    "release:version": "node scripts/release-version.ts",
     "uninstall-alias": "node scripts/mdsite-dev-alias.ts uninstall",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.scripts.json",
     "test": "vitest run",

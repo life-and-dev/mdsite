@@ -52,3 +52,4 @@ runCommand("git", ["commit", "-m", `chore(release): v${version}`]);
 runCommand("git", ["tag", "-a", `v${version}`, `-m`, `@life-and-dev/mdsite v${version}`]);
 
 console.log(`\nRelease v${version} prepared. Pushing branch and tag to origin...`);
+runCommand("git", ["push", "--follow-tags", "origin", "HEAD:main"]);
