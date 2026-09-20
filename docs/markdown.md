@@ -118,20 +118,40 @@ You can create diagrams using [Mermaid syntax](https://mermaid.js.org/ecosystem/
 
 ````md
 ```mermaid
-graph TD;
-    A[Start] --> B{Is it working?};
-    B -- Yes --> C[Great!];
-    B -- No --> D[Check logs];
+flowchart LR
+    subgraph authoring[Authoring]
+        A[Write Markdown] --> B[Preview locally]
+        B --> C{Ready to publish?}
+        C -- No --> A
+    end
+
+    subgraph publishing[Publishing]
+        D[Generate site] --> E[Deploy]
+        E --> F[Readers view docs]
+    end
+
+    C -- Yes --> D
+    F -. Feedback .-> A
 ```
 ````
 
 Will be rendered as:
 
 ```mermaid
-graph TD;
-    A[Start] --> B{Is it working?};
-    B -- Yes --> C[Great!];
-    B -- No --> D[Check logs];
+flowchart LR
+    subgraph authoring[Authoring]
+        A[Write Markdown] --> B[Preview locally]
+        B --> C{Ready to publish?}
+        C -- No --> A
+    end
+
+    subgraph publishing[Publishing]
+        D[Generate site] --> E[Deploy]
+        E --> F[Readers view docs]
+    end
+
+    C -- Yes --> D
+    F -. Feedback .-> A
 ```
 
 This will be rendered as a beautiful interactive diagram.
