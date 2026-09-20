@@ -81,6 +81,7 @@ export function createDefaultMdsiteConfig(
     },
     menu,
     paths: {
+      ignore: [],
       input: overrides.inputPath ?? '',
       build: '.mdsite',
       output: '.output'

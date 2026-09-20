@@ -16,6 +16,7 @@ describe('createDefaultMdsiteConfig', () => {
       },
       menu,
       paths: {
+        ignore: [],
         input: '',
         build: '.mdsite',
         output: '.output'

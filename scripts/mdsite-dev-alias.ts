@@ -12,12 +12,57 @@ const blockPattern = new RegExp(`${escapeRegExp(beginMarker)}\n[\\s\\S]*?\n${esc
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, "..");
-const entrypoint = path.join(projectRoot, "dist", "index.js");
-const managedBlock = `${beginMarker}\nalias ${aliasName}="node ${entrypoint}"\n${endMarker}\n`;
+const managedBlock = `${beginMarker}
+${aliasName}() {
+  local mdsite_root=${shellQuote(projectRoot)}
+  local nvmrc="$mdsite_root/.nvmrc"
+  local nvm_script=""
+  local node_version
+  local resolved_version
+
+  if ! IFS= read -r node_version < "$nvmrc" || [ -z "$node_version" ]; then
+    echo "mdsite-dev: Cannot read pinned Node version from $nvmrc." >&2
+    return 1
+  fi
+
+  if ! command -v nvm >/dev/null 2>&1; then
+    if [ -n "\${NVM_DIR:-}" ] && [ -s "$NVM_DIR/nvm.sh" ]; then
+      nvm_script="$NVM_DIR/nvm.sh"
+    elif [ -s "$HOME/.nvm/nvm.sh" ]; then
+      nvm_script="$HOME/.nvm/nvm.sh"
+    elif [ -s "\${XDG_CONFIG_HOME:-$HOME/.config}/nvm/nvm.sh" ]; then
+      nvm_script="\${XDG_CONFIG_HOME:-$HOME/.config}/nvm/nvm.sh"
+    else
+      echo 'mdsite-dev: NVM is required. Install NVM or load nvm.sh, then retry.' >&2
+      return 1
+    fi
+
+    . "$nvm_script"
+  fi
+
+  if ! command -v nvm >/dev/null 2>&1; then
+    echo "mdsite-dev: NVM setup $nvm_script did not define nvm." >&2
+    return 1
+  fi
+
+  resolved_version="$(nvm version "$node_version" 2>/dev/null)"
+  if [ -z "$resolved_version" ] || [ "$resolved_version" = "N/A" ]; then
+    echo "mdsite-dev: Node $node_version is not installed. Run \\"nvm install $node_version\\"." >&2
+    return 1
+  fi
+
+  nvm exec --silent "$node_version" node "$mdsite_root/dist/index.js" "$@"
+}
+${endMarker}
+`;
 const rcFiles: string[] = [path.join(os.homedir(), ".bashrc"), path.join(os.homedir(), ".zshrc")];
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'"'"'`)}'`;
 }
 
 function readIfExists(filePath: string): string | undefined {

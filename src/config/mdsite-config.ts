@@ -63,6 +63,7 @@ export interface MdsiteConfig {
   }
   menu: MenuItem[]
   paths: {
+    ignore: string | string[]
     input: string
     build: string
     output: string
@@ -164,6 +165,9 @@ async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir:
     },
     menu: Array.isArray(rawConfig.menu) ? rawConfig.menu : fallbackConfig.menu,
     paths: {
+      ignore: typeof rawConfig.paths?.ignore === 'string' || Array.isArray(rawConfig.paths?.ignore)
+        ? rawConfig.paths.ignore
+        : fallbackConfig.paths.ignore,
       input: inputPath ?? fallbackConfig.paths.input,
       build: typeof rawConfig.paths?.build === 'string' ? rawConfig.paths.build : fallbackConfig.paths.build,
       output: typeof rawConfig.paths?.output === 'string' ? rawConfig.paths.output : fallbackConfig.paths.output

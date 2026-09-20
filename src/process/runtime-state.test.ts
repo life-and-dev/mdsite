@@ -18,7 +18,7 @@ import {
 const config: MdsiteConfig = {
   features: { bibleTooltips: true, sourceEdit: '', footer: [] },
   menu: [],
-  paths: { input: '', build: '.renderer', output: '.output' },
+  paths: { ignore: [], input: '', build: '.renderer', output: '.output' },
   site: { canonical: '', favicon: '', name: 'Docs' },
   themes: { light: { colors: {} }, dark: { colors: {} } }
 }

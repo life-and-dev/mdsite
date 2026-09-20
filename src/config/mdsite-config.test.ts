@@ -155,6 +155,7 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.menu).toEqual(['custom/page'])
     expect(loaded.config.features.footer).toEqual([])
     expect(loaded.config.paths).toEqual({
+      ignore: [],
       input: '',
       build: '.renderer',
       output: 'dist/public'
@@ -255,13 +256,29 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.paths.input).toBe('content')
   })
 
+  it.each([
+    ['string', 'drafts/**', '  ignore: drafts/**'],
+    ['string array', ['drafts/**', 'private/**'], '  ignore:\n    - drafts/**\n    - private/**']
+  ])('loadMdsiteConfig preserves paths.ignore configured as a %s', async (_label, expected, ignoreYaml) => {
+    const configDir = await makeTempDir()
+    await writeFile(path.join(configDir, 'mdsite.yml'), [
+      'paths:',
+      ignoreYaml,
+      ''
+    ].join('\n'), 'utf8')
+
+    const loaded = await loadMdsiteConfig(configDir)
+
+    expect(loaded.config.paths.ignore).toEqual(expected)
+  })
+
   it('resolveContentOutputPath resolves the configured output relative to the content directory', () => {
     const contentDir = '/tmp/example'
 
     expect(resolveContentOutputPath(contentDir, {
       features: { bibleTooltips: true, sourceEdit: '', footer: [] },
       menu: [],
-      paths: { input: '', build: '.mdsite', output: 'public/site' },
+      paths: { ignore: [], input: '', build: '.mdsite', output: 'public/site' },
       site: { canonical: '', favicon: '', name: 'Docs' },
       themes: { light: { colors: {} }, dark: { colors: {} } }
     })).toBe(path.resolve(contentDir, 'public', 'site', 'public'))

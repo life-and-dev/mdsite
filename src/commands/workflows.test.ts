@@ -75,6 +75,7 @@ async function writeConfig(contentDir: string, overrides: DeepPartial<MdsiteConf
     },
     menu: overrides.menu ?? [],
     paths: {
+      ignore: overrides.paths?.ignore ?? [],
       input: overrides.paths?.input ?? '',
       build: overrides.paths?.build ?? '.renderer',
       output: overrides.paths?.output ?? '.output'

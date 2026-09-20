@@ -45,7 +45,7 @@ const runBackgroundMock = vi.mocked(runBackground)
 const baseConfig = {
   features: { bibleTooltips: true, sourceEdit: '', footer: [] },
   menu: [],
-  paths: { input: '', build: '.renderer', output: '.output' },
+  paths: { ignore: [], input: '', build: '.renderer', output: '.output' },
   site: { canonical: '', favicon: '', name: 'Docs' },
   themes: {
     light: { colors: { primary: '#111111' } },
