@@ -21,7 +21,7 @@ export async function runStopCommand(contentDir: string): Promise<string> {
       continue
     }
 
-    const stopped = await stopProcess(state.pid)
+    const stopped = await stopProcess(state.pid, state.processGroupId)
     await clearRuntimeState(configDir, config, state.kind)
 
     if (stopped) {

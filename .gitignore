@@ -27,6 +27,7 @@ logs
 
 # IDE's
 /.vscode/*
+*.code-workspace
 
 # Autocode
 .opencode/autocode/

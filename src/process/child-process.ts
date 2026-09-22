@@ -131,13 +131,13 @@ export async function waitForRendererPort(
   return fallbackPort
 }
 
-export async function stopProcess(pid: number): Promise<boolean> {
+export async function stopProcess(pid: number, processGroupId: number = pid): Promise<boolean> {
   if (!isRunning(pid)) {
     return false
   }
 
   try {
-    sendSignal(pid, 'SIGTERM')
+    sendSignal(pid, processGroupId, 'SIGTERM')
   } catch {
     return false
   }
@@ -150,7 +150,7 @@ export async function stopProcess(pid: number): Promise<boolean> {
   }
 
   try {
-    sendSignal(pid, 'SIGKILL')
+    sendSignal(pid, processGroupId, 'SIGKILL')
   } catch {
     return false
   }
@@ -184,13 +184,13 @@ async function canConnectToTcpPort(host: string, port: number, timeoutMs: number
   })
 }
 
-function sendSignal(pid: number, signal: NodeJS.Signals): void {
+function sendSignal(pid: number, processGroupId: number, signal: NodeJS.Signals): void {
   if (process.platform === 'win32') {
     process.kill(pid, signal)
     return
   }
 
-  process.kill(-pid, signal)
+  process.kill(-processGroupId, signal)
 }
 
 function getBrowserOpenCommand(url: string): { command: string, args: string[] } | null {

@@ -155,7 +155,7 @@ describe('mdsite config helpers', () => {
     expect(loaded.config.menu).toEqual(['custom/page'])
     expect(loaded.config.features.footer).toEqual([])
     expect(loaded.config.paths).toEqual({
-      ignore: [],
+      ignore: ['AGENTS.md', 'CLAUDE.md'],
       input: '',
       build: '.renderer',
       output: 'dist/public'
@@ -258,7 +258,8 @@ describe('mdsite config helpers', () => {
 
   it.each([
     ['string', 'drafts/**', '  ignore: drafts/**'],
-    ['string array', ['drafts/**', 'private/**'], '  ignore:\n    - drafts/**\n    - private/**']
+    ['string array', ['drafts/**', 'private/**'], '  ignore:\n    - drafts/**\n    - private/**'],
+    ['empty array', [], '  ignore: []']
   ])('loadMdsiteConfig preserves paths.ignore configured as a %s', async (_label, expected, ignoreYaml) => {
     const configDir = await makeTempDir()
     await writeFile(path.join(configDir, 'mdsite.yml'), [
@@ -270,6 +271,18 @@ describe('mdsite config helpers', () => {
     const loaded = await loadMdsiteConfig(configDir)
 
     expect(loaded.config.paths.ignore).toEqual(expected)
+  })
+
+  it.each([
+    ['negation', '  ignore: "!README.md"', 'Invalid paths.ignore pattern'],
+    ['non-string scalar', '  ignore: 42', 'paths.ignore must be a string or an array of strings'],
+    ['mixed array', '  ignore: [guide.md, 42]', 'paths.ignore must be a string or an array of strings'],
+    ['blank pattern', '  ignore: "   "', 'Invalid paths.ignore pattern']
+  ])('loadMdsiteConfig rejects %s', async (_label, ignoreYaml, expectedMessage) => {
+    const configDir = await makeTempDir()
+    await writeFile(path.join(configDir, 'mdsite.yml'), ['paths:', ignoreYaml, ''].join('\n'), 'utf8')
+
+    await expect(loadMdsiteConfig(configDir)).rejects.toThrow(expectedMessage)
   })
 
   it('resolveContentOutputPath resolves the configured output relative to the content directory', () => {

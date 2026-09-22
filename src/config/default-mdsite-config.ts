@@ -81,7 +81,7 @@ export function createDefaultMdsiteConfig(
     },
     menu,
     paths: {
-      ignore: [],
+      ignore: ['AGENTS.md', 'CLAUDE.md'],
       input: overrides.inputPath ?? '',
       build: '.mdsite',
       output: '.output'

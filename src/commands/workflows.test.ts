@@ -324,6 +324,7 @@ describe('CLI workflow coverage', () => {
     )
     expect(openUrlInBrowserMock).toHaveBeenCalledWith('http://localhost:3000')
     await expect(runStopCommand(contentDir)).resolves.toBe('Stopped preview process 2468.')
+    expect(stopProcessMock).toHaveBeenCalledWith(2468, 2468)
     await expect(readRuntimeState(contentDir, config, 'preview')).resolves.toBeNull()
   })
 

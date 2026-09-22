@@ -697,8 +697,8 @@ describe('command helpers', () => {
     await expect(runStopCommand('/content')).resolves.toBe('Nothing is running.')
 
     readRuntimeStateMock
-      .mockResolvedValueOnce({ kind: 'start', pid: 11 } as never)
-      .mockResolvedValueOnce({ kind: 'preview', pid: 22 } as never)
+      .mockResolvedValueOnce({ kind: 'start', pid: 11, processGroupId: 11 } as never)
+      .mockResolvedValueOnce({ kind: 'preview', pid: 22, processGroupId: 22 } as never)
     stopProcessMock.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
 
     await expect(runStopCommand('/content')).resolves.toBe(
@@ -706,6 +706,18 @@ describe('command helpers', () => {
     )
     expect(clearRuntimeStateMock).toHaveBeenNthCalledWith(1, '/content', loadedConfig.config, 'start')
     expect(clearRuntimeStateMock).toHaveBeenNthCalledWith(2, '/content', loadedConfig.config, 'preview')
+    expect(stopProcessMock).toHaveBeenNthCalledWith(1, 11, 11)
+    expect(stopProcessMock).toHaveBeenNthCalledWith(2, 22, 22)
+  })
+
+  it('runStopCommand does not stop or clear processes when any runtime state is invalid', async () => {
+    readRuntimeStateMock
+      .mockRejectedValueOnce(new Error('Runtime state file /content/.renderer/live.json is malformed.'))
+      .mockResolvedValueOnce({ kind: 'preview', pid: 22 } as never)
+
+    await expect(runStopCommand('/content')).rejects.toThrow('/content/.renderer/live.json')
+    expect(stopProcessMock).not.toHaveBeenCalled()
+    expect(clearRuntimeStateMock).not.toHaveBeenCalled()
   })
 
   it('runCleanCommand removes both configured working dirs and reports both removals', async () => {

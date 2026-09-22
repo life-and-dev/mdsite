@@ -16,7 +16,7 @@ describe('createDefaultMdsiteConfig', () => {
       },
       menu,
       paths: {
-        ignore: [],
+        ignore: ['AGENTS.md', 'CLAUDE.md'],
         input: '',
         build: '.mdsite',
         output: '.output'

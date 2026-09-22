@@ -1,10 +1,9 @@
-
 # Content Directory
 
-This is a reference for the `paths.input` field in `mdsite.yml`. It controls where MD-Site looks for your Markdown files.
+This is a reference for the `paths.input` and `paths.ignore` fields in `mdsite.yml`. They control where MD-Site finds Markdown files and which files it publishes.
 
 > [!IMPORTANT]
-> Edit the `paths.input` field in `mdsite.yml` when your Markdown files live in a subdirectory rather than next to `mdsite.yml`. The renderer reads it directly from `mdsite.yml`.
+> Edit `paths.input` when Markdown files live in a subdirectory rather than next to `mdsite.yml`. Use `paths.ignore` to exclude Markdown from publication and content-derived features. The renderer reads both fields directly from `mdsite.yml`.
 
 ## 1. Default Behavior
 
@@ -17,6 +16,7 @@ my-site/
 ├── guide.md
 └── about.md
 ```
+
 ## 2. Pointing at a Subdirectory
 
 When you want to keep `mdsite.yml` (and files like `.nvmrc`, `.gitignore`, your favicon source) at the project root but organize all Markdown in a dedicated folder, set `paths.input` to that folder. The path is resolved relative to the directory containing `mdsite.yml`.
@@ -65,3 +65,57 @@ Keeping these concerns separate keeps your repository tidy when it also holds no
 
 > [!TIP]
 > **Output**: With the correct `paths.input` value, every Markdown file in that directory becomes a page, and `index.md` becomes the homepage.
+
+## 5. Ignoring Markdown files
+
+Set `paths.ignore` to one rule or a list of rules:
+
+```yaml
+paths:
+  ignore:
+    - internal/
+    - "guides/*.private.md"
+    - "**/notes.md"
+```
+
+### Defaults and replacement
+
+The default is `['AGENTS.md', 'CLAUDE.md']`. When `paths.ignore` is omitted, both bare names are ignored at any directory depth.
+
+A scalar or array replaces the defaults; it does not extend them:
+
+```yaml
+paths:
+  ignore: INTERNAL.md
+```
+
+Use an empty array to disable the default rules:
+
+```yaml
+paths:
+  ignore: []
+```
+
+`README.md` remains published.
+
+### Rule syntax
+
+| Rule | Example | Match |
+| --- | --- | --- |
+| Bare name | `notes.md` | That name at any depth |
+| Relative path | `guides/internal.md` | That path within the content directory |
+| Directory | `archive/` | Markdown under that directory |
+| `*` wildcard | `guides/*.private.md` | Matching files at that path level |
+| `**` wildcard | `**/notes.md` | Matching files across directory levels |
+
+Negation with `!` is not supported. Negated or malformed entries are rejected rather than ignored silently.
+
+### Scope and built-ins
+
+Configured rules exclude matches from:
+
+- published content;
+- generated navigation, search, and metadata;
+- direct Markdown reads configured in menus and footers.
+
+Built-in exclusions for hidden directories, `node_modules`, `dist`, and `*.draft.md` remain separate. `paths.ignore: []` does not disable them, and they cannot be disabled through `paths.ignore`.

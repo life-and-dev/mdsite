@@ -106,7 +106,43 @@ export interface LoadedMdsiteConfig {
   contentDir: string
 }
 
+interface RawMdsiteConfig {
+  features?: Record<string, unknown> & { footer?: unknown }
+  menu?: unknown
+  paths?: { ignore?: unknown, input?: unknown, build?: unknown, output?: unknown }
+  site?: { canonical?: unknown, favicon?: unknown, name?: unknown }
+  themes?: {
+    light?: { colors?: Record<string, string> }
+    dark?: { colors?: Record<string, string> }
+  }
+}
+
 const configFileName = 'mdsite.yml'
+
+function normalizeIgnoreConfig(value: unknown, fallback: string | string[]): string | string[] {
+  if (value === undefined) return fallback
+  if (typeof value === 'string') return validateIgnorePattern(value)
+  if (!Array.isArray(value) || !value.every((item): item is string => typeof item === 'string')) {
+    throw new Error('paths.ignore must be a string or an array of strings.')
+  }
+  return value.map(validateIgnorePattern)
+}
+
+function validateIgnorePattern(pattern: string): string {
+  const normalized = pattern.trim()
+  if (
+    !normalized
+    || normalized.startsWith('!')
+    || normalized.includes('\0')
+    || normalized.includes('\\')
+    || normalized === '..'
+    || normalized.startsWith('../')
+    || normalized.includes('/../')
+  ) {
+    throw new Error(`Invalid paths.ignore pattern: ${JSON.stringify(pattern)}.`)
+  }
+  return normalized
+}
 
 export async function loadMdsiteConfig(configDir: string): Promise<LoadedMdsiteConfig> {
   const configPath = path.join(configDir, configFileName)
@@ -118,7 +154,7 @@ export async function loadMdsiteConfig(configDir: string): Promise<LoadedMdsiteC
     throw new Error(`Missing ${configFileName} in ${configDir}. Run \`mdsite init\` first.`)
   }
 
-  const parsed = YAML.parse(rawText) ?? {}
+  const parsed = (YAML.parse(rawText) ?? {}) as RawMdsiteConfig
   const contentDir = resolveConfiguredContentDir(configDir, parsed)
 
   return {
@@ -149,13 +185,15 @@ export function serializeMdsiteConfig(config: MdsiteConfig): string {
   return YAML.stringify(config)
 }
 
-async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir: string): Promise<MdsiteConfig> {
+async function normalizeMdsiteConfig(rawConfig: RawMdsiteConfig, contentDir: string): Promise<MdsiteConfig> {
   const fallbackConfig = await buildDefaultMdsiteConfig(contentDir)
   const inputPath = resolveInputConfigPath(rawConfig.paths?.input)
 
   return {
     features: {
-      bibleTooltips: rawConfig.features?.['bible-tooltips'] ?? fallbackConfig.features.bibleTooltips,
+      bibleTooltips: typeof rawConfig.features?.['bible-tooltips'] === 'boolean'
+        ? rawConfig.features['bible-tooltips']
+        : fallbackConfig.features.bibleTooltips,
       sourceEdit: typeof rawConfig.features?.['source-edit'] === 'string'
         ? rawConfig.features['source-edit']
         : fallbackConfig.features.sourceEdit,
@@ -165,9 +203,7 @@ async function normalizeMdsiteConfig(rawConfig: Record<string, any>, contentDir:
     },
     menu: Array.isArray(rawConfig.menu) ? rawConfig.menu : fallbackConfig.menu,
     paths: {
-      ignore: typeof rawConfig.paths?.ignore === 'string' || Array.isArray(rawConfig.paths?.ignore)
-        ? rawConfig.paths.ignore
-        : fallbackConfig.paths.ignore,
+      ignore: normalizeIgnoreConfig(rawConfig.paths?.ignore, fallbackConfig.paths.ignore),
       input: inputPath ?? fallbackConfig.paths.input,
       build: typeof rawConfig.paths?.build === 'string' ? rawConfig.paths.build : fallbackConfig.paths.build,
       output: typeof rawConfig.paths?.output === 'string' ? rawConfig.paths.output : fallbackConfig.paths.output
@@ -222,7 +258,7 @@ function resolveInputConfigPath(rawInput: unknown): string | undefined {
   return undefined
 }
 
-export function resolveConfiguredContentDir(configDir: string, rawConfig: Record<string, any>): string {
+export function resolveConfiguredContentDir(configDir: string, rawConfig: RawMdsiteConfig): string {
   const inputPath = resolveInputConfigPath(rawConfig.paths?.input)
   return inputPath ? path.resolve(configDir, inputPath) : configDir
 }

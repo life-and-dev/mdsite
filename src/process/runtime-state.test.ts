@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -12,6 +12,7 @@ import {
   getRuntimeLogPath,
   isProcessRunning,
   readRuntimeState,
+  RuntimeStateReadError,
   writeRuntimeState
 } from './runtime-state.js'
 
@@ -45,7 +46,7 @@ describe('runtime-state helpers', () => {
     expect(getRuntimeLogPath('/content', config, 'start')).not.toBe(path.join('/content', '.renderer', 'start.log'))
   })
 
-  it('writes, reads, and clears runtime state', async () => {
+  it('atomically writes, reads, and clears runtime state', async () => {
     const contentDir = await makeTempDir()
     const state = {
       kind: 'start' as const,
@@ -59,23 +60,105 @@ describe('runtime-state helpers', () => {
 
     await writeRuntimeState(contentDir, config, state)
 
-    expect(await readRuntimeState(contentDir, config, 'start')).toEqual(state)
+    expect(await readRuntimeState(contentDir, config, 'start')).toEqual({
+      ...state,
+      schemaVersion: 1,
+      ...(process.platform === 'win32' ? {} : { processGroupId: state.pid })
+    })
 
-    const raw = await readFile(path.join(getRuntimeDir(contentDir, config), 'live.json'), 'utf8')
+    const runtimeDir = getRuntimeDir(contentDir, config)
+    const raw = await readFile(path.join(runtimeDir, 'live.json'), 'utf8')
     expect(raw.endsWith('\n')).toBe(true)
+    expect(await readdir(runtimeDir)).toEqual(['live.json'])
 
     await clearRuntimeState(contentDir, config, 'start')
     await expect(readRuntimeState(contentDir, config, 'start')).resolves.toBeNull()
   })
 
-  it('returns null for missing or malformed state files', async () => {
+  it('returns null only for missing state files', async () => {
     const contentDir = await makeTempDir()
-    expect(await readRuntimeState(contentDir, config, 'preview')).toBeNull()
-
-    const runtimeDir = getRuntimeDir(contentDir, config)
-    await import('node:fs/promises').then(({ mkdir, writeFile }) => mkdir(runtimeDir, { recursive: true }).then(() => writeFile(path.join(runtimeDir, 'static.json'), '{oops', 'utf8')))
-
     await expect(readRuntimeState(contentDir, config, 'preview')).resolves.toBeNull()
+  })
+
+  it('reports malformed JSON with its state path', async () => {
+    const contentDir = await makeTempDir()
+    const runtimeDir = getRuntimeDir(contentDir, config)
+    const statePath = path.join(runtimeDir, 'static.json')
+    await mkdir(runtimeDir, { recursive: true })
+    await writeFile(statePath, '{oops', 'utf8')
+
+    await expect(readRuntimeState(contentDir, config, 'preview')).rejects.toMatchObject({
+      failure: 'malformed',
+      statePath
+    } satisfies Partial<RuntimeStateReadError>)
+  })
+
+  it('reports state read failures as unreadable', async () => {
+    const contentDir = await makeTempDir()
+    const statePath = path.join(getRuntimeDir(contentDir, config), 'static.json')
+    await mkdir(statePath, { recursive: true })
+
+    await expect(readRuntimeState(contentDir, config, 'preview')).rejects.toMatchObject({
+      failure: 'unreadable',
+      statePath
+    } satisfies Partial<RuntimeStateReadError>)
+  })
+
+  it('accepts legacy state without identity metadata', async () => {
+    const contentDir = await makeTempDir()
+    const runtimeDir = getRuntimeDir(contentDir, config)
+    const legacyState = {
+      kind: 'preview' as const,
+      pid: 654,
+      logPath: '/tmp/static.log',
+      rendererDir: '/renderer',
+      contentDir,
+      command: ['npm', 'run', 'preview'],
+      startedAt: '2026-04-10T00:00:00.000Z'
+    }
+    await mkdir(runtimeDir, { recursive: true })
+    await writeFile(path.join(runtimeDir, 'static.json'), JSON.stringify(legacyState), 'utf8')
+
+    await expect(readRuntimeState(contentDir, config, 'preview')).resolves.toEqual(legacyState)
+  })
+
+  it('rejects process identity metadata that does not match the tracked PID', async () => {
+    const contentDir = await makeTempDir()
+    const runtimeDir = getRuntimeDir(contentDir, config)
+    await mkdir(runtimeDir, { recursive: true })
+    await writeFile(path.join(runtimeDir, 'live.json'), JSON.stringify({
+      schemaVersion: 1,
+      kind: 'start',
+      pid: 321,
+      processGroupId: 999,
+      logPath: '/tmp/live.log',
+      rendererDir: '/renderer',
+      contentDir,
+      command: ['npm', 'run', 'dev'],
+      startedAt: '2026-04-10T00:00:00.000Z'
+    }), 'utf8')
+
+    await expect(readRuntimeState(contentDir, config, 'start')).rejects.toMatchObject({
+      failure: 'malformed'
+    } satisfies Partial<RuntimeStateReadError>)
+  })
+
+  it('cleans its temporary file when the atomic rename fails', async () => {
+    const contentDir = await makeTempDir()
+    const runtimeDir = getRuntimeDir(contentDir, config)
+    await mkdir(path.join(runtimeDir, 'live.json'), { recursive: true })
+
+    await expect(writeRuntimeState(contentDir, config, {
+      kind: 'start',
+      pid: 321,
+      logPath: '/tmp/live.log',
+      rendererDir: '/renderer',
+      contentDir,
+      command: ['npm', 'run', 'dev'],
+      startedAt: '2026-04-10T00:00:00.000Z'
+    })).rejects.toThrow()
+
+    expect(await readdir(runtimeDir)).toEqual(['live.json'])
   })
 
   it('detects running processes by probing process.kill', () => {
