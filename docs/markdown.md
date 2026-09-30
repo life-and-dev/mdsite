@@ -155,3 +155,34 @@ flowchart LR
 ```
 
 This will be rendered as a beautiful interactive diagram.
+
+## 8. Inline TeX formulas
+
+Wrap inline TeX in single dollar signs: `$...$`. Formulas work in paragraphs,
+list items, and pipe-table cells without changing the source notation.
+
+For example:
+
+```md
+Einstein's mass–energy relation is $E=mc^2$.
+```
+
+Will be rendered as:
+
+Einstein's mass–energy relation is $E=mc^2$.
+
+KaTeX renders formulas during Markdown compilation, with bundled styles and fonts
+in both `mdsite live` and `mdsite generate`. Generated pages contain HTML and
+MathML, so formulas remain readable with browser JavaScript disabled.
+
+An unmatched dollar sign such as `$20` stays literal. Escape dollar signs for
+currency or literal notation: `\$20 and \$30`, or `\$A_y\$`. Two unescaped dollar
+signs can delimit math even in currency text, so escape each currency dollar
+when multiple prices appear together. Inline code and fenced code blocks keep
+`$...$` literal.
+
+Use [KaTeX-supported commands](https://katex.org/docs/supported.html). Malformed
+TeX (for example `$A_{y$`) renders the original TeX in red with a `katex-error`
+class and a diagnostic `title`. Unsupported commands appear literally in red
+inside the formula. Neither case aborts the site build. An unclosed `$`
+delimiter remains ordinary text, not a TeX error.
