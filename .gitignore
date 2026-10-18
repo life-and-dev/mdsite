@@ -31,3 +31,4 @@ logs
 
 # Autocode
 .opencode/autocode/
+.agents/jobs/
